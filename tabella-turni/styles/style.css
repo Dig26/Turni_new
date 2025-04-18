@@ -1,0 +1,828 @@
+/* Stili migliorati per la tabella */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f5f7fa;
+  padding: 20px;
+  margin: 0;
+}
+
+/* Header dell'applicazione */
+.app-header {
+  text-align: center;
+  margin-bottom: 20px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.app-header h1 {
+  color: #2c3e50;
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.app-header p {
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+/* Container della tabella */
+#hot {
+  width: 95%;
+  height: auto;
+  margin: 20px auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: none; /* Nasconde la tabella finché non viene creata */
+}
+
+/* Popup iniziale (vista dinamica) */
+#initialPopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+/* Stili overlay comuni */
+.cellOverlay, .headerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 900;
+  backdrop-filter: blur(3px);
+}
+
+.headerOverlay {
+  z-index: 950;
+}
+
+/* Stile popup migliorato */
+.custom-popup {
+  background: #fff;
+  border: none;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Intestazione popup */
+.popup-header {
+  text-align: left;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  font-weight: bold;
+  font-size: 18px;
+  color: #2c3e50;
+}
+
+/* Form elements */
+#timeContainer {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+#aCasaContainer {
+  margin-bottom: 10px;
+  margin-top: 15px;
+}
+
+#aCasaExtraContainer {
+  margin-bottom: 15px;
+  display: block;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+}
+
+#aCasaExtraContainer label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+#aCasaExtraContainer .aCasaInputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Styling inputs e select */
+.custom-popup select,
+.custom-popup input[type="text"],
+.custom-popup input[type="number"],
+.custom-popup input[type="date"],
+.custom-popup input[type="week"] {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 15px;
+  transition: border 0.2s;
+}
+
+.custom-popup select:focus,
+.custom-popup input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Buttons */
+.custom-popup button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  margin-left: 8px;
+}
+
+/* Primary button */
+.custom-popup button:last-child {
+  background-color: #3498db;
+  color: white;
+}
+
+.custom-popup button:last-child:hover {
+  background-color: #2980b9;
+}
+
+/* Secondary buttons */
+.custom-popup button:not(:last-child) {
+  background-color: #f1f2f6;
+  color: #555;
+}
+
+.custom-popup button:not(:last-child):hover {
+  background-color: #dfe4ea;
+}
+
+/* Radio buttons */
+.custom-popup input[type="radio"] {
+  margin-right: 5px;
+}
+
+.custom-popup label {
+  margin-right: 15px;
+  cursor: pointer;
+}
+
+/* Classe per centrare il testo */
+.htCenter {
+  text-align: center;
+}
+
+/* Stili per il drag and drop semplificato */
+/* CSS corretto per il drag-preview */
+.drag-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 2000;
+  opacity: 0.85;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+  
+  /* Usa transform per le transizioni invece di modificare direttamente left e top */
+  transform: translateZ(0); /* Forza GPU acceleration */
+  will-change: transform; /* Suggerisce al browser di ottimizzare per questa proprietà */
+  
+  /* Disabilita tutte le transizioni durante il drag */
+  transition: none !important;
+}
+
+body.dragging .custom-popup {
+  animation: none !important;
+}
+
+/* Ottimizzazioni per la tabella Handsontable */
+.handsontable .htCore {
+  /* Forza l'accelerazione hardware sulla tabella */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: contents;
+}
+
+/* Mantieni i contenuti fermi durante gli aggiornamenti */
+.handsontable .htCore td {
+  transition: none !important;
+}
+
+
+/* Tabella nel drag preview */
+.dragTable {
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #3498db;
+  overflow: hidden;
+  background-color: white;
+}
+
+.dragTable td {
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.dragTable tr:first-child td {
+  background-color: #eef2f7;
+  font-weight: bold;
+}
+
+.dragTable tr:nth-child(even) td {
+  background-color: #f8f9fa;
+}
+
+/* Indicatore di drop */
+.drop-indicator {
+  position: fixed;         /* IMPORTANTE: usa fixed invece di absolute */
+  width: 4px;
+  background-color: #3498db;
+  z-index: 1500;
+  display: none;
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+  animation: pulse 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Stile per il body durante il trascinamento */
+body.dragging {
+  cursor: grabbing !important;
+}
+
+/* Stili per le variazioni dei dipendenti (header popup) */
+.variation-container {
+  margin-top: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  text-align: left;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.variation-row {
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px auto;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.variation-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.variation-row input[type="date"],
+.variation-row input[type="number"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.variation-row button {
+  padding: 5px 10px;
+  background-color: #e74c3c;
+  color: white;
+  margin-left: 0;
+}
+
+.variation-row button:hover {
+  background-color: #c0392b;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .custom-popup {
+    max-width: 95%;
+    padding: 15px;
+  }
+  
+  #timeContainer, 
+  .aCasaInputs {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .variation-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .variation-row input[type="number"],
+  .variation-row button {
+    grid-column: span 1;
+  }
+}
+
+/* Handsontable customizations */
+.handsontable .htCore th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.handsontable .htCore tbody tr:first-child td {
+  background-color: #eef2f7;
+  font-weight: bold;
+}
+
+.handsontable .htCore tbody tr:nth-child(even) td {
+  background-color: #f8f9fa;
+}
+
+.handsontable .htCore tbody tr:hover td {
+  background-color: #e9f0f8;
+}
+
+/* Styling for summary rows */
+.handsontable .htCore tbody tr:nth-last-child(-n+6) td {
+  background-color: #eef7f2;
+  font-weight: 500;
+}
+
+/* Stile per la cella del totale fatturato */
+.fatturato-totale {
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-weight: bold !important;
+  font-size: 1.1em !important;
+  background-color: #e8f4fd !important;
+  color: #2980b9 !important;
+}
+
+/* Modifica anche lo stile delle celle nelle righe di riepilogo per garantire un allineamento coerente */
+.handsontable .htCore tbody tr:nth-last-child(-n+6) td {
+  background-color: #eef7f2;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ---------- STILI PER PARTICOLARITÀ ---------- */
+
+/* Stili per il popup delle particolarità */
+.particolarita-popup {
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.particolarita-search {
+  margin-bottom: 15px;
+}
+
+.particolarita-search input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 15px;
+  transition: border 0.2s;
+}
+
+.particolarita-search input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.particolarita-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.particolarita-item {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.particolarita-item:last-child {
+  border-bottom: none;
+}
+
+.particolarita-item:hover {
+  background-color: #f8f9fa;
+}
+
+.particolarita-item label {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  width: 100%;
+  padding-left: 25px;
+  position: relative;
+}
+
+.particolarita-item input[type="checkbox"] {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  margin: 0;
+}
+
+.particolarita-nome {
+  font-weight: 500;
+  font-size: 15px;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.particolarita-descrizione {
+  font-size: 13px;
+  color: #7f8c8d;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.particolarita-sigla {
+  font-size: 12px;
+  font-weight: bold;
+  color: #3498db;
+  display: inline-block;
+  background-color: #eef7fb;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-top: 2px;
+}
+
+/* Stile per la cella particolarità nella tabella */
+.particolarita-cell {
+  font-weight: 500 !important;
+  text-align: center !important;
+  background-color: #f8f9fb !important;
+}
+
+/* Stili per le celle della colonna Particolarità nella tabella */
+.handsontable td[data-particolarita] {
+  text-align: center;
+  background-color: #f8f9fb;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Stili per il popup e miglioramenti visivi */
+#particolaritaOverlay {
+  z-index: 1000;
+}
+
+/* Stile per lo scrollbar personalizzato */
+.particolarita-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.particolarita-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.particolarita-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.particolarita-list::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Stile per le particolarità selezionate */
+.particolarita-item input[type="checkbox"]:checked + .particolarita-nome {
+  color: #3498db;
+}
+
+.particolarita-item input[type="checkbox"]:checked ~ .particolarita-sigla {
+  background-color: #3498db;
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .particolarita-popup {
+    max-width: 95%;
+  }
+  
+  .particolarita-item label {
+    padding-left: 30px;
+  }
+  
+  .particolarita-item input[type="checkbox"] {
+    top: 8px;
+  }
+}
+
+/* Stili per le differenze +/- mese precedente e corrente */
+
+/* Stili per la riga "Differenza +/- mese precedente" */
+.differenza-positiva {
+  color: #27ae60 !important;
+  font-weight: bold !important;
+}
+
+.differenza-negativa {
+  color: #e74c3c !important;
+  font-weight: bold !important;
+}
+
+/* Overlay per il popup differenza mese precedente */
+#differenzaPrecedenteOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 950;
+  backdrop-filter: blur(3px);
+}
+
+/* Contenitore popup */
+#differenzaPrecedentePopup {
+  background: #fff;
+  border: none;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Styling per l'input */
+#differenzaPrecedenteInput {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  transition: border 0.2s;
+}
+
+#differenzaPrecedenteInput:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Stile SOLO per le celle normali delle righe riepilogative (escludendo fatturato e particolarità) */
+.handsontable
+  .htCore
+  tbody
+  tr:nth-last-child(-n + 8)
+  td:not(.fatturato-totale):not(.particolarita-cell) {
+  background-color: #eef7f2 !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+}
+
+/* Solo un bordo superiore per l'ultima riga ma mantenendo lo sfondo verdino */
+.handsontable
+  .htCore
+  tbody
+  tr:last-child
+  td:not(.fatturato-totale):not(.particolarita-cell) {
+  border-top: 2px solid #ddd !important;
+  font-weight: bold !important;
+}
+
+/* Cursor pointer solo per le celle cliccabili nella riga differenza mese precedente */
+.handsontable
+  .htCore
+  tbody
+  tr:nth-last-child(4)
+  td:nth-child(n + 3):not(.fatturato-totale):not(.particolarita-cell) {
+  cursor: pointer;
+}
+
+/* Specifica per le celle nelle colonne dipendenti nelle righe riepilogative */
+.handsontable
+  .htCore
+  tbody
+  tr:nth-last-child(-n + 8)
+  td:nth-child(n + 3):nth-child(-n + 8) {
+  background-color: #eef7f2 !important;
+}
+
+/* Mantenere lo stile originale delle celle del fatturato */
+.fatturato-totale {
+  background-color: #e8f4fd !important;
+  color: #2980b9 !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-weight: bold !important;
+  font-size: 1.1em !important;
+}
+
+/* Mantenere lo stile originale delle celle della particolarità */
+.particolarita-cell {
+  font-weight: 500 !important;
+  text-align: center !important;
+  background-color: #f8f9fb !important;
+}
+
+/* Stili corretti per il cursore a manina */
+
+/* Stile per tutte le celle normali cliccabili (non nelle righe riepilogative) */
+.handsontable
+  .htCore
+  tbody
+  tr:not(:nth-last-child(-n + 8))
+  td:nth-child(n + 3) {
+  cursor: pointer;
+}
+
+/* Stile SOLO per la riga "Differenza +/- mese precedente" */
+.handsontable
+  .htCore
+  tbody
+  tr:nth-child(INDEX_DIFF_PRECEDENTE)
+  td:nth-child(n + 3):nth-child(-n + 8) {
+  cursor: pointer;
+}
+
+/* Ripristina il cursore normale per le colonne fatturato e particolarità nelle righe riepilogative */
+.handsontable .htCore tbody tr:nth-last-child(-n + 8) td.fatturato-totale,
+.handsontable .htCore tbody tr:nth-last-child(-n + 8) td.particolarita-cell {
+  cursor: default !important;
+}
+
+/* Mantieni il cursore pointer per le celle fatturato cliccabili (solo nei giorni del mese) */
+.handsontable .htCore tbody tr:not(:nth-last-child(-n + 8)) td.fatturato-totale,
+.handsontable
+  .htCore
+  tbody
+  tr:not(:nth-last-child(-n + 8))
+  td[data-col="fatturato"] {
+  cursor: pointer;
+}
+
+/* Mantieni il cursore pointer per le celle particolarità cliccabili (solo nei giorni del mese) */
+.handsontable
+  .htCore
+  tbody
+  tr:not(:nth-last-child(-n + 8))
+  td.particolarita-cell,
+.handsontable
+  .htCore
+  tbody
+  tr:not(:nth-last-child(-n + 8))
+  td[data-col="particolarita"] {
+  cursor: pointer;
+}
+
+/* Area di drag sulla colonna (area sensibile) */
+.handsontable .htCore tbody tr:first-child td {
+  position: relative;
+  cursor: default;
+}
+
+/* Aggiungi un'area di "drag handle" a sinistra delle celle dell'header */
+.handsontable .htCore tbody tr:first-child td::before {
+  content: "⋮⋮";
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #95a5a6;
+  font-size: 10px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Crea un'area di 20px all'inizio di ogni cella header per il drag handle */
+.handsontable .htCore tbody tr:first-child td > * {
+  margin-left: 15px; /* Sposta il contenuto a destra per fare spazio all'icona */
+}
+
+/* Mostra l'icona di drag più chiaramente quando si passa sopra */
+.handsontable .htCore tbody tr:first-child td:hover::before {
+  opacity: 1;
+  color: #3498db;
+}
+
+/* Cambia il cursore quando si passa sopra l'area di drag */
+.handsontable .htCore tbody tr:first-child td:hover {
+  cursor: grab;
+}
+
+/* Modificare il cursore per le celle normali dell'header quando non si è sull'area di drag */
+.handsontable .htCore tbody tr:first-child td > *:hover {
+  cursor: pointer;
+}/* Stili per il drag and drop da aggiungere al file style.css */
+
+/* Preview del drag */
+.drag-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 2000;
+  display: none;
+  max-width: 300px;
+  opacity: 0.85;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Tabella nel drag preview */
+.dragTable {
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #3498db;
+  overflow: hidden;
+  background-color: white;
+}
+
+.dragTable td {
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.dragTable tr:first-child td {
+  background-color: #eef2f7;
+  font-weight: bold;
+}
+
+.dragTable tr:nth-child(even) td {
+  background-color: #f8f9fa;
+}
+
+/* Indicatore di drop */
+.drop-indicator {
+  position: fixed;
+  width: 4px;
+  background-color: #3498db;
+  z-index: 1500;
+  pointer-events: none;
+  transform: translateZ(0);
+  will-change: transform;
+  
+  /* Riduci l'animazione di pulse per migliorare le performance */
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Stile per il corpo durante il trascinamento */
+body.dragging {
+  cursor: grabbing !important;
+}
