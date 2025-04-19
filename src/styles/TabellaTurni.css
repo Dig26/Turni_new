@@ -1,10 +1,12 @@
+/* Aggiunte per styles/TabellaTurni.css */
+
 .tabella-turni-container {
     background-color: var(--background-color);
   }
   
   .tabella-controls {
     background-color: white;
-    padding: 16px;
+    padding: 20px;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     margin-bottom: 24px;
@@ -18,6 +20,13 @@
   .date-selectors {
     display: flex;
     gap: 16px;
+    align-items: flex-end;
+  }
+  
+  .create-table-btn {
+    min-width: 150px;
+    height: 40px;
+    margin-left: 8px;
   }
   
   .tabella-wrapper {
@@ -26,13 +35,31 @@
     box-shadow: var(--box-shadow);
     padding: 16px;
     margin-bottom: 24px;
+    min-height: 300px;
+  }
+  
+  .no-dipendenti-warning {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: rgba(243, 156, 18, 0.1);
+    color: var(--warning-color);
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    margin-top: 10px;
+    width: 100%;
+  }
+  
+  .no-dipendenti-warning i {
+    font-size: 18px;
   }
   
   .tabella-legend {
     background-color: white;
-    padding: 16px;
+    padding: 20px;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
+    margin-top: 30px;
   }
   
   .tabella-legend h3 {
@@ -59,11 +86,19 @@
     font-size: 16px;
   }
   
+  /* Responsive design */
   @media (max-width: 768px) {
     .date-selectors {
       flex-direction: column;
       gap: 10px;
       width: 100%;
+      align-items: flex-start;
+    }
+    
+    .create-table-btn {
+      width: 100%;
+      margin-left: 0;
+      margin-top: 10px;
     }
     
     .tabella-controls {
