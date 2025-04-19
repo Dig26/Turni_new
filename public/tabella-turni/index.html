@@ -546,5 +546,308 @@
         }
       });
     </script>
+    // Modifica completa per tabella-turni/index.html prima della chiusura del tag body
+
+    <script>
+      // Variabili per la comunicazione con l'app React parent
+      let parentWindow = null;
+      let parentOrigin = null;
+      let negozioId = null;
+      let currentMonth = null;
+      let currentYear = null;
+      let savedData = null;
+    
+      // Funzione per estrarre parametri dall'URL
+      function getUrlParams() {
+        const searchParams = new URLSearchParams(window.location.search);
+        negozioId = searchParams.get('negozioId');
+        currentMonth = parseInt(searchParams.get('month'), 10);
+        currentYear = parseInt(searchParams.get('year'), 10);
+        
+        // Se i parametri sono validi, usali per impostare la data
+        if (negozioId && !isNaN(currentMonth) && !isNaN(currentYear)) {
+          window.mese = currentMonth;
+          window.anno = currentYear;
+          console.log(`Parametri URL: negozioId=${negozioId}, mese=${currentMonth}, anno=${currentYear}`);
+          
+          // Carica i dati salvati dal localStorage
+          loadSavedData();
+        }
+      }
+      
+      // Funzione per caricare i dati salvati
+      function loadSavedData() {
+        try {
+          // Crea una chiave specifica per questo negozio e periodo
+          const storageKey = `tabella_turni_${negozioId}_${currentYear}_${currentMonth}`;
+          
+          // Carica i dati dalla localStorage
+          const savedItem = localStorage.getItem(storageKey);
+          if (savedItem) {
+            const parsedItem = JSON.parse(savedItem);
+            if (parsedItem && parsedItem.data) {
+              savedData = parsedItem.data;
+              console.log('Dati salvati trovati:', savedData);
+              return true;
+            }
+          }
+          console.log('Nessun dato salvato trovato');
+          return false;
+        } catch (error) {
+          console.error('Errore nel caricamento dei dati salvati:', error);
+          return false;
+        }
+      }
+    
+      // Comunicazione con la finestra parent
+      window.addEventListener('message', function(event) {
+        // Salva l'origine e il riferimento alla finestra parent
+        parentWindow = event.source;
+        parentOrigin = event.origin;
+        
+        console.log('Messaggio ricevuto dall\'app parent:', event.data);
+        
+        // Gestisci vari tipi di messaggi
+        if (event.data.type === 'REQUEST_SAVE_DATA') {
+          saveTableData();
+        } else if (event.data.type === 'LOAD_SAVED_DATA') {
+          // Forza il caricamento dei dati salvati
+          const success = applySavedData();
+          sendMessageToParent({
+            type: 'LOAD_DATA_RESULT',
+            success: success
+          });
+        }
+      });
+    
+      // Funzione per salvare i dati della tabella
+      function saveTableData() {
+        try {
+          if (!window.hot) {
+            console.error('Tabella non disponibile');
+            sendMessageToParent({
+              type: 'SAVE_ERROR',
+              message: 'Tabella non disponibile'
+            });
+            return;
+          }
+          
+          // Ottieni tutti i dati della tabella
+          const allData = window.hot.getData();
+          
+          // Ottieni informazioni aggiuntive come variazioni dei dipendenti
+          const employeeVariations = window.employeeVariations || {};
+          
+          // Ottieni configurazione delle colonne
+          const columnUnits = window.columnUnits || [];
+          
+          // Crea l'oggetto dati completo
+          const dataToSave = {
+            tableData: allData,
+            employeeVariations: employeeVariations,
+            columnUnits: columnUnits,
+            mese: window.mese,
+            anno: window.anno,
+            pairToEmployee: window.pairToEmployee,
+            employees: window.employees,
+            sums: window.sums,
+            ferieTotals: window.ferieTotals,
+            exFestivitaTotals: window.exFestivitaTotals,
+            rolTotals: window.rolTotals
+          };
+          
+          // Invia i dati alla finestra parent
+          sendMessageToParent({
+            type: 'SAVE_DATA',
+            payload: dataToSave
+          });
+          
+          // Mostra messaggio di successo all'utente
+          alert('Tabella salvata con successo!');
+          
+          // Informa il parent del successo
+          sendMessageToParent({
+            type: 'SAVE_SUCCESS'
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('Errore nel salvataggio dei dati:', error);
+          alert('Errore nel salvataggio: ' + error.message);
+          
+          sendMessageToParent({
+            type: 'SAVE_ERROR',
+            message: error.message
+          });
+          return false;
+        }
+      }
+      
+      // Funzione per applicare i dati salvati
+      function applySavedData() {
+        try {
+          if (!savedData) {
+            console.log('Nessun dato da caricare');
+            return false;
+          }
+          
+          if (!window.hot) {
+            console.error('Tabella non disponibile');
+            return false;
+          }
+          
+          console.log('Applicazione dei dati salvati alla tabella');
+          
+          // Ripristina variabili globali dai dati salvati
+          if (savedData.mese !== undefined) window.mese = savedData.mese;
+          if (savedData.anno !== undefined) window.anno = savedData.anno;
+          if (savedData.pairToEmployee) window.pairToEmployee = savedData.pairToEmployee;
+          if (savedData.employees) window.employees = savedData.employees;
+          if (savedData.employeeVariations) window.employeeVariations = savedData.employeeVariations;
+          if (savedData.sums) window.sums = savedData.sums;
+          if (savedData.ferieTotals) window.ferieTotals = savedData.ferieTotals;
+          if (savedData.exFestivitaTotals) window.exFestivitaTotals = savedData.exFestivitaTotals;
+          if (savedData.rolTotals) window.rolTotals = savedData.rolTotals;
+          
+          // Carica i dati nella tabella
+          if (savedData.tableData && Array.isArray(savedData.tableData)) {
+            window.hot.loadData(savedData.tableData);
+            
+            // Se hai salvato anche le unità delle colonne, ripristinale
+            if (savedData.columnUnits && Array.isArray(savedData.columnUnits)) {
+              window.columnUnits = savedData.columnUnits;
+              
+              // Aggiorna le impostazioni della tabella
+              window.hot.updateSettings({
+                columns: window.buildColumnsFromUnits(),
+                mergeCells: window.buildMerges()
+              });
+            }
+            
+            // Aggiorna i totali
+            if (typeof window.updateTotaleOre === 'function') window.updateTotaleOre();
+            if (typeof window.updateOrePagate === 'function') window.updateOrePagate();
+            if (typeof window.updateDifferenzeCorrente === 'function') window.updateDifferenzeCorrente();
+            if (typeof window.updateFatturatoTotale === 'function') window.updateFatturatoTotale();
+            
+            console.log('Dati caricati con successo nella tabella');
+            return true;
+          }
+          
+          return false;
+        } catch (error) {
+          console.error('Errore nell\'applicazione dei dati salvati:', error);
+          return false;
+        }
+      }
+    
+      // Funzione per inviare messaggi alla finestra parent
+      function sendMessageToParent(message) {
+        if (parentWindow && parentOrigin) {
+          parentWindow.postMessage(message, parentOrigin);
+        } else if (window.parent) {
+          // Fallback se parentWindow non è impostato
+          window.parent.postMessage(message, '*');
+        }
+      }
+    
+      // Funzione per tornare alla pagina principale
+      function navigateBack() {
+        sendMessageToParent({
+          type: 'NAVIGATE_BACK'
+        });
+      }
+    
+      // Estrai i parametri all'avvio
+      getUrlParams();
+      
+      // Aggiungi un pulsante di salvataggio e un pulsante per tornare indietro nella UI
+      document.addEventListener('DOMContentLoaded', function() {
+        // Aggiungi un div per i pulsanti nell'header dell'app
+        const header = document.querySelector('.app-header');
+        if (header) {
+          const buttonsDiv = document.createElement('div');
+          buttonsDiv.style.marginTop = '10px';
+          buttonsDiv.style.display = 'flex';
+          buttonsDiv.style.gap = '10px';
+          
+          // Pulsante Salva
+          const saveButton = document.createElement('button');
+          saveButton.innerHTML = '<i class="fas fa-save"></i> Salva';
+          saveButton.onclick = saveTableData;
+          saveButton.style.padding = '8px 16px';
+          saveButton.style.backgroundColor = '#3498db';
+          saveButton.style.color = 'white';
+          saveButton.style.border = 'none';
+          saveButton.style.borderRadius = '4px';
+          saveButton.style.cursor = 'pointer';
+          
+          // Pulsante Torna indietro
+          const backButton = document.createElement('button');
+          backButton.innerHTML = '<i class="fas fa-arrow-left"></i> Torna alla lista';
+          backButton.onclick = navigateBack;
+          backButton.style.padding = '8px 16px';
+          backButton.style.backgroundColor = '#95a5a6';
+          backButton.style.color = 'white';
+          backButton.style.border = 'none';
+          backButton.style.borderRadius = '4px';
+          backButton.style.cursor = 'pointer';
+          
+          // Aggiungi i pulsanti al div
+          buttonsDiv.appendChild(backButton);
+          buttonsDiv.appendChild(saveButton);
+          
+          // Aggiungi il div all'header
+          header.appendChild(buttonsDiv);
+        }
+      });
+      
+      // Modifica la funzione initTable per caricare i dati salvati
+      if (typeof window.initTable === 'function') {
+        const originalInitTable = window.initTable;
+        
+        window.initTable = function() {
+          // Chiamare la funzione originale
+          originalInitTable.apply(this, arguments);
+          
+          // Dopo che la tabella è stata inizializzata, applica i dati salvati
+          setTimeout(function() {
+            if (savedData) {
+              applySavedData();
+            }
+          }, 500);
+        };
+      }
+      
+      // Verifica se showDateSelection esiste e modifica la sua funzione
+      if (typeof window.showDateSelection === 'function') {
+        // Salva la funzione originale
+        const originalShowDateSelection = window.showDateSelection;
+        
+        // Sovrascrivi la funzione
+        window.showDateSelection = function() {
+          // Se abbiamo impostato il mese e l'anno dai parametri URL, non mostrare il popup
+          if (negozioId && !isNaN(currentMonth) && !isNaN(currentYear)) {
+            console.log('Usando mese e anno dai parametri URL');
+            
+            // Nascondi il popup
+            const initialPopup = document.getElementById("initialPopup");
+            if (initialPopup) {
+              initialPopup.style.display = "none";
+            }
+            
+            // Inizializza direttamente la tabella
+            if (typeof window.initTable === 'function') {
+              window.initTable();
+            }
+            
+            return;
+          }
+          
+          // Altrimenti, usa la funzione originale
+          originalShowDateSelection();
+        };
+      }
+    </script>
   </body>
 </html>
