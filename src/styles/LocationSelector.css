@@ -1,0 +1,43 @@
+.location-selector {
+  display: flex;
+  gap: 20px;
+}
+
+.location-selector .form-group {
+  flex: 1;
+}
+
+.country-select,
+.city-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 15px;
+  background-color: white;
+}
+
+.location-loading,
+.location-error {
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: var(--border-radius);
+}
+
+.location-loading {
+  background-color: #f8f9fa;
+  color: var(--text-light);
+}
+
+.location-error {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: var(--danger-color);
+  border-left: 3px solid var(--danger-color);
+}
+
+@media (max-width: 768px) {
+  .location-selector {
+    flex-direction: column;
+    gap: 0;
+  }
+}

@@ -1,43 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { saveNegozio, getNegozioById } from '../services/negoziService';
-import '../styles/NegozioForm.css';
+import React, { useState, useEffect } from "react";
+import LocationSelector from "./LocationSelector";
+import { saveNegozio, getNegozioById } from "../services/negoziService";
+import "../styles/NegozioForm.css";
 
 function NegozioForm({ onNavigate, negozioId }) {
   const [formData, setFormData] = useState({
-    nome: '',
-    paese: '',
-    citta: '',
-    settore: 'commercio',
-    orarioApertura: '09:00',
-    orarioChiusura: '18:00',
+    nome: "",
+    paese: "",
+    citta: "",
+    settore: "commercio",
+    orarioApertura: "09:00",
+    orarioChiusura: "18:00",
     giorniLavorativi: 6,
-    giorniFissiLiberi: []
+    giorniFissiLiberi: [],
   });
-  
+
   const [loading, setLoading] = useState(negozioId ? true : false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showGiorniFissi, setShowGiorniFissi] = useState(false);
-  
+
   const giorniSettimana = [
-    { value: 'lunedi', label: 'Lunedì' },
-    { value: 'martedi', label: 'Martedì' },
-    { value: 'mercoledi', label: 'Mercoledì' },
-    { value: 'giovedi', label: 'Giovedì' },
-    { value: 'venerdi', label: 'Venerdì' },
-    { value: 'sabato', label: 'Sabato' },
-    { value: 'domenica', label: 'Domenica' }
+    { value: "lunedi", label: "Lunedì" },
+    { value: "martedi", label: "Martedì" },
+    { value: "mercoledi", label: "Mercoledì" },
+    { value: "giovedi", label: "Giovedì" },
+    { value: "venerdi", label: "Venerdì" },
+    { value: "sabato", label: "Sabato" },
+    { value: "domenica", label: "Domenica" },
   ];
-  
+
   const settoriOptions = [
-    { value: 'commercio', label: 'Commercio' },
-    { value: 'ristorazione', label: 'Ristorazione' },
-    { value: 'abbigliamento', label: 'Abbigliamento' },
-    { value: 'alimentari', label: 'Alimentari' },
-    { value: 'tecnologia', label: 'Tecnologia' },
-    { value: 'servizi', label: 'Servizi' },
-    { value: 'altro', label: 'Altro' }
+    { value: "commercio", label: "Commercio" },
+    { value: "ristorazione", label: "Ristorazione" },
+    { value: "abbigliamento", label: "Abbigliamento" },
+    { value: "alimentari", label: "Alimentari" },
+    { value: "tecnologia", label: "Tecnologia" },
+    { value: "servizi", label: "Servizi" },
+    { value: "altro", label: "Altro" },
   ];
-  
+
   useEffect(() => {
     // Se è una modifica, carica i dati del negozio
     if (negozioId) {
@@ -45,25 +46,27 @@ function NegozioForm({ onNavigate, negozioId }) {
         try {
           const negozio = await getNegozioById(negozioId);
           setFormData(negozio);
-          setShowGiorniFissi(negozio.giorniFissiLiberi && negozio.giorniFissiLiberi.length > 0);
+          setShowGiorniFissi(
+            negozio.giorniFissiLiberi && negozio.giorniFissiLiberi.length > 0
+          );
         } catch (error) {
-          console.error('Errore nel caricamento del negozio:', error);
-          setError('Errore nel caricamento del negozio.');
+          console.error("Errore nel caricamento del negozio:", error);
+          setError("Errore nel caricamento del negozio.");
         } finally {
           setLoading(false);
         }
       };
-      
+
       fetchNegozio();
     }
   }, [negozioId]);
-  
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
-    if (type === 'checkbox' && name === 'giorniFissiLiberi') {
+
+    if (type === "checkbox" && name === "giorniFissiLiberi") {
       const giorniLiberi = [...formData.giorniFissiLiberi];
-      
+
       if (checked) {
         giorniLiberi.push(value);
       } else {
@@ -72,48 +75,48 @@ function NegozioForm({ onNavigate, negozioId }) {
           giorniLiberi.splice(index, 1);
         }
       }
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
-        giorniFissiLiberi: giorniLiberi
+        giorniFissiLiberi: giorniLiberi,
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    
+    setError("");
+
     // Validazione
     if (!formData.nome.trim()) {
-      setError('Il nome del negozio è obbligatorio.');
+      setError("Il nome del negozio è obbligatorio.");
       return;
     }
-    
+
     if (!formData.citta.trim()) {
-      setError('La città è obbligatoria.');
+      setError("La città è obbligatoria.");
       return;
     }
-    
+
     if (!formData.paese.trim()) {
-      setError('Il paese è obbligatorio.');
+      setError("Il paese è obbligatorio.");
       return;
     }
-    
+
     try {
       await saveNegozio(formData, negozioId);
-      onNavigate('negozi');
+      onNavigate("negozi");
     } catch (error) {
-      console.error('Errore nel salvataggio del negozio:', error);
-      setError('Errore nel salvataggio del negozio. Riprova.');
+      console.error("Errore nel salvataggio del negozio:", error);
+      setError("Errore nel salvataggio del negozio. Riprova.");
     }
   };
-  
+
   if (loading) {
     return (
       <div className="loading-spinner center">
@@ -122,19 +125,19 @@ function NegozioForm({ onNavigate, negozioId }) {
       </div>
     );
   }
-  
+
   return (
     <div className="negozio-form-container">
       <div className="page-header">
-        <h1>{negozioId ? 'Modifica Negozio' : 'Aggiungi Nuovo Negozio'}</h1>
+        <h1>{negozioId ? "Modifica Negozio" : "Aggiungi Nuovo Negozio"}</h1>
       </div>
-      
+
       {error && <div className="error-message">{error}</div>}
-      
+
       <form onSubmit={handleSubmit} className="negozio-form">
         <div className="form-section">
           <h3>Informazioni di Base</h3>
-          
+
           <div className="form-group">
             <label htmlFor="nome">Nome Negozio *</label>
             <input
@@ -147,35 +150,26 @@ function NegozioForm({ onNavigate, negozioId }) {
               placeholder="Inserisci il nome del negozio"
             />
           </div>
-          
+
           <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="paese">Paese *</label>
-              <input
-                type="text"
-                id="paese"
-                name="paese"
-                value={formData.paese}
-                onChange={handleChange}
-                required
-                placeholder="Es. Italia"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="citta">Città *</label>
-              <input
-                type="text"
-                id="citta"
-                name="citta"
-                value={formData.citta}
-                onChange={handleChange}
-                required
-                placeholder="Es. Milano"
-              />
-            </div>
+            <LocationSelector
+              selectedCountry={formData.paese}
+              selectedCity={formData.citta}
+              onCountryChange={(country) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  paese: country,
+                }));
+              }}
+              onCityChange={(city) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  citta: city,
+                }));
+              }}
+            />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="settore">Settore</label>
             <select
@@ -184,7 +178,7 @@ function NegozioForm({ onNavigate, negozioId }) {
               value={formData.settore}
               onChange={handleChange}
             >
-              {settoriOptions.map(option => (
+              {settoriOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -192,10 +186,10 @@ function NegozioForm({ onNavigate, negozioId }) {
             </select>
           </div>
         </div>
-        
+
         <div className="form-section">
           <h3>Orari e Giorni Lavorativi</h3>
-          
+
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="orarioApertura">Orario Apertura</label>
@@ -207,7 +201,7 @@ function NegozioForm({ onNavigate, negozioId }) {
                 onChange={handleChange}
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="orarioChiusura">Orario Chiusura</label>
               <input
@@ -219,23 +213,25 @@ function NegozioForm({ onNavigate, negozioId }) {
               />
             </div>
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="giorniLavorativi">Numero Giorni Lavorativi Settimanali</label>
+            <label htmlFor="giorniLavorativi">
+              Numero Giorni Lavorativi Settimanali
+            </label>
             <select
               id="giorniLavorativi"
               name="giorniLavorativi"
               value={formData.giorniLavorativi}
               onChange={handleChange}
             >
-              {[5, 6, 7].map(num => (
+              {[5, 6, 7].map((num) => (
                 <option key={num} value={num}>
                   {num} giorni
                 </option>
               ))}
             </select>
           </div>
-          
+
           <div className="form-group checkbox-group">
             <div className="checkbox-header">
               <label>
@@ -247,18 +243,22 @@ function NegozioForm({ onNavigate, negozioId }) {
                 Giorni fissi liberi
               </label>
             </div>
-            
+
             {showGiorniFissi && (
               <div className="giorni-checkbox-container">
-                <p className="helper-text">Seleziona i giorni in cui il negozio è chiuso regolarmente:</p>
-                
-                {giorniSettimana.map(giorno => (
+                <p className="helper-text">
+                  Seleziona i giorni in cui il negozio è chiuso regolarmente:
+                </p>
+
+                {giorniSettimana.map((giorno) => (
                   <label key={giorno.value} className="checkbox-label">
                     <input
                       type="checkbox"
                       name="giorniFissiLiberi"
                       value={giorno.value}
-                      checked={formData.giorniFissiLiberi.includes(giorno.value)}
+                      checked={formData.giorniFissiLiberi.includes(
+                        giorno.value
+                      )}
                       onChange={handleChange}
                     />
                     {giorno.label}
@@ -268,17 +268,17 @@ function NegozioForm({ onNavigate, negozioId }) {
             )}
           </div>
         </div>
-        
+
         <div className="form-actions">
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="btn-secondary"
-            onClick={() => onNavigate('negozi')}
+            onClick={() => onNavigate("negozi")}
           >
             Annulla
           </button>
           <button type="submit" className="btn-primary">
-            {negozioId ? 'Aggiorna Negozio' : 'Crea Negozio'}
+            {negozioId ? "Aggiorna Negozio" : "Crea Negozio"}
           </button>
         </div>
       </form>

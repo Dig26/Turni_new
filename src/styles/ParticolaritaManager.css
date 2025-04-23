@@ -1,0 +1,102 @@
+.particolarita-manager-container {
+    background-color: var(--background-color);
+    padding-bottom: 30px;
+  }
+  
+  .particolarita-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+  }
+  
+  .particolarita-form-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 20px;
+  }
+  
+  .particolarita-form-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--secondary-color);
+  }
+  
+  .particolarita-form-header h3 {
+    margin: 0;
+    color: var(--text-color);
+  }
+  
+  .particolarita-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .particolarita-list-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 20px;
+  }
+  
+  .particolarita-list-container h3 {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--secondary-color);
+    color: var(--text-color);
+  }
+  
+  .particolarita-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+  }
+  
+  .particolarita-card {
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+  
+  .particolarita-card-header {
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .particolarita-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .particolarita-name {
+    font-weight: 500;
+  }
+  
+  .particolarita-sigla {
+    background-color: #eef7fb;
+    color: var(--primary-color);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  
+  .particolarita-actions {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .particolarita-card-body {
+    padding: 12px 15px;
+  }
+  
+  @media (max-width: 768px) {
+    .particolarita-grid {
+      grid-template-columns: 1fr;
+    }
+  }

@@ -1,38 +1,38 @@
 // components/Navbar.js
-import React, { useState } from 'react';
-import { logout } from '../services/authService';
-import '../styles/Navbar.css';
+import React, { useState } from "react";
+import { logout } from "../services/authService";
+import "../styles/Navbar.css";
 
 function Navbar({ user, onNavigate }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+
   const handleLogout = () => {
     logout();
     // La navigazione avverrà automaticamente grazie al listener in App.js
   };
-  
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
-  
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <div className="navbar-logo" onClick={() => onNavigate('dashboard')}>
+        <div className="navbar-logo" onClick={() => onNavigate("dashboard")}>
           <i className="fas fa-calendar-alt"></i>
           <span>Gestione Turni</span>
         </div>
-        
+
         <div className="navbar-mobile-toggle" onClick={toggleMenu}>
           <i className={isMenuOpen ? "fas fa-times" : "fas fa-bars"}></i>
         </div>
-        
-        <ul className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
+
+        <ul className={`navbar-menu ${isMenuOpen ? "active" : ""}`}>
           <li>
-            <button 
-              className="navbar-item" 
+            <button
+              className="navbar-item"
               onClick={() => {
-                onNavigate('dashboard');
+                onNavigate("dashboard");
                 setIsMenuOpen(false);
               }}
             >
@@ -41,10 +41,10 @@ function Navbar({ user, onNavigate }) {
             </button>
           </li>
           <li>
-            <button 
-              className="navbar-item" 
+            <button
+              className="navbar-item"
               onClick={() => {
-                onNavigate('negozi');
+                onNavigate("negozi");
                 setIsMenuOpen(false);
               }}
             >
@@ -52,11 +52,37 @@ function Navbar({ user, onNavigate }) {
               <span>I miei Negozi</span>
             </button>
           </li>
+          <li>
+            <button
+              className="navbar-item"
+              onClick={() => {
+                onNavigate("particolarita");
+                setIsMenuOpen(false);
+              }}
+            >
+              <i className="fas fa-tags"></i>
+              <span>Particolarità</span>
+            </button>
+          </li>
+          <li>
+            <button
+              className="navbar-item"
+              onClick={() => {
+                onNavigate("motivazioni");
+                setIsMenuOpen(false);
+              }}
+            >
+              <i className="fas fa-calendar-times"></i>
+              <span>Motivazioni Assenze</span>
+            </button>
+          </li>
         </ul>
-        
-        <div className={`navbar-user ${isMenuOpen ? 'active' : ''}`}>
+
+        <div className={`navbar-user ${isMenuOpen ? "active" : ""}`}>
           <div className="user-info">
-            <span>{user.nome} {user.cognome}</span>
+            <span>
+              {user.nome} {user.cognome}
+            </span>
           </div>
           <button className="logout-button" onClick={handleLogout}>
             <i className="fas fa-sign-out-alt"></i>
