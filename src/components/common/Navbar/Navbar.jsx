@@ -1,10 +1,13 @@
+/* src/components/common/Navbar/Navbar.jsx */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
-import './Navbar.module.css';
+import ThemeToggle from '../Layout/ThemeToggle';
+import './Navbar.css';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -16,6 +19,7 @@ const Navbar = () => {
   const navigateTo = (path) => {
     navigate(path);
     setIsMenuOpen(false);
+    setIsProfileMenuOpen(false);
   };
   
   return (
@@ -52,13 +56,42 @@ const Navbar = () => {
         </ul>
         
         <div className={`navbar-user ${isMenuOpen ? 'active' : ''}`}>
-          <div className="user-info">
-            {user && <span>{user.nome} {user.cognome}</span>}
+          <ThemeToggle />
+          
+          <div className="profile-menu-container">
+            <button 
+              className="profile-button" 
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            >
+              <div className="profile-avatar">
+                {user?.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span className="profile-name">{user?.nome} {user?.cognome}</span>
+              <i className={`fas fa-chevron-${isProfileMenuOpen ? 'up' : 'down'}`}></i>
+            </button>
+            
+            {isProfileMenuOpen && (
+              <div className="profile-dropdown">
+                <ul>
+                  <li>
+                    <button 
+                      className="profile-menu-item" 
+                      onClick={() => navigateTo('/settings')}
+                    >
+                      <i className="fas fa-cog"></i>
+                      <span>Impostazioni</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button className="profile-menu-item logout-button" onClick={handleLogout}>
+                      <i className="fas fa-sign-out-alt"></i>
+                      <span>Logout</span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
-          <button className="logout-button" onClick={handleLogout}>
-            <i className="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-          </button>
         </div>
       </div>
     </nav>

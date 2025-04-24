@@ -1,0 +1,66 @@
+/* src/styles/NegozioForm.css */
+.negozio-form-container {
+    margin-bottom: 40px;
+  }
+  
+  .negozio-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .form-section {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 20px;
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .form-row .form-group {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .checkbox-group {
+    margin-top: 16px;
+  }
+  
+  .checkbox-header {
+    margin-bottom: 8px;
+  }
+  
+  .giorni-checkbox-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 12px;
+    background-color: var(--secondary-color);
+    border-radius: var(--border-radius);
+  }
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    .form-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
