@@ -1,12 +1,20 @@
-// src/index.js
 import React from 'react';
-import ReactDOM from 'react-dom';
-import './styles/App.css';
+import { createRoot } from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import { store } from './app/store';
 import App from './App';
 
-ReactDOM.render(
+// Importazione degli stili
+import './styles/global.css';
+
+const root = createRoot(document.getElementById('root'));
+root.render(
   <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
+    <Provider store={store}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </Provider>
+  </React.StrictMode>
 );

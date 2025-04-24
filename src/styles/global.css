@@ -1,0 +1,12 @@
+ 
+/* Consolidare tutti i file CSS qui */
+@import './variables.css';
+@import './App.css';
+@import './Auth.css';
+@import './Dashboard.css';
+@import './DipendenteForm.css';
+@import './DipendentiList.css';
+@import './Navbar.css';
+@import './NegozioForm.css';
+@import './NegoziosList.css';
+@import './TabellaTurni.css';
