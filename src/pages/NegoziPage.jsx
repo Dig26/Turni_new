@@ -1,5 +1,5 @@
 import React from 'react';
-import NegoziosList from '../components/NegoziosList.js';
+import NegoziosList from '../components/NegoziosList';
 
 const NegoziPage = () => {
   return <NegoziosList />;

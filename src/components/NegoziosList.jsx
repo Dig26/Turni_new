@@ -35,16 +35,6 @@ function NegoziosList() {
     }
   };
   
-  const handleNavigate = (path, params = {}) => {
-    if (params.negozioId) {
-      navigate(`/negozi/${params.negozioId}/${path}`);
-    } else if (path === 'nuovo') {
-      navigate('/negozi/nuovo');
-    } else {
-      navigate(`/negozi/${path}`);
-    }
-  };
-  
   const filteredNegozi = negozi.filter(negozio =>
     negozio.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     negozio.citta.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,7 +50,7 @@ function NegoziosList() {
         </div>
         <button 
           className="btn-primary" 
-          onClick={() => handleNavigate('nuovo')}
+          onClick={() => navigate('/negozi/nuovo')}
         >
           <i className="fas fa-plus"></i> Aggiungi Negozio
         </button>
@@ -102,7 +92,7 @@ function NegoziosList() {
               <p>Inizia aggiungendo il tuo primo negozio.</p>
               <button 
                 className="btn-primary" 
-                onClick={() => handleNavigate('nuovo')}
+                onClick={() => navigate('/negozi/nuovo')}
               >
                 Aggiungi Negozio
               </button>
@@ -160,14 +150,14 @@ function NegoziosList() {
                     <div className="action-buttons">
                       <button 
                         className="btn-icon" 
-                        onClick={() => handleNavigate('dipendenti', { negozioId: negozio.id })}
+                        onClick={() => navigate(`/negozi/${negozio.id}/dipendenti`)}
                         title="Gestisci Dipendenti"
                       >
                         <i className="fas fa-users"></i>
                       </button>
                       <button 
                         className="btn-icon" 
-                        onClick={() => handleNavigate('turni', { negozioId: negozio.id })}
+                        onClick={() => navigate(`/negozi/${negozio.id}/turni`)}
                         title="Gestisci Turni"
                       >
                         <i className="fas fa-calendar-alt"></i>
