@@ -1,7 +1,5 @@
- 
-// src/pages/NegoziPage.jsx
 import React from 'react';
-import NegoziosList from '../components/NegoziosList';
+import NegoziosList from '../components/NegoziosList.js';
 
 const NegoziPage = () => {
   return <NegoziosList />;

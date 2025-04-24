@@ -1,5 +1,3 @@
- 
-// src/pages/TurniEditorPage.jsx
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import TabellaTurni from '../components/TabellaTurni';
