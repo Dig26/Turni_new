@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabella Turni</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f7fa;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #3498db;
+      margin-bottom: 20px;
+    }
+    
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .btn-secondary {
+      background-color: #f1f2f6;
+      color: #333;
+    }
+    
+    .btn:hover {
+      opacity: 0.9;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      background-color: white;
+    }
+    
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    
+    th {
+      background-color: #f8f9fa;
+      font-weight: bold;
+    }
+    
+    .employee-name {
+      text-align: left;
+      font-weight: bold;
+    }
+    
+    .turno-m {
+      background-color: #d4f0fc;
+    }
+    
+    .turno-p {
+      background-color: #ffe8b3;
+    }
+    
+    .turno-r {
+      background-color: #ffcccb;
+    }
+    
+    .turno-f {
+      background-color: #e0c6ff;
+    }
+    
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .color-box {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tabella Turni</h1>
+  
+  <div class="toolbar">
+    <div>
+      <button class="btn" id="saveBtn">Salva</button>
+      <button class="btn btn-secondary" id="addRowBtn">Aggiungi Dipendente</button>
+    </div>
+    <div>
+      <button class="btn btn-secondary" id="backBtn">Indietro</button>
+    </div>
+  </div>
+  
+  <div id="tableContainer">
+    <table id="turniTable">
+      <thead>
+        <tr>
+          <th>Dipendente</th>
+          <th>1 Lun</th>
+          <th>2 Mar</th>
+          <th>3 Mer</th>
+          <th>4 Gio</th>
+          <th>5 Ven</th>
+          <th>6 Sab</th>
+          <th>7 Dom</th>
+          <th>8 Lun</th>
+          <th>9 Mar</th>
+          <th>10 Mer</th>
+          <th>Tot Ore</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="employee-name">Mario Rossi</td>
+          <td class="turno-m">M</td>
+          <td class="turno-m">M</td>
+          <td class="turno-p">P</td>
+          <td class="turno-p">P</td>
+          <td class="turno-r">R</td>
+          <td class="turno-f">F</td>
+          <td>-</td>
+          <td class="turno-m">M</td>
+          <td class="turno-m">M</td>
+          <td class="turno-p">P</td>
+          <td>36</td>
+        </tr>
+        <tr>
+          <td class="employee-name">Luigi Verdi</td>
+          <td class="turno-p">P</td>
+          <td class="turno-p">P</td>
+          <td class="turno-m">M</td>
+          <td class="turno-m">M</td>
+          <td class="turno-f">F</td>
+          <td class="turno-r">R</td>
+          <td>-</td>
+          <td class="turno-p">P</td>
+          <td class="turno-p">P</td>
+          <td class="turno-m">M</td>
+          <td>36</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="legend">
+    <div class="legend-item">
+      <div class="color-box turno-m"></div>
+      <span>M - Mattina</span>
+    </div>
+    <div class="legend-item">
+      <div class="color-box turno-p"></div>
+      <span>P - Pomeriggio</span>
+    </div>
+    <div class="legend-item">
+      <div class="color-box turno-r"></div>
+      <span>R - Riposo</span>
+    </div>
+    <div class="legend-item">
+      <div class="color-box turno-f"></div>
+      <span>F - Ferie</span>
+    </div>
+  </div>
+  
+  <script>
+    // Recupera i parametri dall'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const negozioId = urlParams.get('negozioId');
+    const month = parseInt(urlParams.get('month'));
+    const year = parseInt(urlParams.get('year'));
+    
+    // Aggiorna il titolo con il mese e l'anno
+    const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+                        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
+    document.querySelector('h1').textContent = `Tabella Turni - ${monthNames[month]} ${year}`;
+    
+    // Gestori degli eventi
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      alert('Tabella salvata con successo!');
+      
+      // Invia messaggio al parent
+      window.parent.postMessage({
+        type: 'SAVE_DATA',
+        payload: {
+          negozioId,
+          month,
+          year,
+          rows: [
+            ['Mario Rossi', 'M', 'M', 'P', 'P', 'R', 'F', '-', 'M', 'M', 'P', '36'],
+            ['Luigi Verdi', 'P', 'P', 'M', 'M', 'F', 'R', '-', 'P', 'P', 'M', '36']
+          ]
+        }
+      }, '*');
+    });
+    
+    document.getElementById('backBtn').addEventListener('click', () => {
+      window.parent.postMessage({ type: 'NAVIGATE_BACK' }, '*');
+    });
+    
+    document.getElementById('addRowBtn').addEventListener('click', () => {
+      const table = document.getElementById('turniTable');
+      const newRow = table.insertRow(-1);
+      
+      // Aggiungi celle
+      const nameCell = newRow.insertCell(0);
+      nameCell.className = 'employee-name';
+      nameCell.textContent = 'Nuovo Dipendente';
+      
+      for (let i = 1; i < 11; i++) {
+        newRow.insertCell(i).textContent = '-';
+      }
+      
+      // Aggiungi cella per le ore totali
+      newRow.insertCell(11).textContent = '0';
+    });
+    
+    // Notifica al parent che l'iframe è caricato
+    window.addEventListener('load', () => {
+      window.parent.postMessage({ type: 'IFRAME_LOADED' }, '*');
+    });
+    
+    // Ascolta i messaggi dal parent
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      
+      if (event.data.type === 'LOAD_DATA' && event.data.payload) {
+        console.log('Dati ricevuti dal parent:', event.data.payload);
+        // In un'implementazione reale, qui caricheresti i dati nella tabella
+      }
+    });
+  </script>
+</body>
+</html>

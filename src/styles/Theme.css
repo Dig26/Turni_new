@@ -1,3 +1,4 @@
+/* src/styles/Theme.css - Versione corretta */
 :root {
     --primary-color: #3498db;
     --primary-dark: #2980b9;
@@ -14,6 +15,11 @@
     --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     --border-radius: 8px;
     --transition-speed: 0.3s;
+    
+    /* Aggiungi variabili RGB separate per l'utilizzo con rgba() */
+    --success-color-rgb: 39, 174, 96;
+    --danger-color-rgb: 231, 76, 60;
+    --warning-color-rgb: 243, 156, 18;
   }
   
   /* Tema scuro */
@@ -25,12 +31,17 @@
     --success-color: #27ae60;
     --danger-color: #e74c3c;
     --warning-color: #f39c12;
-    --text-color: #ecf0f1;
+    --text-color: #ecf0f1; /* Colore del testo chiaro per il tema scuro */
     --text-light: #bdc3c7;
     --border-color: #34495e;
     --background-color: #1a1a2e;
     --card-bg: #2c3e50;
     --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    
+    /* Aggiorna anche le variabili RGB per il tema scuro */
+    --success-color-rgb: 39, 174, 96;
+    --danger-color-rgb: 231, 76, 60;
+    --warning-color-rgb: 243, 156, 18;
   }
   
   /* Dimensioni dei font personalizzabili */
@@ -66,7 +77,7 @@
     background-color: var(--secondary-color);
   }
   
-  /* Stili per il tema scuro */
+  /* Stili espliciti per garantire il contrasto in tema scuro */
   [data-theme="dark"] body {
     background-color: var(--background-color);
     color: var(--text-color);
@@ -80,11 +91,26 @@
   [data-theme="dark"] .modal-content,
   [data-theme="dark"] .toast {
     background-color: var(--card-bg);
+    color: var(--text-color);
   }
   
   [data-theme="dark"] .navbar {
     background-color: var(--card-bg);
     border-bottom: 1px solid var(--border-color);
+  }
+  
+  [data-theme="dark"] .navbar-item,
+  [data-theme="dark"] .profile-button,
+  [data-theme="dark"] .profile-name,
+  [data-theme="dark"] .breadcrumb,
+  [data-theme="dark"] h1,
+  [data-theme="dark"] h2,
+  [data-theme="dark"] h3,
+  [data-theme="dark"] h4,
+  [data-theme="dark"] h5,
+  [data-theme="dark"] h6,
+  [data-theme="dark"] p {
+    color: var(--text-color);
   }
   
   [data-theme="dark"] .btn-secondary {
@@ -104,8 +130,28 @@
     color: var(--text-color);
   }
   
+  [data-theme="dark"] input::placeholder {
+    color: rgba(236, 240, 241, 0.6);
+  }
+  
   [data-theme="dark"] input:focus,
   [data-theme="dark"] select:focus,
   [data-theme="dark"] textarea:focus {
     border-color: var(--primary-color);
+  }
+  
+  /* Correzioni specifiche per le card dei negozi */
+  [data-theme="dark"] .negozio-card .negozio-name,
+  [data-theme="dark"] .negozio-card .negozio-card-header h3 {
+    color: var(--text-color);
+  }
+  
+  [data-theme="dark"] .negozio-card .info-item,
+  [data-theme="dark"] .tabella-card .tabella-card-header h4 {
+    color: var(--text-color);
+  }
+  
+  /* Correzioni per il messaggio di benvenuto */
+  [data-theme="dark"] .page-header p {
+    color: var(--text-light);
   }

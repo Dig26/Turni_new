@@ -1,4 +1,4 @@
-// src/pages/TurniListPage.jsx
+// src/pages/TurniListPage.jsx - Versione corretta con gestione sicura dello stato
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -17,9 +17,18 @@ const TurniListPage = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
+  // Seleziona lo stato con controllo null/undefined
   const negozio = useSelector(state => state.negozi.currentNegozio);
-  const dipendenti = useSelector(state => state.dipendenti.byNegozio[negozioId] || []);
-  const tabelleSalvate = useSelector(state => state.turni.byNegozio[negozioId] || []);
+  const dipendenti = useSelector(state => 
+    state.dipendenti && state.dipendenti.byNegozio 
+      ? state.dipendenti.byNegozio[negozioId] || [] 
+      : []
+  );
+  const tabelleSalvate = useSelector(state => 
+    state.turni && state.turni.byNegozio 
+      ? state.turni.byNegozio[negozioId] || [] 
+      : []
+  );
   
   // Nomi dei mesi in italiano
   const mesi = [
@@ -40,10 +49,8 @@ const TurniListPage = () => {
           await dispatch(fetchNegozioById(negozioId)).unwrap();
         }
         
-        // Carica i dipendenti se non sono già caricati
-        if (!dipendenti.length) {
-          await dispatch(fetchDipendentiByNegozioId(negozioId)).unwrap();
-        }
+        // Carica i dipendenti
+        await dispatch(fetchDipendentiByNegozioId(negozioId)).unwrap();
         
         // Carica le tabelle turni salvate
         await dispatch(fetchTurniSalvati(negozioId)).unwrap();
@@ -51,7 +58,7 @@ const TurniListPage = () => {
         console.error("Errore nel caricamento dei dati:", error);
         dispatch(addNotification({
           type: 'error',
-          message: `Errore nel caricamento dei dati: ${error}`,
+          message: `Errore nel caricamento dei dati: ${error.message || 'Errore sconosciuto'}`,
           duration: 5000
         }));
       } finally {
@@ -60,7 +67,7 @@ const TurniListPage = () => {
     };
     
     fetchData();
-  }, [dispatch, negozioId, negozio, dipendenti.length]);
+  }, [dispatch, negozioId, negozio]);
   
   const handleMonthChange = (e) => {
     setSelectedMonth(parseInt(e.target.value, 10));
@@ -105,14 +112,18 @@ const TurniListPage = () => {
   
   // Formatta la data in modo leggibile
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Data non valida';
+    }
   };
   
   if (loading) {
@@ -141,7 +152,7 @@ const TurniListPage = () => {
             <span>Turni</span>
           </div>
           <h1>Gestione Turni</h1>
-          <p>Gestisci i turni di lavoro per {negozio?.nome}</p>
+          <p>Gestisci i turni di lavoro per {negozio?.nome || 'il negozio selezionato'}</p>
         </div>
 
         <div className="header-actions">
