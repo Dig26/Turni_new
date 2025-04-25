@@ -1,7 +1,6 @@
-// src/components/turni/TurniTableComponent.jsx
+// src/components/turni/TurniTableComponent.jsx (aggiornato)
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { saveTabellaThunk } from '../../app/slices/turniSlice';
 import { addNotification } from '../../app/slices/uiSlice';
 import CellPopup from './popups/CellPopup';
 import TimePopup from './popups/TimePopup';
@@ -16,7 +15,16 @@ import 'handsontable/dist/handsontable.full.min.css';
 import { HotTable } from '@handsontable/react';
 import Handsontable from 'handsontable';
 
-const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = false }) => {
+const TurniTableComponent = ({ 
+  negozioId, 
+  anno, 
+  mese, 
+  dipendenti, 
+  isNewTable = true, 
+  initialData = null,
+  onSave,
+  onReturn
+}) => {
   const dispatch = useDispatch();
   const hotRef = useRef(null);
   const [data, setData] = useState([]);
@@ -48,12 +56,12 @@ const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = f
   const giorniLavorativiSettimanali = 6;
   
   useEffect(() => {
-    if (isNewTable) {
-      initNewTable();
-    } else {
+    if (initialData && !isNewTable) {
       loadSavedTable();
+    } else {
+      initNewTable();
     }
-  }, [negozioId, anno, mese, dipendenti, isNewTable]);
+  }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
   
   const generateAllTimesTable = () => {
     const times = [];
@@ -108,35 +116,28 @@ const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = f
     }
   };
   
-  const loadSavedTable = async () => {
+  const loadSavedTable = () => {
     try {
       setLoading(true);
       
-      // Carica i dati salvati dal localStorage
-      const storageKey = `tabella_turni_${negozioId}_${anno}_${mese}`;
-      const savedItem = localStorage.getItem(storageKey);
-      
-      if (savedItem) {
-        const parsed = JSON.parse(savedItem);
-        if (parsed && parsed.data) {
-          // Imposta i valori dalle variabili salvate
-          const savedData = parsed.data;
-          
-          setAllTimes(generateAllTimesTable());
-          setPairToEmployee(savedData.pairToEmployee || []);
-          setEmployees(savedData.employees || {});
-          setEmployeeVariations(savedData.employeeVariations || {});
-          setColumnUnits(savedData.columnUnits || []);
-          
-          if (savedData.tableData) {
-            setData(savedData.tableData);
-          } else {
-            // Se non ci sono dati, crea la tabella
-            createTableData(savedData.pairToEmployee, savedData.employees);
-          }
+      if (initialData) {
+        // Imposta i valori dalle variabili salvate
+        setAllTimes(generateAllTimesTable());
+        setPairToEmployee(initialData.pairToEmployee || []);
+        setEmployees(initialData.employees || {});
+        setEmployeeVariations(initialData.employeeVariations || {});
+        setColumnUnits(initialData.columnUnits || []);
+        
+        if (initialData.tableData) {
+          setData(initialData.tableData);
         } else {
-          // Se i dati non sono validi, inizializza una nuova tabella
-          initNewTable();
+          // Se non ci sono dati, crea la tabella
+          createTableData(initialData.pairToEmployee, initialData.employees);
+        }
+        
+        // Imposta gli indici delle righe di riepilogo
+        if (initialData.summaryRows) {
+          setSummaryRows(initialData.summaryRows);
         }
       } else {
         // Se non ci sono dati salvati, inizializza una nuova tabella
@@ -298,13 +299,10 @@ const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = f
         summaryRows
       };
       
-      // Salva nel Redux store e in localStorage
-      dispatch(saveTabellaThunk({ 
-        negozioId, 
-        anno, 
-        mese, 
-        data: dataToSave 
-      }));
+      // Salvataggio tramite callback fornita dal parent
+      if (typeof onSave === 'function') {
+        onSave(dataToSave);
+      }
       
       // Mostra notifica di successo
       dispatch(addNotification({
@@ -857,7 +855,7 @@ const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = f
           decimalHours.toFixed(2).replace(".", ",")
         );
       }
-    } else if (cellData.mode === "aCasa") {
+    } else {
       // Caso "a casa"
       const inizioCol = col % 2 === 0 ? col : col - 1;
       
@@ -1136,6 +1134,12 @@ const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = f
     updateDifferenzeCorrente();
     updateFatturatoTotale();
   };
+
+  const handleReturn = () => {
+    if (typeof onReturn === 'function') {
+      onReturn();
+    }
+  };
   
   return (
     <div className="turni-table-container">
@@ -1154,6 +1158,12 @@ const TurniTableComponent = ({ negozioId, anno, mese, dipendenti, isNewTable = f
               onClick={saveTable}
             >
               <i className="fas fa-save"></i> Salva Tabella
+            </button>
+            <button 
+              className="btn-secondary"
+              onClick={handleReturn}
+            >
+              <i className="fas fa-arrow-left"></i> Torna alla Lista
             </button>
           </div>
           
