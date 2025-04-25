@@ -1,43 +1,142 @@
 /* src/styles/TurniTable.css */
 
 .turni-table-container {
-    background-color: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    padding: 20px;
-    margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.tabella-iframe-container {
+  width: 100%;
+  height: 800px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  position: relative;
+}
+
+.turni-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+[data-theme="dark"] .loading-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+/* Alla fine del file, dopo l'ultima definizione di stile, aggiungi: */
+.straordinari-cell {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: #c0392b;
+  font-weight: bold;
+}
+
+/* Stile per le celle con valori negativi */
+.differenza-negativa {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: #c0392b;
+  font-weight: bold;
+}
+
+/* Stile per le celle con valori positivi */
+.differenza-positiva {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+  font-weight: bold;
+}
+/* Alla fine del file, dopo le definizioni di stile, aggiungi: */
+/* Miglioramenti responsive per mobile */
+@media screen and (max-width: 768px) {
+  .turni-table-container {
+    padding: 10px;
   }
   
-  .tabella-iframe-container {
+  .table-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .table-actions button {
     width: 100%;
-    height: 800px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    position: relative;
+    margin-bottom: 10px;
   }
   
-  .turni-iframe {
+  .hot-container {
     width: 100%;
-    height: 100%;
-    border: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
-  .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
+  .hot-container .handsontable {
+    min-width: 600px; /* Assicura che la tabella mantenga una larghezza minima */
   }
   
-  [data-theme="dark"] .loading-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
+  .modal-content {
+    width: 90%;
+    max-height: 80vh;
   }
+}
+
+/* Migliora la visualizzazione dei popup su mobile */
+@media screen and (max-width: 480px) {
+  .modal-body {
+    padding: 10px;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .modal-footer button {
+    width: 100%;
+  }
+  
+  .mode-selector {
+    flex-direction: column;
+  }
+  
+  .time-container, .a-casa-container {
+    flex-direction: column;
+  }
+}
+/* Alla fine del file, dopo le definizioni di stile, aggiungi: */
+/* Stili per il pulsante di salvataggio */
+.btn-primary.saving {
+  background-color: #3498db;
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.btn-primary.saved {
+  background-color: #27ae60;
+  transition: background-color 0.3s ease;
+}
+
+/* Animazione per pulsante salva */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.btn-primary.saved {
+  animation: pulse 0.5s ease;
+}
