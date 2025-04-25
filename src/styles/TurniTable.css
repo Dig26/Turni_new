@@ -140,3 +140,187 @@
 .btn-primary.saved {
   animation: pulse 0.5s ease;
 }
+/* src/styles/TurniTable.css - Aggiungi o aggiorna gli stili */
+
+/* Aggiungi spaziatura tra i pulsanti e la tabella */
+.table-actions {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 15px; /* Spazio tra i pulsanti */
+  padding: 10px 0;
+}
+
+.table-actions button {
+  margin-right: 10px;
+}
+
+.hot-container {
+  margin-top: 20px;
+}
+
+/* Stile per le celle riepilogative */
+.summary-cell {
+  background-color: rgba(46, 204, 113, 0.2) !important;
+  font-weight: bold;
+}
+
+/* Stile per le celle riepilogative del fatturato */
+.fatturato-riepilogo {
+  background-color: rgba(52, 152, 219, 0.2) !important;
+  color: #2980b9 !important;
+  font-weight: bold;
+}
+
+/* Stile per le celle riepilogative delle particolarità */
+.particolarita-riepilogo {
+  background-color: rgba(189, 195, 199, 0.2) !important;
+  color: #7f8c8d !important;
+}
+
+/* Stile per la maniglia di trascinamento delle colonne */
+.column-drag-handle {
+  cursor: move;
+  color: #888;
+  margin-right: 8px;
+  font-size: 1.2em;
+  display: inline-block;
+}
+
+.drag-handle-cell {
+  cursor: default;
+}
+
+/* Stile per la colonna che viene trascinata */
+.handsontable .ht__highlight {
+  background-color: rgba(52, 152, 219, 0.3) !important;
+}
+
+.handsontable .ht__active_highlight {
+  background-color: rgba(52, 152, 219, 0.5) !important;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Stile per le celle con valori negativi */
+.differenza-negativa {
+  background-color: rgba(231, 76, 60, 0.15) !important;
+  color: #c0392b !important;
+  font-weight: bold;
+}
+
+/* Stile per le celle con valori positivi */
+.differenza-positiva {
+  background-color: rgba(46, 204, 113, 0.15) !important;
+  color: #27ae60 !important;
+  font-weight: bold;
+}
+
+/* Stili per i popup */
+.modal-content {
+  max-width: 600px;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* Miglioramento dello stile dei radio button */
+.mode-option label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mode-option input[type="radio"] {
+  margin-right: 10px;
+}
+
+.mode-option span {
+  margin-left: 5px;
+}
+
+/* Container per gli orari con spaziatura migliorata */
+.time-container, .a-casa-container {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: rgba(242, 242, 242, 0.5);
+  border-radius: 5px;
+}
+
+/* Stile pulsante salvataggio */
+.btn-primary.saving {
+  background-color: #3498db;
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.btn-primary.saved {
+  background-color: #27ae60;
+  transition: background-color 0.3s ease;
+}
+
+/* Animazione per pulsante salva */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.btn-primary.saved {
+  animation: pulse 0.5s ease;
+}
+
+/* Miglioramenti responsive per mobile */
+@media screen and (max-width: 768px) {
+  .turni-table-container {
+    padding: 10px;
+  }
+  
+  .table-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .table-actions button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .hot-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .hot-container .handsontable {
+    min-width: 600px;
+  }
+  
+  .modal-content {
+    width: 90%;
+    max-height: 80vh;
+  }
+}
+
+/* Migliora la visualizzazione dei popup su mobile */
+@media screen and (max-width: 480px) {
+  .modal-body {
+    padding: 10px;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .modal-footer button {
+    width: 100%;
+  }
+  
+  .mode-selector {
+    flex-direction: column;
+  }
+  
+  .time-container, .a-casa-container {
+    flex-direction: column;
+  }
+}

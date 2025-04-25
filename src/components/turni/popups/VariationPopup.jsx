@@ -14,6 +14,7 @@ const VariationPopup = ({
   mese
 }) => {
   const [variations, setVariations] = useState([]);
+  const [dateLimits, setDateLimits] = useState({ min: '', max: '' });
   
   useEffect(() => {
     // Se ci sono già variazioni per questo dipendente, caricale
@@ -27,7 +28,20 @@ const VariationPopup = ({
         setVariations([...employeeVariations[emp]]);
       }
     }
-  }, [selectedCell, hotInstance, pairToEmployee, employeeVariations]);
+    
+    // Imposta i limiti delle date al mese corrente
+    const firstDayOfMonth = new Date(anno, mese, 1);
+    const lastDayOfMonth = new Date(anno, mese + 1, 0);
+    
+    // Formatta le date in formato ISO per gli input
+    const firstDayStr = firstDayOfMonth.toISOString().split('T')[0];
+    const lastDayStr = lastDayOfMonth.toISOString().split('T')[0];
+    
+    setDateLimits({
+      min: firstDayStr,
+      max: lastDayStr
+    });
+  }, [selectedCell, hotInstance, pairToEmployee, employeeVariations, anno, mese]);
   
   const addVariation = () => {
     // Data del primo giorno del mese corrente
@@ -38,7 +52,7 @@ const VariationPopup = ({
     const firstDayStr = firstDayOfMonth.toISOString().split('T')[0];
     const lastDayStr = lastDayOfMonth.toISOString().split('T')[0];
     
-    // Aggiungi una nuova variazione con le date predefinite
+    // Aggiungi una nuova variazione con le date predefinite al mese corrente
     setVariations([
       ...variations,
       {
@@ -147,6 +161,8 @@ const VariationPopup = ({
                       type="date" 
                       value={variation.start}
                       onChange={(e) => updateVariation(index, 'start', e.target.value)}
+                      min={dateLimits.min}
+                      max={dateLimits.max}
                       style={{ width: '100%', marginTop: '5px', padding: '6px' }}
                     />
                   </div>
@@ -157,6 +173,8 @@ const VariationPopup = ({
                       type="date" 
                       value={variation.end}
                       onChange={(e) => updateVariation(index, 'end', e.target.value)}
+                      min={dateLimits.min}
+                      max={dateLimits.max}
                       style={{ width: '100%', marginTop: '5px', padding: '6px' }}
                     />
                   </div>

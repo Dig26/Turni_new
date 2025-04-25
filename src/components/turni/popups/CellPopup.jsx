@@ -8,6 +8,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   const [orarioFine, setOrarioFine] = useState('');
   const [motivo, setMotivo] = useState('nessuna');
   const [abbr, setAbbr] = useState('');
+  const [totalHours, setTotalHours] = useState(0);
   
   useEffect(() => {
     if (selectedCell && hotInstance) {
@@ -39,14 +40,77 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
         const parts = inizioVal.split(' - ');
         setOrarioInizio(parts[0].trim());
         setOrarioFine(parts[1].trim());
+        
+        // Calcola le ore totali
+        if (parts[0].trim() && parts[1].trim()) {
+          const hours = calculateHoursBetween(parts[0].trim(), parts[1].trim());
+          setTotalHours(hours);
+        }
       } else {
         // Modalità "lavora" di default, celle vuote
         setMode('lavora');
         setOrarioInizio('');
         setOrarioFine('');
+        
+        // Se c'è un valore numerico nella cella fine, è un'impostazione manuale delle ore
+        if (fineVal && !isNaN(parseFloat(fineVal.replace(',', '.')))) {
+          setTotalHours(parseFloat(fineVal.replace(',', '.')));
+        }
       }
     }
   }, [selectedCell, hotInstance]);
+  
+  // Funzione per calcolare le ore tra due orari
+  const calculateHoursBetween = (startTime, endTime) => {
+    if (!startTime || !endTime) return 0;
+    
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    
+    // Converti in minuti totali
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    let endTotalMinutes = endHours * 60 + endMinutes;
+    
+    // Gestisci il caso in cui il turno finisca il giorno dopo
+    if (endTotalMinutes < startTotalMinutes) {
+      endTotalMinutes += 24 * 60; // Aggiungi un giorno in minuti
+    }
+    
+    // Calcola la differenza in ore
+    const diffMinutes = endTotalMinutes - startTotalMinutes;
+    return parseFloat((diffMinutes / 60).toFixed(2));
+  };
+  
+  // Funzione per calcolare l'orario di fine dato l'orario di inizio e le ore totali
+  const calculateEndTime = (startTime, hours) => {
+    if (!startTime || isNaN(hours)) return '';
+    
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const totalMinutes = startHours * 60 + startMinutes + hours * 60;
+    
+    const endHours = Math.floor(totalMinutes / 60) % 24;
+    const endMinutes = Math.round(totalMinutes % 60);
+    
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  };
+  
+  // Funzione per calcolare l'orario di inizio dato l'orario di fine e le ore totali
+  const calculateStartTime = (endTime, hours) => {
+    if (!endTime || isNaN(hours)) return '';
+    
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    let totalMinutes = endHours * 60 + endMinutes - hours * 60;
+    
+    // Se il risultato è negativo, sottrai da un giorno intero
+    if (totalMinutes < 0) {
+      totalMinutes += 24 * 60;
+    }
+    
+    const startHours = Math.floor(totalMinutes / 60) % 24;
+    const startMinutes = Math.round(totalMinutes % 60);
+    
+    return `${startHours.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
+  };
   
   const handleModeChange = (newMode) => {
     setMode(newMode);
@@ -61,9 +125,16 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
       }
       
       // Verifica che l'orario di fine sia successivo all'orario di inizio
-      if (orarioInizio >= orarioFine) {
-        alert('L\'orario di fine deve essere successivo all\'orario di inizio.');
-        return;
+      const startMinutes = orarioInizio.split(':').map(Number).reduce((acc, val, i) => i === 0 ? val * 60 : acc + val, 0);
+      const endMinutes = orarioFine.split(':').map(Number).reduce((acc, val, i) => i === 0 ? val * 60 : acc + val, 0);
+      
+      if (endMinutes <= startMinutes && endMinutes !== 0) {
+        // Se l'orario di fine è minore di quello di inizio, assumiamo che sia il giorno dopo
+        // Quindi valido solo se la differenza non è di un giorno intero (24 ore)
+        if (startMinutes - endMinutes >= 24 * 60) {
+          alert('L\'orario di fine deve essere successivo all\'orario di inizio.');
+          return;
+        }
       }
       
       onSave({
@@ -77,6 +148,36 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
         motivo,
         abbr
       });
+    }
+  };
+  
+  // Gestione cambio orario inizio
+  const handleStartTimeChange = (value) => {
+    setOrarioInizio(value);
+    
+    // Se c'è già un valore per le ore totali, calcola l'orario di fine
+    if (totalHours > 0 && value) {
+      const newEndTime = calculateEndTime(value, totalHours);
+      setOrarioFine(newEndTime);
+    } else if (orarioFine) {
+      // Se c'è già un orario di fine, calcola le ore totali
+      const hours = calculateHoursBetween(value, orarioFine);
+      setTotalHours(hours);
+    }
+  };
+  
+  // Gestione cambio orario fine
+  const handleEndTimeChange = (value) => {
+    setOrarioFine(value);
+    
+    // Se c'è già un valore per le ore totali, calcola l'orario di inizio
+    if (totalHours > 0 && value) {
+      const newStartTime = calculateStartTime(value, totalHours);
+      setOrarioInizio(newStartTime);
+    } else if (orarioInizio) {
+      // Se c'è già un orario di inizio, calcola le ore totali
+      const hours = calculateHoursBetween(orarioInizio, value);
+      setTotalHours(hours);
     }
   };
   
@@ -133,7 +234,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                     <select 
                       id="orarioInizio" 
                       value={orarioInizio} 
-                      onChange={(e) => setOrarioInizio(e.target.value)}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
                     >
                       <option value="">Seleziona orario</option>
                       {filteredStartTimes.map(time => (
@@ -147,7 +248,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                     <select 
                       id="orarioFine" 
                       value={orarioFine} 
-                      onChange={(e) => setOrarioFine(e.target.value)}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
                     >
                       <option value="">Seleziona orario</option>
                       {filteredEndTimes.map(time => (
@@ -155,6 +256,12 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                       ))}
                     </select>
                   </div>
+                  
+                  {totalHours > 0 && (
+                    <div className="form-group" style={{ marginTop: '10px', color: '#2980b9', fontSize: '0.9em' }}>
+                      <i className="fas fa-info-circle"></i> Tempo calcolato: {totalHours.toFixed(2).replace('.', ',')} ore
+                    </div>
+                  )}
                 </div>
               )}
             </div>
