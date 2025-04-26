@@ -119,6 +119,30 @@ const TurniTableComponent = ({
             initNewTable();
         }
     }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
+    
+    // Effect specifico per aggiornare le ore pagate all'avvio della tabella
+    useEffect(() => {
+        // Esegui solo quando la tabella è stata caricata (non in loading) e hotRef esiste
+        if (!loading && hotRef.current && hotRef.current.hotInstance) {
+            // Breve timeout per garantire che la tabella sia completamente renderizzata
+            const timeoutId = setTimeout(() => {
+                console.log("Aggiornamento automatico delle ore pagate all'avvio");
+                
+                // Aggiornamento delle ore pagate
+                updateOrePagate();
+                
+                // Aggiornamento delle differenze del mese corrente
+                updateDifferenzeCorrente();
+                
+                // Forza il rendering della tabella
+                hotRef.current.hotInstance.render();
+                
+                console.log("Aggiornamento ore pagate completato");
+            }, 300);
+            
+            return () => clearTimeout(timeoutId);
+        }
+    }, [loading]); // Dipendenza da loading per eseguire solo quando la tabella è caricata
 
 
 
@@ -655,8 +679,28 @@ const TurniTableComponent = ({
 
     const buildColumnsFromUnits = () => {
         const cols = [
-            { data: "giorno", readOnly: true },
-            { data: "giornoMese", readOnly: true },
+            { 
+                data: "giorno", 
+                readOnly: true,
+                renderer: (instance, td, row, col, prop, value, cellProperties) => {
+                    // Applica stile di riepilogo alle celle di intestazione delle righe riepilogative
+                    if (Object.values(summaryRows).includes(row)) {
+                        td.className += ' summary-cell summary-row-header';
+                    }
+                    Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
+                }
+            },
+            { 
+                data: "giornoMese", 
+                readOnly: true,
+                renderer: (instance, td, row, col, prop, value, cellProperties) => {
+                    // Applica stile di riepilogo alle celle di intestazione delle righe riepilogative
+                    if (Object.values(summaryRows).includes(row)) {
+                        td.className += ' summary-cell summary-row-header';
+                    }
+                    Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
+                }
+            },
         ];
 
         columnUnits.forEach(unit => {
@@ -665,10 +709,14 @@ const TurniTableComponent = ({
                     data: unit.inizio,
                     readOnly: true,
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
-                        // Se è la riga di intestazione, aggiungi l'icona drag handle con stile migliorato
+                        // Se è una riga riepilogativa, aggiungi la classe summary-cell
+                        if (Object.values(summaryRows).includes(row)) {
+                            td.className += ' summary-cell';
+                        }
+                        
+                        // Se è la riga di intestazione, manteniamo lo stile originale
                         if (row === 0 && value && value.includes('☰')) {
-                            // Modifichiamo il codice HTML per avere un'area di drag distinta e un'area cliccabile
-                            // che sembra un pulsante con un ingranaggio
+                            // Utilizziamo la struttura originale dell'header
                             td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
                             <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
                             <span class="employee-name-header" data-col="${col}" style="cursor: pointer; flex: 1; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; transition: all 0.2s;">
@@ -678,11 +726,11 @@ const TurniTableComponent = ({
                         </div>`;
                             td.className += ' header-cell';
 
-                            // Aggiungiamo questa proprietà per evitare che Handsontable provi ad aprire un editor
+                            // Manteniamo le proprietà originali
                             cellProperties.readOnly = true;
                             cellProperties.editor = false;
 
-                            // Aggiungiamo un event listener per gestire il click direttamente
+                            // Manteniamo la gestione del click
                             setTimeout(() => {
                                 const headerEl = td.querySelector('.employee-name-header');
                                 if (headerEl) {
@@ -760,7 +808,7 @@ const TurniTableComponent = ({
                             cellProperties.readOnly = true;
                             cellProperties.editor = false;
                         } else if (Object.values(summaryRows).includes(row)) {
-                            // Aggiungi classe per le celle riepilogative di particolarità
+                            // Mantieni solo la classe originale senza aggiungere lo stile summary-cell
                             td.className += ' particolarita-riepilogo';
 
                             // Per le righe riepilogative, disabilita completamente la cella
@@ -1775,6 +1823,10 @@ const TurniTableComponent = ({
 
         // Applica stili alle celle delle righe riepilogative
         Object.values(summaryRows).forEach(rowIndex => {
+            // Applica stile alle celle dei titoli delle righe (prime due colonne)
+            hotRef.current.hotInstance.setCellMeta(rowIndex, 0, "className", "summary-cell summary-row-header");
+            hotRef.current.hotInstance.setCellMeta(rowIndex, 1, "className", "summary-cell summary-row-header");
+            
             // Applica stile alle celle dei dipendenti
             for (let u = 0; u < columnUnits.length; u++) {
                 const unit = columnUnits[u];
@@ -1785,7 +1837,7 @@ const TurniTableComponent = ({
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "summary-cell");
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex + 1, "className", "summary-cell");
                 } else if (unit.type === "fatturato") {
-                    // Celle fatturato nelle righe riepilogative
+                    // Mantieni lo stile originale per celle fatturato (senza aggiungere summary-cell)
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "fatturato-riepilogo");
 
                     // Inizializza a 0 se vuota
@@ -1794,7 +1846,7 @@ const TurniTableComponent = ({
                         hotRef.current.hotInstance.setDataAtCell(rowIndex, colIndex, "0,00 €");
                     }
                 } else if (unit.type === "particolarita") {
-                    // Celle particolarità nelle righe riepilogative
+                    // Mantieni lo stile originale per celle particolarità (senza aggiungere summary-cell)
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "particolarita-riepilogo");
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "readOnly", true);
                 }

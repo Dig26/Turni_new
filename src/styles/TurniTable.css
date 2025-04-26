@@ -1,30 +1,94 @@
-/* src/styles/TurniTable.css */
+/* TurniTable.css - Correzioni finali */
 
+/* ===== LAYOUT DI BASE ===== */
 .turni-table-container {
-  background-color: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  padding: 20px;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.tabella-iframe-container {
-  width: 100%;
-  height: 800px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  position: relative;
-}
-
-.turni-iframe {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
-  border: none;
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
+.table-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.hot-container {
+  padding: 5px;
+  overflow: auto;
+  flex-grow: 1;
+  height: calc(100vh - 140px);
+}
+
+/* ===== PULSANTI ===== */
+.btn-primary {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #1976d2;
+}
+
+.btn-primary:disabled {
+  background-color: #bbdefb;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #e0e0e0;
+}
+
+.btn-link {
+  background: none;
+  color: #2196f3;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Stati dei pulsanti di salvataggio */
+.saving {
+  background-color: #ffa000 !important;
+}
+
+.saved {
+  background-color: #43a047 !important;
+}
+
+/* ===== CARICAMENTO ===== */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -33,446 +97,286 @@
   bottom: 0;
   background-color: rgba(255, 255, 255, 0.8);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 10;
+  justify-content: center;
+  z-index: 1000;
 }
 
-[data-theme="dark"] .loading-overlay {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-/* Alla fine del file, dopo l'ultima definizione di stile, aggiungi: */
-.straordinari-cell {
-  background-color: rgba(231, 76, 60, 0.15);
-  color: #c0392b;
-  font-weight: bold;
-}
-
-/* Stile per le celle con valori negativi */
-.differenza-negativa {
-  background-color: rgba(231, 76, 60, 0.15);
-  color: #c0392b;
-  font-weight: bold;
-}
-
-/* Stile per le celle con valori positivi */
-.differenza-positiva {
-  background-color: rgba(46, 204, 113, 0.15);
-  color: #27ae60;
-  font-weight: bold;
-}
-/* Alla fine del file, dopo le definizioni di stile, aggiungi: */
-/* Miglioramenti responsive per mobile */
-@media screen and (max-width: 768px) {
-  .turni-table-container {
-    padding: 10px;
-  }
-
-  .table-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .table-actions button {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .hot-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .hot-container .handsontable {
-    min-width: 600px; /* Assicura che la tabella mantenga una larghezza minima */
-  }
-
-  .modal-content {
-    width: 90%;
-    max-height: 80vh;
-  }
-}
-
-/* Migliora la visualizzazione dei popup su mobile */
-@media screen and (max-width: 480px) {
-  .modal-body {
-    padding: 10px;
-  }
-
-  .modal-footer {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .modal-footer button {
-    width: 100%;
-  }
-
-  .mode-selector {
-    flex-direction: column;
-  }
-
-  .time-container,
-  .a-casa-container {
-    flex-direction: column;
-  }
-}
-/* Alla fine del file, dopo le definizioni di stile, aggiungi: */
-/* Stili per il pulsante di salvataggio */
-.btn-primary.saving {
-  background-color: #3498db;
-  opacity: 0.8;
-  cursor: not-allowed;
-}
-
-.btn-primary.saved {
-  background-color: #27ae60;
-  transition: background-color 0.3s ease;
-}
-
-/* Animazione per pulsante salva */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.btn-primary.saved {
-  animation: pulse 0.5s ease;
-}
-/* src/styles/TurniTable.css - Aggiungi o aggiorna gli stili */
-
-/* Aggiungi spaziatura tra i pulsanti e la tabella */
-.table-actions {
-  margin-bottom: 20px;
+.loading-spinner {
   display: flex;
-  gap: 15px; /* Spazio tra i pulsanti */
-  padding: 10px 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
-.table-actions button {
-  margin-right: 10px;
+.loading-spinner i {
+  font-size: 2rem;
+  color: #2196f3;
+  animation: spin 1s linear infinite;
 }
 
-.hot-container {
-  margin-top: 20px;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* Stile per le celle riepilogative */
-.summary-cell {
-  background-color: rgba(46, 204, 113, 0.2) !important;
+/* ===== TABELLA HANDSONTABLE ===== */
+/* Stili generali per la tabella */
+.handsontable {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+}
+
+.handsontable th {
+  background-color: #f8f9fa;
   font-weight: bold;
+  text-align: center;
 }
 
-/* Stile per le celle riepilogative del fatturato */
-.fatturato-riepilogo {
-  background-color: rgba(52, 152, 219, 0.2) !important;
-  color: #2980b9 !important;
+.handsontable td {
+  padding: 6px 4px;
+}
+
+/* Stili per celle di intestazione - colore di sfondo bianco invece di azzurrino */
+.header-cell {
+  background-color: #ffffff !important;
   font-weight: bold;
-}
-
-/* Stile per le celle riepilogative delle particolarità */
-.particolarita-riepilogo {
-  background-color: rgba(189, 195, 199, 0.2) !important;
-  color: #7f8c8d !important;
-}
-
-/* Stile per la maniglia di trascinamento delle colonne */
-.column-drag-handle {
-  cursor: move;
-  color: #888;
-  margin-right: 8px;
-  font-size: 1.2em;
-  display: inline-block;
 }
 
 .drag-handle-cell {
-  cursor: default;
+  background-color: #ffffff !important;
 }
 
-/* Stile per la colonna che viene trascinata */
-.handsontable .ht__highlight {
-  background-color: rgba(52, 152, 219, 0.3) !important;
+/* Stile per le celle con giorni festivi */
+.festivo-cell {
+  background-color: #ffebee !important;
 }
 
-.handsontable .ht__active_highlight {
-  background-color: rgba(52, 152, 219, 0.5) !important;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-}
-
-/* Stile per le celle con valori negativi */
-.differenza-negativa {
-  background-color: rgba(231, 76, 60, 0.15) !important;
-  color: #c0392b !important;
+/* Stile base per le celle riepilogative - solo per le colonne dei giorni e dipendenti */
+.summary-cell {
+  background-color: #e8f5e9 !important; /* Verde chiaro */
+  color: #000000 !important; /* Testo nero */
   font-weight: bold;
 }
 
-/* Stile per le celle con valori positivi */
+/* Stile specifico per gli header delle righe riepilogative (prime colonne) */
+.summary-row-header {
+  background-color: #e8f5e9 !important; /* Verde chiaro */
+  color: #000000 !important; /* Testo nero */
+  font-weight: bold;
+  text-align: left;
+}
+
+/* Stili specifici per le differenze positive e negative */
 .differenza-positiva {
-  background-color: rgba(46, 204, 113, 0.15) !important;
-  color: #27ae60 !important;
+  background-color: #e8f5e9 !important; /* Verde chiaro come le altre righe riepilogative */
+  color: #2e7d32 !important; /* Verde scuro per il testo */
   font-weight: bold;
 }
 
-/* Stili per i popup */
-.modal-content {
-  max-width: 600px;
+.differenza-negativa {
+  background-color: #e8f5e9 !important; /* Verde chiaro come le altre righe riepilogative */
+  color: #c62828 !important; /* Rosso per il testo */
+  font-weight: bold;
 }
 
-.modal-body {
-  padding: 20px;
+/* Celle per straordinari */
+.straordinari-cell {
+  background-color: #e8f5e9 !important; /* Verde chiaro */
+  color: #2e7d32 !important; /* Verde scuro per il testo */
+  font-weight: bold;
 }
 
-/* Miglioramento dello stile dei radio button */
-.mode-option label {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+/* Stili ripristinati per fatturato e particolarità */
+.fatturato-riepilogo {
+  background-color: #e3f2fd !important; /* Azzurro chiaro */
+  color: #1565c0 !important; /* Azzurro per il testo */
+  font-weight: bold;
+  text-align: right;
 }
 
-.mode-option input[type="radio"] {
-  margin-right: 10px;
+.particolarita-riepilogo {
+  background-color: #eeeeee !important; /* Grigio chiaro */
+  color: #757575 !important; /* Grigio per il testo */
 }
 
-.mode-option span {
-  margin-left: 5px;
+.fatturato-totale {
+  background-color: #e3f2fd !important; /* Azzurro chiaro */
+  color: #1565c0 !important; /* Azzurro per il testo */
+  font-weight: bold;
+  text-align: right;
 }
 
-/* Container per gli orari con spaziatura migliorata */
-.time-container,
-.a-casa-container {
-  margin-top: 15px;
-  padding: 15px;
-  background-color: rgba(242, 242, 242, 0.5);
-  border-radius: 5px;
+/* Stili per le celle di giorni e orari */
+.htCenter {
+  text-align: center !important;
 }
 
-/* Stile pulsante salvataggio */
-.btn-primary.saving {
-  background-color: #3498db;
-  opacity: 0.8;
-  cursor: not-allowed;
+.htRight {
+  text-align: right !important;
 }
 
-.btn-primary.saved {
-  background-color: #27ae60;
-  transition: background-color 0.3s ease;
+/* Stili per particolarità */
+.particolarita-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Animazione per pulsante salva */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
+/* Stile per il pulsante dell'header del dipendente che si attiva all'hover */
+.employee-name-header {
+  background-color: transparent;
+  transition: all 0.2s ease;
 }
 
-.btn-primary.saved {
-  animation: pulse 0.5s ease;
+.employee-name-header:hover {
+  background-color: #f5f5f5;
 }
 
-/* Miglioramenti responsive per mobile */
-@media screen and (max-width: 768px) {
-  .turni-table-container {
-    padding: 10px;
-  }
-
-  .table-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .table-actions button {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .hot-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .hot-container .handsontable {
-    min-width: 600px;
-  }
-
-  .modal-content {
-    width: 90%;
-    max-height: 80vh;
-  }
-}
-
-/* Migliora la visualizzazione dei popup su mobile */
-@media screen and (max-width: 480px) {
-  .modal-body {
-    padding: 10px;
-  }
-
-  .modal-footer {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .modal-footer button {
-    width: 100%;
-  }
-
-  .mode-selector {
-    flex-direction: column;
-  }
-
-  .time-container,
-  .a-casa-container {
-    flex-direction: column;
-  }
-}
-/* Aggiungi questi stili a src/styles/TurniTable.css */
-
-/* Stile per la cella header cliccabile */
-.header-cell-clickable .employee-name-header {
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.2s;
-  border-radius: 4px;
-  padding: 4px 8px !important;
-}
-
-.header-cell-clickable .employee-name-header:hover {
-  background-color: rgba(52, 152, 219, 0.1);
-}
-
-/* Aggiunge un effetto visivo per indicare che l'header è cliccabile */
-.header-cell-clickable .employee-name-header:after {
-  content: "⚙️";
-  font-size: 12px;
-  margin-left: 5px;
-  opacity: 0.6;
-}
-
-.header-cell-clickable .employee-name-header:hover:after {
-  opacity: 1;
-}
-
-/* Per touch device, rendi l'area cliccabile più ampia */
-@media (pointer: coarse) {
-  .header-cell-clickable .employee-name-header {
-    padding: 8px !important;
-  }
-
-  .column-drag-handle {
-    padding: 8px !important;
-  }
-}
-/* Aggiungere questi stili a src/styles/TurniTable.css */
-
-/* Stile per evitare selezione del testo negli header */
-.header-cell-clickable {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-/* Stile per cella senza editor */
-.no-editor-cell {
-  background-color: transparent !important;
-}
-
-/* Mantieni gli stili per l'interattività */
-.header-cell-clickable .employee-name-header {
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.2s;
-  border-radius: 4px;
-  padding: 4px 8px !important;
-}
-
-.header-cell-clickable .employee-name-header:hover {
-  background-color: rgba(52, 152, 219, 0.1);
-}
-
-/* Aggiunge un'icona più specifica per indicare che l'header è cliccabile */
-.header-cell-clickable .employee-name-header:after {
-  content: '⚙️';
-  font-size: 12px;
-  margin-left: 5px;
-  opacity: 0.7;
-}
-
-.header-cell-clickable .employee-name-header:hover:after {
-  opacity: 1;
-}
-
-/* Previeni qualsiasi ulteriore interazione non desiderata con l'header */
-.header-cell-clickable * {
-  pointer-events: auto;
-}
-/* Aggiungi questi stili a src/styles/TurniTable.css */
-
-/* Stile migliorato per l'intestazione cliccabile */
-.header-cell .employee-name-header {
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s;
-  border-radius: 4px;
-  padding: 4px 8px !important;
-  user-select: none;
-  -webkit-user-select: none;
-  background-color: rgba(52, 152, 219, 0.05);
-  border: 1px solid transparent;
-}
-
-.header-cell .employee-name-header:hover {
-  background-color: rgba(52, 152, 219, 0.15);
-  border: 1px solid rgba(52, 152, 219, 0.3);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Stile per l'icona delle impostazioni */
-.header-cell .settings-icon {
-  display: inline-block;
-  transition: all 0.2s;
-}
-
-.header-cell .employee-name-header:hover .settings-icon {
+.employee-name-header:hover .settings-icon {
   opacity: 1;
   transform: rotate(30deg);
 }
 
-/* Effetto feedback al click */
-.header-cell .employee-name-header:active {
-  background-color: rgba(52, 152, 219, 0.25);
-  transform: translateY(1px);
+.settings-icon {
+  transition: all 0.3s ease;
+  opacity: 0.6;
 }
 
-/* Previeni la selezione del testo negli header */
-.handsontable th, 
-.handsontable thead th, 
-.handsontable tbody tr:first-child td {
-  user-select: none;
-  -webkit-user-select: none;
+/* ===== POPUPS E MODALI ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
 }
 
-/* Stile per touch device */
-@media (pointer: coarse) {
-  .header-cell .employee-name-header {
-    padding: 8px 12px !important;
+.modal-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  width: 500px;
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Stili per i form nei popup */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.mode-option {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.mode-option label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.time-container,
+.a-casa-container {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e9ecef;
+}
+
+/* Stili per popup particolarità */
+.items-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.item {
+  padding: 10px;
+  border-bottom: 1px solid #e9ecef;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.item:hover {
+  background-color: #f8f9fa;
+}
+
+.selected-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+/* ===== MEDIA QUERIES ===== */
+@media (max-width: 768px) {
+  .table-actions {
+    flex-direction: column;
+    gap: 10px;
   }
   
-  .header-cell .settings-icon {
-    font-size: 18px !important;
+  .modal-content {
+    width: 95%;
   }
 }
