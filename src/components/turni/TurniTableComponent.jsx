@@ -53,13 +53,13 @@ const TurniTableComponent = ({
         orePagateRowIndex: 0,
         diffCorrenteRowIndex: 0
     });
-    
+
     const parseNumericValue = (value) => {
         if (value === null || value === undefined || value === '') return 0;
         // Rimuove tutti i caratteri non numerici tranne virgola e punto, poi converte la virgola in punto
         return parseFloat(String(value).replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
     };
-    
+
     const festivitaNazionali = [
         { giorno: 1, mese: 0 },   // Capodanno (1 gennaio)
         { giorno: 6, mese: 0 },   // Epifania (6 gennaio)
@@ -119,6 +119,8 @@ const TurniTableComponent = ({
             initNewTable();
         }
     }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
+
+
 
     const generateAllTimesTable = () => {
         const times = [];
@@ -217,10 +219,10 @@ const TurniTableComponent = ({
 
     const createTableData = (pairToEmpArray, employeesObj) => {
         const dipendentiCount = pairToEmpArray.length;
-        
+
         // Corretto calcolo dei giorni nel mese
         const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
-        
+
         // Crea l'array delle unità per le colonne
         const colUnits = [];
 
@@ -418,9 +420,9 @@ const TurniTableComponent = ({
     const handleBeforeOnCellMouseDown = (event, coords) => {
         if (coords.row === 0) {
             // Verifica se si sta facendo click sulla maniglia di trascinamento
-            if (event.target.className && 
-                (event.target.className.includes('column-drag-handle') || 
-                event.target.parentElement.className.includes('column-drag-handle'))) {
+            if (event.target.className &&
+                (event.target.className.includes('column-drag-handle') ||
+                    event.target.parentElement.className.includes('column-drag-handle'))) {
                 // Se è la maniglia, permettiamo il drag
                 return;
             } else {
@@ -436,50 +438,50 @@ const TurniTableComponent = ({
         // e corrispondono alle colonne delle unità dipendente (che devono muoversi in coppia)
         const canMove = columns.every(col => {
             const unitInfo = getUnitByCol(col);
-            return unitInfo && (unitInfo.unit.type === "fatturato" || 
-                                unitInfo.unit.type === "particolarita" ||
-                                (unitInfo.unit.type === "employee" && (col % 2 === 0)));
+            return unitInfo && (unitInfo.unit.type === "fatturato" ||
+                unitInfo.unit.type === "particolarita" ||
+                (unitInfo.unit.type === "employee" && (col % 2 === 0)));
         });
-        
+
         // Se target è nelle colonne fisse (giorno e giornoMese), impedisci lo spostamento
         if (target < 2) return false;
-        
+
         return canMove;
     };
 
     // Aggiorna le unità dopo lo spostamento delle colonne
     const handleAfterColumnMove = (movedColumns, finalIndex) => {
         if (movedColumns.length === 0) return;
-        
+
         // Crea un array di unità con l'ordine aggiornato
         const newColumnUnits = [];
-        
+
         // Mappa per tenere traccia delle colonne già processate
         const processedCols = new Set();
-        
+
         // Ottieni l'ordine attuale delle colonne
         const columnOrder = hotRef.current.hotInstance.getSettings().manualColumnMove.columnsMapper || [];
-        
+
         // Scorri tutte le colonne nell'ordine attuale
         for (let col = 2; col < columnOrder.length; col++) {
             if (processedCols.has(col)) continue;
-            
+
             const unitInfo = getUnitByCol(col);
             if (!unitInfo) continue;
-            
+
             // Aggiungi l'unità all'array
             newColumnUnits.push(unitInfo.unit);
-            
+
             // Segna come processate tutte le colonne di questa unità
             processedCols.add(col);
             if (unitInfo.unit.type === "employee") {
                 processedCols.add(col + 1);
             }
         }
-        
+
         // Aggiorna lo stato delle unità
         setColumnUnits(newColumnUnits);
-        
+
         // Forza il refresh della tabella
         setTimeout(() => {
             if (hotRef.current) {
@@ -489,27 +491,31 @@ const TurniTableComponent = ({
     };
 
     // Modifica il metodo handleCellClick per gestire correttamente i click sull'header
+    // src/components/turni/TurniTableComponent.jsx - Aggiornamento del metodo handleCellClick
+
     const handleCellClick = (event, coords) => {
         // Gestione click su cella
         const { row, col } = coords;
 
         if (row === 0) {
-            // Click su header - Verifichiamo se è il simbolo di drag o altro contenuto
-            const cellValue = hotRef.current.hotInstance.getDataAtCell(row, col);
-            if (cellValue && cellValue.toString().includes('☰')) {
-                // Calcola la posizione relativa del click nella cella
-                const cellElement = event.target;
-                const cellRect = cellElement.getBoundingClientRect();
-                const clickX = event.clientX - cellRect.left;
-                
-                // Se il click è sul simbolo ☰ (primi 20px), non facciamo nulla (sarà gestito dal drag and drop)
-                // Altrimenti, apriamo il popup delle variazioni
-                if (clickX > 20) {
-                    const unitInfo = getUnitByCol(col);
-                    if (unitInfo && unitInfo.unit.type === "employee") {
-                        setSelectedCell({ row, col });
-                        setShowVariationPopup(true);
-                    }
+            // Click su header - Modifica per gestire meglio l'apertura del popup delle variazioni
+            const unitInfo = getUnitByCol(col);
+
+            // Verifica se è un'unità di tipo dipendente
+            if (unitInfo && unitInfo.unit.type === "employee") {
+                // Ottieni l'elemento DOM cliccato
+                const target = event.target;
+
+                // Verifica se il click è stato fatto sulla maniglia di drag and drop
+                // o su un elemento figlio della maniglia
+                const isDragHandle =
+                    target.className.includes('column-drag-handle') ||
+                    target.parentElement.className.includes('column-drag-handle');
+
+                // Se non è la maniglia di drag, apri il popup delle variazioni
+                if (!isDragHandle) {
+                    setSelectedCell({ row, col });
+                    setShowVariationPopup(true);
                 }
             }
         } else {
@@ -585,7 +591,6 @@ const TurniTableComponent = ({
             }
         }
     };
-
     const getUnitByCol = (col) => {
         let current = 2; // Le prime 2 colonne sono giorno e giornoMese
 
@@ -622,10 +627,10 @@ const TurniTableComponent = ({
     // Funzione helper per gestire il merge in modo più sicuro
     const mergeCellsSafely = (row, col, rowspan, colspan) => {
         if (!hotRef.current) return;
-        
+
         try {
             const mergePlugin = hotRef.current.hotInstance.getPlugin('mergeCells');
-            
+
             if (mergePlugin && typeof mergePlugin.merge === 'function') {
                 // Handsontable 8+ utilizza questo metodo
                 mergePlugin.merge(row, col, row + rowspan - 1, col + colspan - 1);
@@ -645,6 +650,9 @@ const TurniTableComponent = ({
         }
     };
 
+    // Versione completa e corretta di buildColumnsFromUnits() che include tutte le colonne
+    // Sostituisci l'intera funzione con questa versione
+
     const buildColumnsFromUnits = () => {
         const cols = [
             { data: "giorno", readOnly: true },
@@ -653,23 +661,43 @@ const TurniTableComponent = ({
 
         columnUnits.forEach(unit => {
             if (unit.type === "employee") {
-                cols.push({ 
-                    data: unit.inizio, 
-                    editor: false,
+                cols.push({
+                    data: unit.inizio,
+                    readOnly: true,
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
                         // Se è la riga di intestazione, aggiungi l'icona drag handle con stile migliorato
                         if (row === 0 && value && value.includes('☰')) {
-                            // Modifichiamo il codice HTML per avere un'area di drag distinta
+                            // Modifichiamo il codice HTML per avere un'area di drag distinta e un'area cliccabile
+                            // che sembra un pulsante con un ingranaggio
                             td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
-                                <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
+                            <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
+                            <span class="employee-name-header" data-col="${col}" style="cursor: pointer; flex: 1; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; transition: all 0.2s;">
                                 <span>${value.replace('☰', '')}</span>
-                            </div>`;
-                            td.className += ' drag-handle-cell';
+                                <span class="settings-icon" style="margin-left: 8px; font-size: 14px; opacity: 0.7;">⚙️</span>
+                            </span>
+                        </div>`;
+                            td.className += ' header-cell';
+
+                            // Aggiungiamo questa proprietà per evitare che Handsontable provi ad aprire un editor
+                            cellProperties.readOnly = true;
+                            cellProperties.editor = false;
+
+                            // Aggiungiamo un event listener per gestire il click direttamente
+                            setTimeout(() => {
+                                const headerEl = td.querySelector('.employee-name-header');
+                                if (headerEl) {
+                                    // Rimuoviamo eventuali listener esistenti per sicurezza
+                                    headerEl.removeEventListener('click', handleHeaderClick);
+                                    // Aggiungiamo il nuovo listener
+                                    headerEl.addEventListener('click', handleHeaderClick);
+                                }
+                            }, 0);
                         } else {
                             Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                         }
                     }
                 });
+
                 cols.push({
                     data: unit.fine,
                     readOnly: true,
@@ -678,7 +706,7 @@ const TurniTableComponent = ({
                         if (Object.values(summaryRows).includes(row)) {
                             td.className += ' summary-cell';
                         }
-                        
+
                         if (typeof value === "string" && value.indexOf("|") !== -1) {
                             value = value.split("|")[1];
                         }
@@ -686,27 +714,31 @@ const TurniTableComponent = ({
                     }
                 });
             } else if (unit.type === "fatturato") {
-                cols.push({ 
-                    data: unit.key, 
+                cols.push({
+                    data: unit.key,
                     readOnly: true,
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
                         // Se è la riga di intestazione, aggiungi l'icona drag handle con stile migliorato
                         if (row === 0 && value && value.includes('☰')) {
                             td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
-                                <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
-                                <span>${value.replace('☰', '')}</span>
-                            </div>`;
+                            <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
+                            <span>${value.replace('☰', '')}</span>
+                        </div>`;
                             td.className += ' drag-handle-cell';
+
+                            // Aggiungiamo questa proprietà per evitare che Handsontable provi ad aprire un editor
+                            cellProperties.readOnly = true;
+                            cellProperties.editor = false;
                         } else if (Object.values(summaryRows).includes(row)) {
                             // Aggiungi classe per le celle riepilogative di fatturato
                             td.className += ' fatturato-riepilogo';
-                            
+
                             // Se è una cella riepilogativa vuota, inizializza con 0,00 €
                             if (!value || value.trim() === '') {
                                 value = '0,00 €';
                             }
                         }
-                        
+
                         Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                     }
                 });
@@ -719,18 +751,22 @@ const TurniTableComponent = ({
                         // Se è la riga di intestazione, aggiungi l'icona drag handle con stile migliorato
                         if (row === 0 && value && value.includes('☰')) {
                             td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
-                                <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
-                                <span>${value.replace('☰', '')}</span>
-                            </div>`;
+                            <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
+                            <span>${value.replace('☰', '')}</span>
+                        </div>`;
                             td.className += ' drag-handle-cell';
+
+                            // Aggiungiamo questa proprietà per evitare che Handsontable provi ad aprire un editor
+                            cellProperties.readOnly = true;
+                            cellProperties.editor = false;
                         } else if (Object.values(summaryRows).includes(row)) {
                             // Aggiungi classe per le celle riepilogative di particolarità
                             td.className += ' particolarita-riepilogo';
-                            
+
                             // Per le righe riepilogative, disabilita completamente la cella
                             cellProperties.readOnly = true;
                         }
-                        
+
                         Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                     }
                 });
@@ -739,6 +775,53 @@ const TurniTableComponent = ({
 
         return cols;
     };
+
+    // 2. Aggiungi il gestore di eventi per il click sull'header
+    const handleHeaderClick = (event) => {
+        // Recupera l'indice di colonna dall'attributo data-col
+        const colStr = event.currentTarget.getAttribute('data-col');
+        if (!colStr) return;
+
+        const col = parseInt(colStr, 10);
+
+        // Previeni propagazione per evitare che altri handler gestiscano lo stesso evento
+        event.stopPropagation();
+
+        // Ottieni informazioni sull'unità
+        const unitInfo = getUnitByCol(col);
+        if (unitInfo && unitInfo.unit.type === "employee") {
+            setSelectedCell({ row: 0, col });
+            setShowVariationPopup(true);
+        }
+    };
+    // Definizione della funzione updateHeaderListeners
+    const updateHeaderListeners = () => {
+        if (!hotRef.current) return;
+
+        // Seleziona tutti gli header dei dipendenti
+        const headerElements = document.querySelectorAll('.employee-name-header');
+
+        // Aggiungi listener di evento click a ciascuno
+        headerElements.forEach(el => {
+            el.removeEventListener('click', handleHeaderClick);
+            el.addEventListener('click', handleHeaderClick);
+        });
+    };
+
+    // Aggiungiamo un useEffect per aggiornare i listener quando necessario
+    useEffect(() => {
+        const timeoutId = setTimeout(updateHeaderListeners, 100);
+        return () => clearTimeout(timeoutId);
+    }, [data, columnUnits]);
+    // 3. Aggiungi un handler per prevenire il doppio click
+    const handleBeforeCellDblClick = (event, coords) => {
+        if (coords.row === 0) {
+            // Previeni completamente il doppio click sulle celle di intestazione
+            event.stopImmediatePropagation();
+            return false;
+        }
+    };
+
 
     const buildMerges = () => {
         const merges = [];
@@ -959,7 +1042,7 @@ const TurniTableComponent = ({
         // Forza il rendering
         hotRef.current.hotInstance.render();
     };
-    
+
     const calculateStraordinari = () => {
         if (!hotRef.current) return;
 
@@ -999,7 +1082,7 @@ const TurniTableComponent = ({
 
                     // Imposta l'etichetta
                     hotRef.current.hotInstance.setDataAtCell(summaryRows.straordinariRowIndex, 0, "STRAORDINARI");
-                    
+
                     // Utilizziamo un approccio diverso per il merge delle celle
                     // Questo è più sicuro e compatibile con tutte le versioni di Handsontable
                     try {
@@ -1352,56 +1435,121 @@ const TurniTableComponent = ({
     // Gestisce il salvataggio dei dati dal popup variazione
     const handleVariationPopupSave = (variationData) => {
         if (!selectedCell || !hotRef.current) return;
-
+    
         const { col } = selectedCell;
         const unitInfo = getUnitByCol(col);
-
+    
         if (!unitInfo || unitInfo.unit.type !== "employee") return;
-
+    
         const pairIndex = unitInfo.unitIndex;
         const emp = pairToEmployee[pairIndex];
-
-        // Aggiorna le variazioni
-        setEmployeeVariations(prev => ({
-            ...prev,
-            [emp]: variationData.variations
-        }));
-
-        // Calcola le ore da mostrare nell'header
-        const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
-        const assignedHours = [];
-
-        for (let day = 1; day <= giorniNelMese; day++) {
-            const rowDate = new Date(anno, mese, day);
-            let hoursForDay = employees[emp];
-
-            for (let j = 0; j < variationData.variations.length; j++) {
-                const variation = variationData.variations[j];
-                const startDate = new Date(variation.start + "T00:00:00");
-                const endDate = new Date(variation.end + "T00:00:00");
-
-                if (rowDate >= startDate && rowDate <= endDate) {
-                    hoursForDay = variation.hours;
-                    break;
-                }
-            }
-
-            assignedHours.push(hoursForDay);
-        }
-
-        // Mostra le ore nell'header
-        const uniqueHours = Array.from(new Set(assignedHours)).sort((a, b) => a - b);
-        const headerValue = uniqueHours.join("-");
-        const headerCol = col + 1;
-
-        hotRef.current.hotInstance.setDataAtCell(0, headerCol, headerValue);
-
+    
+        // Salva le vecchie variazioni per confronto
+        const oldVariations = employeeVariations[emp] || [];
+        
+        // Aggiorna le variazioni nello stato
+        setEmployeeVariations(prev => {
+            const newEmployeeVariations = {
+                ...prev,
+                [emp]: variationData.variations
+            };
+            
+            // Ritorna il nuovo stato
+            return newEmployeeVariations;
+        });
+    
         // Chiudi il popup
         setShowVariationPopup(false);
-
-        // Ricalcola tutti i totali
-        recalculateAllTotals();
+    
+        // Funzione per ricalcolare le assenze dopo che lo stato è stato aggiornato
+        setTimeout(() => {
+            if (!hotRef.current) return;
+            
+            console.log("Ricalcolo assenze dopo variazione orario");
+            
+            // Per questo dipendente, trova tutti i giorni con "X" (assenze)
+            // e aggiorna il valore orario in base alle nuove ore settimanali
+            const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+            const colInizio = 2 + 2 * pairIndex;
+            const colFine = colInizio + 1;
+            
+            // Calcola le ore per l'intestazione
+            const assignedHours = [];
+            for (let day = 1; day <= giorniNelMese; day++) {
+                const rowDate = new Date(anno, mese, day);
+                let hoursForDay = employees[emp];
+                
+                // Applica le variazioni
+                for (let j = 0; j < variationData.variations.length; j++) {
+                    const variation = variationData.variations[j];
+                    const startDate = new Date(variation.start + "T00:00:00");
+                    const endDate = new Date(variation.end + "T00:00:00");
+                    
+                    if (rowDate >= startDate && rowDate <= endDate) {
+                        hoursForDay = variation.hours;
+                        break;
+                    }
+                }
+                
+                assignedHours.push(hoursForDay);
+            }
+            
+            // Mostra le ore nell'header
+            const uniqueHours = Array.from(new Set(assignedHours)).sort((a, b) => a - b);
+            const headerValue = uniqueHours.join("-");
+            const headerCol = col + 1;
+            
+            hotRef.current.hotInstance.setDataAtCell(0, headerCol, headerValue);
+            
+            // Aggiorna gli orari giornalieri per i giorni con assenze
+            for (let day = 1; day <= giorniNelMese; day++) {
+                const rowDate = new Date(anno, mese, day);
+                const inizio = hotRef.current.hotInstance.getDataAtCell(day, colInizio);
+                const fine = hotRef.current.hotInstance.getDataAtCell(day, colFine);
+                
+                // Se è un'assenza (X nella cella inizio e un valore con "|" nella cella fine)
+                if (inizio === "X" && fine && fine.indexOf("|") !== -1) {
+                    const parts = fine.split("|");
+                    const motivo = parts[0].trim();
+                    const abbr = parts[1].trim();
+                    
+                    // Calcola le nuove ore giornaliere basate sulle variazioni
+                    let oreSettimanali = employees[emp];
+                    
+                    // Applica le variazioni
+                    for (let j = 0; j < variationData.variations.length; j++) {
+                        const variation = variationData.variations[j];
+                        const startDate = new Date(variation.start + "T00:00:00");
+                        const endDate = new Date(variation.end + "T00:00:00");
+                        
+                        if (rowDate >= startDate && rowDate <= endDate) {
+                            oreSettimanali = variation.hours;
+                            break;
+                        }
+                    }
+                    
+                    // Manteniamo lo stesso motivo e abbreviazione, ma aggiorniamo la seconda cella
+                    hotRef.current.hotInstance.setDataAtCell(
+                        day, 
+                        colFine, 
+                        `${motivo}|${abbr}`
+                    );
+                }
+            }
+            
+            // Ora forza il ricalcolo di tutti i totali
+            recalculateMotiveHours();
+            recalculateWorkHours();
+            updateTotaleOre();
+            updateOrePagate();
+            updateDifferenzeCorrente();
+            calculateStraordinari();
+            
+            // Forza il rendering
+            hotRef.current.hotInstance.render();
+        }, 100);
     };
+
 
     // Gestisce il salvataggio dei dati dal popup particolarità
     const handleParticolaritaPopupSave = (particolaritaData) => {
@@ -1418,7 +1566,7 @@ const TurniTableComponent = ({
 
         // Chiudi il popup
         setShowParticolaritaPopup(false);
-        
+
         // Ricalcola i totali perché le particolarità possono influenzare il calcolo delle ore pagate
         recalculateAllTotals();
     };
@@ -1482,6 +1630,7 @@ const TurniTableComponent = ({
     // Calcola le ore relative ai motivi (ferie, ROL, ex festività)
     const recalculateMotiveHours = () => {
         if (!hotRef.current) return;
+        console.log("Ricalcolo ore motivi");
 
         // Arrays per i totali dei motivi
         const ferieTotals = Array(pairToEmployee.length).fill(0);
@@ -1524,6 +1673,7 @@ const TurniTableComponent = ({
 
                     // Calcola ore giornaliere
                     const oreGiornaliere = oreSettimanali / giorniLavorativiSettimanali;
+                    console.log(`Giorno ${day}, Dipendente ${emp}, Motivo ${motive}, Ore ${oreGiornaliere}`);
 
                     // Aggiungi al totale corrispondente
                     if (motive === "ferie") {
@@ -1537,6 +1687,8 @@ const TurniTableComponent = ({
             }
 
             // Imposta i valori nella tabella
+            console.log(`Dipendente ${emp}: Ferie=${ferieTotals[pairIndex]}, ROL=${rolTotals[pairIndex]}, Ex Festività=${exFestivitaTotals[pairIndex]}`);
+
             hotRef.current.hotInstance.setDataAtCell(
                 summaryRows.ferieRowIndex,
                 2 + 2 * pairIndex,
@@ -1558,23 +1710,26 @@ const TurniTableComponent = ({
                 "recalculate"
             );
         }
+
+        // Forza il rendering della tabella
+        hotRef.current.hotInstance.render();
     };
 
     // Funzione per ricalcolare tutti i totali
     const recalculateAllTotals = () => {
         if (!hotRef.current) return;
-        
+
         // Prima rimuoviamo tutte le classi dalle celle
         const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
         const totalRows = giorniNelMese + Object.values(summaryRows).length + 1; // +1 per l'header
         const totalCols = hotRef.current.hotInstance.countCols();
-        
+
         for (let row = 0; row < totalRows; row++) {
             for (let col = 0; col < totalCols; col++) {
                 hotRef.current.hotInstance.removeCellMeta(row, col, "className");
             }
         }
-        
+
         // Esegui tutti i calcoli necessari in sequenza
         recalculateWorkHours();
         recalculateMotiveHours();
@@ -1583,25 +1738,48 @@ const TurniTableComponent = ({
         updateDifferenzeCorrente();
         updateFatturatoTotale();
         calculateStraordinari();
-        
+
         // Applica gli stili per le celle riepilogative
         applyStylesToCells();
-        
+
         // Forza il rendering della tabella
         hotRef.current.hotInstance.render();
     };
-
+    const logCurrentMotiveHours = () => {
+        if (!hotRef.current) return;
+        
+        console.log("STATO ATTUALE DEI CALCOLI:");
+        
+        for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
+            const emp = pairToEmployee[pairIndex];
+            const ferie = hotRef.current.hotInstance.getDataAtCell(summaryRows.ferieRowIndex, 2 + 2 * pairIndex);
+            const rol = hotRef.current.hotInstance.getDataAtCell(summaryRows.rolRowIndex, 2 + 2 * pairIndex);
+            const exFestivita = hotRef.current.hotInstance.getDataAtCell(summaryRows.exFestivitaRowIndex, 2 + 2 * pairIndex);
+            
+            console.log(`Dipendente ${emp}: Ferie=${ferie}, ROL=${rol}, Ex Festività=${exFestivita}`);
+            
+            // Variazioni attive
+            if (employeeVariations[emp] && employeeVariations[emp].length > 0) {
+                console.log("Variazioni orarie attive:");
+                employeeVariations[emp].forEach((v, i) => {
+                    console.log(`  ${i+1}. Da ${v.start} a ${v.end}: ${v.hours} ore`);
+                });
+            } else {
+                console.log("Nessuna variazione oraria attiva");
+            }
+        }
+    };
     // Applica gli stili alle celle riepilogative
     const applyStylesToCells = () => {
         if (!hotRef.current) return;
-        
+
         // Applica stili alle celle delle righe riepilogative
         Object.values(summaryRows).forEach(rowIndex => {
             // Applica stile alle celle dei dipendenti
             for (let u = 0; u < columnUnits.length; u++) {
                 const unit = columnUnits[u];
                 const colIndex = getUnitStartIndex(u);
-                
+
                 if (unit.type === "employee") {
                     // Celle dipendente nelle righe riepilogative
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "summary-cell");
@@ -1609,7 +1787,7 @@ const TurniTableComponent = ({
                 } else if (unit.type === "fatturato") {
                     // Celle fatturato nelle righe riepilogative
                     hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "fatturato-riepilogo");
-                    
+
                     // Inizializza a 0 se vuota
                     const cellVal = hotRef.current.hotInstance.getDataAtCell(rowIndex, colIndex);
                     if (!cellVal || cellVal.trim() === '') {
@@ -1622,14 +1800,14 @@ const TurniTableComponent = ({
                 }
             }
         });
-        
+
         // Applica stili alle celle di differenza (positive/negative)
         for (let u = 0; u < columnUnits.length; u++) {
             const unit = columnUnits[u];
             if (unit.type !== "employee") continue;
-            
+
             const colIndex = getUnitStartIndex(u);
-            
+
             // Differenza mese precedente
             const diffPrecedenteVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.diffPrecedenteRowIndex, colIndex);
             if (diffPrecedenteVal) {
@@ -1638,7 +1816,7 @@ const TurniTableComponent = ({
                 hotRef.current.hotInstance.setCellMeta(summaryRows.diffPrecedenteRowIndex, colIndex, "className", className);
                 hotRef.current.hotInstance.setCellMeta(summaryRows.diffPrecedenteRowIndex, colIndex + 1, "className", className);
             }
-            
+
             // Differenza mese corrente
             const diffCorrenteVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.diffCorrenteRowIndex, colIndex);
             if (diffCorrenteVal) {
@@ -1704,7 +1882,9 @@ const TurniTableComponent = ({
                             height="auto"
                             licenseKey="non-commercial-and-evaluation"
                             afterOnCellMouseDown={handleCellClick}
+                            beforeOnCellDblClick={handleBeforeCellDblClick}
                             afterChange={handleAfterChange}
+                            afterRender={() => setTimeout(updateHeaderListeners, 50)}
                             columns={buildColumnsFromUnits()}
                             mergeCells={buildMerges()}
                             manualColumnResize={true}

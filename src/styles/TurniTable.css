@@ -67,27 +67,27 @@
   .turni-table-container {
     padding: 10px;
   }
-  
+
   .table-actions {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .table-actions button {
     width: 100%;
     margin-bottom: 10px;
   }
-  
+
   .hot-container {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .hot-container .handsontable {
     min-width: 600px; /* Assicura che la tabella mantenga una larghezza minima */
   }
-  
+
   .modal-content {
     width: 90%;
     max-height: 80vh;
@@ -99,21 +99,22 @@
   .modal-body {
     padding: 10px;
   }
-  
+
   .modal-footer {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .modal-footer button {
     width: 100%;
   }
-  
+
   .mode-selector {
     flex-direction: column;
   }
-  
-  .time-container, .a-casa-container {
+
+  .time-container,
+  .a-casa-container {
     flex-direction: column;
   }
 }
@@ -132,9 +133,15 @@
 
 /* Animazione per pulsante salva */
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .btn-primary.saved {
@@ -239,7 +246,8 @@
 }
 
 /* Container per gli orari con spaziatura migliorata */
-.time-container, .a-casa-container {
+.time-container,
+.a-casa-container {
   margin-top: 15px;
   padding: 15px;
   background-color: rgba(242, 242, 242, 0.5);
@@ -260,9 +268,15 @@
 
 /* Animazione per pulsante salva */
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .btn-primary.saved {
@@ -274,27 +288,27 @@
   .turni-table-container {
     padding: 10px;
   }
-  
+
   .table-actions {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .table-actions button {
     width: 100%;
     margin-bottom: 10px;
   }
-  
+
   .hot-container {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .hot-container .handsontable {
     min-width: 600px;
   }
-  
+
   .modal-content {
     width: 90%;
     max-height: 80vh;
@@ -306,21 +320,159 @@
   .modal-body {
     padding: 10px;
   }
-  
+
   .modal-footer {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .modal-footer button {
     width: 100%;
   }
-  
+
   .mode-selector {
     flex-direction: column;
   }
-  
-  .time-container, .a-casa-container {
+
+  .time-container,
+  .a-casa-container {
     flex-direction: column;
+  }
+}
+/* Aggiungi questi stili a src/styles/TurniTable.css */
+
+/* Stile per la cella header cliccabile */
+.header-cell-clickable .employee-name-header {
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+  border-radius: 4px;
+  padding: 4px 8px !important;
+}
+
+.header-cell-clickable .employee-name-header:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* Aggiunge un effetto visivo per indicare che l'header è cliccabile */
+.header-cell-clickable .employee-name-header:after {
+  content: "⚙️";
+  font-size: 12px;
+  margin-left: 5px;
+  opacity: 0.6;
+}
+
+.header-cell-clickable .employee-name-header:hover:after {
+  opacity: 1;
+}
+
+/* Per touch device, rendi l'area cliccabile più ampia */
+@media (pointer: coarse) {
+  .header-cell-clickable .employee-name-header {
+    padding: 8px !important;
+  }
+
+  .column-drag-handle {
+    padding: 8px !important;
+  }
+}
+/* Aggiungere questi stili a src/styles/TurniTable.css */
+
+/* Stile per evitare selezione del testo negli header */
+.header-cell-clickable {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Stile per cella senza editor */
+.no-editor-cell {
+  background-color: transparent !important;
+}
+
+/* Mantieni gli stili per l'interattività */
+.header-cell-clickable .employee-name-header {
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+  border-radius: 4px;
+  padding: 4px 8px !important;
+}
+
+.header-cell-clickable .employee-name-header:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* Aggiunge un'icona più specifica per indicare che l'header è cliccabile */
+.header-cell-clickable .employee-name-header:after {
+  content: '⚙️';
+  font-size: 12px;
+  margin-left: 5px;
+  opacity: 0.7;
+}
+
+.header-cell-clickable .employee-name-header:hover:after {
+  opacity: 1;
+}
+
+/* Previeni qualsiasi ulteriore interazione non desiderata con l'header */
+.header-cell-clickable * {
+  pointer-events: auto;
+}
+/* Aggiungi questi stili a src/styles/TurniTable.css */
+
+/* Stile migliorato per l'intestazione cliccabile */
+.header-cell .employee-name-header {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  border-radius: 4px;
+  padding: 4px 8px !important;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: rgba(52, 152, 219, 0.05);
+  border: 1px solid transparent;
+}
+
+.header-cell .employee-name-header:hover {
+  background-color: rgba(52, 152, 219, 0.15);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Stile per l'icona delle impostazioni */
+.header-cell .settings-icon {
+  display: inline-block;
+  transition: all 0.2s;
+}
+
+.header-cell .employee-name-header:hover .settings-icon {
+  opacity: 1;
+  transform: rotate(30deg);
+}
+
+/* Effetto feedback al click */
+.header-cell .employee-name-header:active {
+  background-color: rgba(52, 152, 219, 0.25);
+  transform: translateY(1px);
+}
+
+/* Previeni la selezione del testo negli header */
+.handsontable th, 
+.handsontable thead th, 
+.handsontable tbody tr:first-child td {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Stile per touch device */
+@media (pointer: coarse) {
+  .header-cell .employee-name-header {
+    padding: 8px 12px !important;
+  }
+  
+  .header-cell .settings-icon {
+    font-size: 18px !important;
   }
 }
