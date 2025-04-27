@@ -150,24 +150,10 @@ function NegoziosList() {
                     <div className="action-buttons">
                       <button 
                         className="btn-icon" 
-                        onClick={() => navigate(`/negozi/${negozio.id}/dipendenti`)}
-                        title="Gestisci Dipendenti"
-                      >
-                        <i className="fas fa-users"></i>
-                      </button>
-                      <button 
-                        className="btn-icon" 
-                        onClick={() => navigate(`/negozi/${negozio.id}/turni`)}
-                        title="Gestisci Turni"
-                      >
-                        <i className="fas fa-calendar-alt"></i>
-                      </button>
-                      <button 
-                        className="btn-icon btn-edit" 
                         onClick={() => navigate(`/negozi/${negozio.id}`)}
-                        title="Modifica"
+                        title="Gestisci Negozio"
                       >
-                        <i className="fas fa-edit"></i>
+                        <i className="fas fa-store-alt"></i>
                       </button>
                       <button 
                         className="btn-icon btn-delete" 

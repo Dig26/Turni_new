@@ -1,51 +1,34 @@
 // src/components/turni/popups/ParticolaritaPopup.jsx
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import '../../../styles/Modal.css';
 
-// Lista predefinita di particolarità disponibili
-const particolaritaOptions = [
-    // Turni speciali
-    { sigla: 'TN', nome: 'Turno notturno', descrizione: 'Lavoro svolto durante le ore notturne (22:00-06:00)', categoria: 'turno', colore: '#3949ab' },
-    { sigla: 'STR', nome: 'Straordinario', descrizione: 'Ore di lavoro eccedenti l\'orario normale', categoria: 'turno', colore: '#d81b60' },
-    { sigla: 'REP', nome: 'Reperibilità', descrizione: 'Disponibilità al di fuori dell\'orario di lavoro', categoria: 'turno', colore: '#00897b' },
-    { sigla: 'FES', nome: 'Festivo', descrizione: 'Lavoro svolto durante un giorno festivo', categoria: 'turno', colore: '#e53935' },
-    { sigla: 'FP', nome: 'Festivo pagato', descrizione: 'Festivo pagato anche se non lavorato', categoria: 'turno', colore: '#c62828' },
+// Lista vuota di particolarità predefinite
+const defaultParticolaritaOptions = [];
 
-    // Modalità di lavoro
-    { sigla: 'SW', nome: 'Smart working', descrizione: 'Lavoro svolto da remoto', categoria: 'modalità', colore: '#8e24aa' },
-    { sigla: 'TR', nome: 'Trasferta', descrizione: 'Spostamento per lavoro fuori dalla sede abituale', categoria: 'modalità', colore: '#6a1b9a' },
-    { sigla: 'CLE', nome: 'Cliente esterno', descrizione: 'Lavoro presso sede del cliente', categoria: 'modalità', colore: '#5e35b1' },
+// Rimosso categorie predefinite
+const categorieParticolarita = [];
 
-    // Formazione
-    { sigla: 'FOR', nome: 'Formazione', descrizione: 'Partecipazione a corsi di formazione', categoria: 'formazione', colore: '#43a047' },
-    { sigla: 'RIU', nome: 'Riunione', descrizione: 'Partecipazione a riunioni aziendali', categoria: 'formazione', colore: '#2e7d32' },
-    { sigla: 'CS', nome: 'Corso sicurezza', descrizione: 'Formazione obbligatoria sulla sicurezza', categoria: 'formazione', colore: '#388e3c' },
-
-    // Assenze giustificate
-    { sigla: 'MAL', nome: 'Malattia', descrizione: 'Assenza per malattia', categoria: 'assenza', colore: '#ef6c00' },
-    { sigla: 'PER', nome: 'Permesso', descrizione: 'Permesso retribuito', categoria: 'assenza', colore: '#f57c00' },
-    { sigla: 'CP', nome: 'Congedo parentale', descrizione: 'Assenza per cura dei figli', categoria: 'assenza', colore: '#fb8c00' },
-    { sigla: 'VM', nome: 'Visita medica', descrizione: 'Assenza per visita medica', categoria: 'assenza', colore: '#ff9800' },
-
-    // Assenze collettive
-    { sigla: 'SCI', nome: 'Sciopero', descrizione: 'Assenza per adesione a sciopero', categoria: 'collettiva', colore: '#757575' },
-    { sigla: 'ASS', nome: 'Assemblea', descrizione: 'Partecipazione ad assemblea sindacale', categoria: 'collettiva', colore: '#616161' },
-    { sigla: 'ASP', nome: 'Aspettativa', descrizione: 'Periodo di aspettativa non retribuita', categoria: 'collettiva', colore: '#424242' },
-    { sigla: 'INF', nome: 'Infortunio', descrizione: 'Assenza per infortunio sul lavoro', categoria: 'collettiva', colore: '#e65100' },
-    { sigla: 'SE', nome: 'Servizi esterni', descrizione: 'Attività di servizio esterno', categoria: 'altro', colore: '#0277bd' },
-];
-const categorieParticolarita = [
-    { id: 'turno', nome: 'Turni speciali', icona: 'fas fa-clock' },
-    { id: 'modalità', nome: 'Modalità di lavoro', icona: 'fas fa-laptop' },
-    { id: 'formazione', nome: 'Formazione e riunioni', icona: 'fas fa-graduation-cap' },
-    { id: 'assenza', nome: 'Assenze giustificate', icona: 'fas fa-user-clock' },
-    { id: 'collettiva', nome: 'Assenze collettive', icona: 'fas fa-users' },
-    { id: 'altro', nome: 'Altro', icona: 'fas fa-ellipsis-h' }
-];
-
-const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
+const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance, negozioId }) => {
     const [selected, setSelected] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Ottieni le particolarità personalizzate del negozio dallo store Redux
+    const particolaritaCustom = useSelector(state => 
+        state.particolarita.items[negozioId] || []);
+    
+    // Combina le particolarità predefinite con quelle personalizzate
+    const particolaritaOptions = [...defaultParticolaritaOptions];
+    
+    // Aggiungi le particolarità personalizzate, sovrascrivendo quelle predefinite con la stessa sigla
+    particolaritaCustom.forEach(customOption => {
+        const existingIndex = particolaritaOptions.findIndex(opt => opt.sigla === customOption.sigla);
+        if (existingIndex !== -1) {
+            particolaritaOptions[existingIndex] = { ...customOption };
+        } else {
+            particolaritaOptions.push({ ...customOption });
+        }
+    });
 
     useEffect(() => {
         // Se la cella ha già un valore, caricalo
@@ -87,7 +70,7 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
         return (
             option.sigla.toLowerCase().includes(searchLower) ||
             option.nome.toLowerCase().includes(searchLower) ||
-            option.descrizione.toLowerCase().includes(searchLower)
+            (option.descrizione && option.descrizione.toLowerCase().includes(searchLower))
         );
     });
 
@@ -101,6 +84,9 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
 
         headerTitle = `Particolarità: ${dayOfWeek} ${dayOfMonth}`;
     }
+
+    // Non raggruppiamo più per categoria
+    const allOptions = filteredOptions;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -140,8 +126,8 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
                                 <span key={sigla} style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    backgroundColor: '#3498db',
-                                    color: 'white',
+                                    backgroundColor: option?.colore || '#3498db',
+                                    color: getContrastColor(option?.colore || '#3498db'),
                                     padding: '5px 8px',
                                     borderRadius: '4px',
                                     fontSize: '14px'
@@ -153,7 +139,7 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
                                             marginLeft: '5px',
                                             backgroundColor: 'transparent',
                                             border: 'none',
-                                            color: 'white',
+                                            color: getContrastColor(option?.colore || '#3498db'),
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -209,13 +195,15 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
                                             <div style={{
                                                 fontWeight: 'bold',
                                                 marginBottom: '3px',
-                                                color: selected.includes(option.sigla) ? '#3498db' : 'inherit'
+                                                color: selected.includes(option.sigla) ? option.colore || '#3498db' : 'inherit'
                                             }}>
                                                 {option.nome}
                                             </div>
-                                            <div style={{ fontSize: '0.9em', color: '#7f8c8d' }}>
-                                                {option.descrizione}
-                                            </div>
+                                            {option.descrizione && (
+                                                <div style={{ fontSize: '0.9em', color: '#7f8c8d' }}>
+                                                    {option.descrizione}
+                                                </div>
+                                            )}
                                             <div style={{
                                                 display: 'inline-block',
                                                 marginTop: '5px',
@@ -223,8 +211,8 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
                                                 borderRadius: '3px',
                                                 fontSize: '0.8em',
                                                 fontWeight: 'bold',
-                                                backgroundColor: selected.includes(option.sigla) ? '#3498db' : '#eef7fb',
-                                                color: selected.includes(option.sigla) ? 'white' : '#3498db'
+                                                backgroundColor: selected.includes(option.sigla) ? option.colore || '#3498db' : '#eef7fb',
+                                                color: selected.includes(option.sigla) ? getContrastColor(option.colore || '#3498db') : option.colore || '#3498db'
                                             }}>
                                                 {option.sigla}
                                             </div>
@@ -274,5 +262,19 @@ const ParticolaritaPopup = ({ onClose, onSave, selectedCell, hotInstance }) => {
         </div>
     );
 };
+
+// Funzione di utilità per determinare il colore del testo in base al colore di sfondo
+function getContrastColor(hexColor) {
+  // Converte il colore HEX in RGB
+  const r = parseInt(hexColor.substr(1, 2), 16);
+  const g = parseInt(hexColor.substr(3, 2), 16);
+  const b = parseInt(hexColor.substr(5, 2), 16);
+  
+  // Calcola la luminosità
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Se la luminosità è alta, usa il testo scuro, altrimenti usa il testo chiaro
+  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+}
 
 export default ParticolaritaPopup;

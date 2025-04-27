@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import NegoziPage from './pages/NegoziPage';
 import NegozioFormPage from './pages/NegozioFormPage';
+import NegozioHubPage from './pages/NegozioHubPage';
 import DipendentiPage from './pages/DipendentiPage';
 import DipendenteFormPage from './pages/DipendenteFormPage';
 import TurniListPage from './pages/TurniListPage';
@@ -118,14 +119,15 @@ function App() {
           } />
           <Route path="/negozi/:id" element={
             <AuthRequired>
+              <NegozioHubPage />
+            </AuthRequired>
+          } />
+          <Route path="/negozi/:id/edit" element={
+            <AuthRequired>
               <NegozioFormPage />
             </AuthRequired>
           } />
-          <Route path="/negozi/:negozioId/dipendenti" element={
-            <AuthRequired>
-              <DipendentiPage />
-            </AuthRequired>
-          } />
+          {/* Rotta dipendenti rimossa per utilizzare la nuova interfaccia nell'hub del negozio */}
           <Route path="/negozi/:negozioId/dipendenti/nuovo" element={
             <AuthRequired>
               <DipendenteFormPage />

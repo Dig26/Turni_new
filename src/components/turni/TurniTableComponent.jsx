@@ -2184,6 +2184,7 @@ const TurniTableComponent = ({
                             onSave={handleParticolaritaPopupSave}
                             selectedCell={selectedCell}
                             hotInstance={hotRef.current?.hotInstance}
+                            negozioId={negozioId}
                         />
                     )}
 

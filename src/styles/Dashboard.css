@@ -55,6 +55,7 @@
     overflow: hidden;
     border: 1px solid var(--secondary-color);
     transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+    cursor: pointer;
   }
   
   .negozio-card:hover {

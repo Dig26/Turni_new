@@ -1,9 +1,16 @@
 import React from 'react';
-import './Dashboard.module.css';
+import { useNavigate } from 'react-router-dom';
+import '../../styles/Dashboard.css';
 
-const NegozioCard = ({ negozio, onViewDipendenti, onViewTurni }) => {
+const NegozioCard = ({ negozio }) => {
+  const navigate = useNavigate();
+  
+  const handleGestisciNegozio = () => {
+    navigate(`/negozi/${negozio.id}`);
+  };
+  
   return (
-    <div className="negozio-card" key={negozio.id}>
+    <div className="negozio-card" key={negozio.id} onClick={handleGestisciNegozio}>
       <div className="negozio-card-header">
         <h3>{negozio.nome}</h3>
         <span className="negozio-location">
@@ -29,16 +36,13 @@ const NegozioCard = ({ negozio, onViewDipendenti, onViewTurni }) => {
       </div>
       <div className="negozio-card-actions">
         <button 
-          className="btn-outline" 
-          onClick={() => onViewDipendenti(negozio.id)}
-        >
-          <i className="fas fa-users"></i> Dipendenti
-        </button>
-        <button 
           className="btn-primary" 
-          onClick={() => onViewTurni(negozio.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleGestisciNegozio();
+          }}
         >
-          <i className="fas fa-calendar-alt"></i> Turni
+          <i className="fas fa-store-alt"></i> Gestisci Negozio
         </button>
       </div>
     </div>

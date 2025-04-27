@@ -28,8 +28,6 @@ const DashboardPage = () => {
   
   const handleAddNegozio = () => navigate('/negozi/nuovo');
   const handleViewAllNegozi = () => navigate('/negozi');
-  const handleViewDipendenti = (negozioId) => navigate(`/negozi/${negozioId}/dipendenti`);
-  const handleViewTurni = (negozioId) => navigate(`/negozi/${negozioId}/turni`);
   
   return (
     <div className="dashboard">
@@ -65,8 +63,6 @@ const DashboardPage = () => {
               <NegozioCard 
                 key={negozio.id}
                 negozio={negozio} 
-                onViewDipendenti={handleViewDipendenti}
-                onViewTurni={handleViewTurni}
               />
             ))}
           </div>

@@ -1,15 +1,14 @@
-// src/pages/TurniListPage.jsx - Versione corretta con gestione sicura dello stato
+// src/components/negozi/TurniPanel.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchNegozioById } from '../app/slices/negoziSlice';
-import { fetchDipendentiByNegozioId } from '../app/slices/dipendentiSlice';
-import { fetchTurniSalvati, deleteTabellaThunk } from '../app/slices/turniSlice';
-import { openConfirmationDialog, addNotification } from '../app/slices/uiSlice';
-import '../styles/TurniList.css';
+import { fetchNegozioById } from '../../app/slices/negoziSlice';
+import { fetchDipendentiByNegozioId } from '../../app/slices/dipendentiSlice';
+import { fetchTurniSalvati, deleteTabellaThunk } from '../../app/slices/turniSlice';
+import { openConfirmationDialog, addNotification } from '../../app/slices/uiSlice';
+import '../../styles/TurniList.css';
 
-const TurniListPage = () => {
-  const { negozioId } = useParams();
+const TurniPanel = ({ negozioId }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
@@ -128,43 +127,15 @@ const TurniListPage = () => {
   
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner">
-          <i className="fas fa-spinner fa-spin"></i>
-          <span>Caricamento dati...</span>
-        </div>
+      <div className="loading-spinner">
+        <i className="fas fa-spinner fa-spin"></i>
+        <span>Caricamento dati turni...</span>
       </div>
     );
   }
   
   return (
-    <div className="turni-list-container">
-      <div className="page-header">
-        <div>
-          <div className="breadcrumb">
-            <button 
-              className="btn-link" 
-              onClick={() => navigate(`/negozi/${negozioId}`)}
-            >
-              {negozio?.nome || 'Negozio'}
-            </button>
-            <i className="fas fa-chevron-right"></i>
-            <span>Turni</span>
-          </div>
-          <h1>Gestione Turni</h1>
-          <p>Gestisci i turni di lavoro per {negozio?.nome || 'il negozio selezionato'}</p>
-        </div>
-
-        <div className="header-actions">
-          <button
-            className="btn-secondary"
-            onClick={() => navigate(`/negozi/${negozioId}`)}
-          >
-            <i className="fas fa-arrow-left"></i> Torna al Negozio
-          </button>
-        </div>
-      </div>
-      
+    <div className="turni-tab">
       {/* Form per creare una nuova tabella */}
       <div className="crea-tabella-container">
         <h3>Crea nuova tabella turni</h3>
@@ -209,12 +180,7 @@ const TurniListPage = () => {
             <i className="fas fa-exclamation-triangle"></i>
             <span>
               Non ci sono dipendenti configurati per questo negozio.
-              <button
-                className="btn-link"
-                onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
-              >
-                Aggiungi dipendenti
-              </button>
+              Aggiungi dipendenti prima di creare una tabella turni.
             </span>
           </div>
         )}
@@ -270,7 +236,7 @@ const TurniListPage = () => {
         <div className="dipendenti-info-container">
           <h3>Dipendenti del negozio</h3>
           <div className="dipendenti-mini-list">
-            {dipendenti.map(dipendente => (
+            {dipendenti.slice(0, 5).map(dipendente => (
               <div key={dipendente.id} className="dipendente-mini-card">
                 <div className="dipendente-avatar">
                   {dipendente.nome ? dipendente.nome.charAt(0).toUpperCase() : '?'}
@@ -281,20 +247,13 @@ const TurniListPage = () => {
                 </div>
               </div>
             ))}
-          </div>
-          <div className="dipendenti-actions">
-            <button
-              className="btn-primary"
-              onClick={() => navigate(`/negozi/${negozioId}/dipendenti/nuovo`)}
-            >
-              <i className="fas fa-plus"></i> Aggiungi Dipendente
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
-            >
-              <i className="fas fa-list"></i> Visualizza Tutti
-            </button>
+            {dipendenti.length > 5 && (
+              <div className="dipendente-mini-card dipendente-more">
+                <div className="dipendente-avatar">
+                  +{dipendenti.length - 5}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -302,4 +261,4 @@ const TurniListPage = () => {
   );
 };
 
-export default TurniListPage;
+export default TurniPanel;

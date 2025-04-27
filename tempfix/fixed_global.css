@@ -1,15 +1,15 @@
 /* Importazione dei file CSS principali */
-@import './variables.css';
-@import './App.css';
-@import './Auth.css';
-@import './Dashboard.css';
-@import './DipendenteForm.css';
-@import './DipendentiList.css';
-@import './Navbar.css';
-@import './NegozioForm.css';
-@import './NegoziosList.css';
-@import './TabellaTurni.css';
-@import './NegozioHub.css';
+@import '../styles/variables.css';
+@import '../styles/App.css';
+@import '../styles/Auth.css';
+@import '../styles/Dashboard.css';
+@import '../styles/DipendenteForm.css';
+@import '../styles/DipendentiList.css';
+@import '../styles/Navbar.css';
+@import '../styles/NegozioForm.css';
+@import '../styles/NegoziosList.css';
+@import '../styles/TabellaTurni.css';
+@import '../styles/NegozioHub.css';
 
 /* Definizioni di fallback per stili mancanti */
 html, body {
@@ -84,7 +84,7 @@ html, body {
   transform: translate(-50%, -50%);
 }
 
-/* Stili di utilit√† aggiuntivi */
+/* Stili di utilit‡ aggiuntivi */
 .text-center {
   text-align: center;
 }

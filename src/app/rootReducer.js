@@ -5,6 +5,8 @@ import dipendentiReducer from './slices/dipendentiSlice';
 import turniReducer from './slices/turniSlice';
 import uiReducer from './slices/uiSlice';
 import themeReducer from './slices/themeSlice';
+import particolaritaReducer from './slices/particolaritaSlice';
+import motivazioniReducer from './slices/motivazioniSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -12,7 +14,9 @@ const rootReducer = combineReducers({
   dipendenti: dipendentiReducer,
   turni: turniReducer,
   ui: uiReducer,
-  theme: themeReducer
+  theme: themeReducer,
+  particolarita: particolaritaReducer,
+  motivazioni: motivazioniReducer
 });
 
 export default rootReducer;

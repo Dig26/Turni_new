@@ -55,6 +55,12 @@ export const routes = [
   },
   {
     path: '/negozi/:id',
+    component: lazy(() => import('./pages/NegozioHubPage')),
+    exact: true,
+    protected: true
+  },
+  {
+    path: '/negozi/:id/edit',
     component: NegozioFormPage,
     exact: true,
     protected: true
