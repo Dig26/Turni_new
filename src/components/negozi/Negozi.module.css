@@ -1,361 +1,323 @@
-/* src/components/negozi/Negozi.module.css */
+.negoziDettaglio {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background-color: var(--card-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
-/* Stili per il NegozioHub */
-.negozioHubHeader {
+.negoziHeader {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 25px;
-}
-
-.negozioInfo {
-  display: flex;
-  flex-direction: column;
-}
-
-.negozioAddress {
-  color: var(--text-muted);
-  display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 5px;
+  padding: 15px 20px;
+  background-color: var(--primary-color);
+  color: white;
 }
 
-.hubActions {
-  display: flex;
-  gap: 10px;
-}
-
-.hubNavigation {
-  display: flex;
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  margin-bottom: 20px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.navButton {
-  flex: 1;
-  padding: 12px 20px;
-  border: none;
-  background: transparent;
-  color: var(--text-color);
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background-color 0.2s;
-  border-bottom: 3px solid transparent;
-}
-
-.navButton:hover {
-  background-color: var(--secondary-bg);
-}
-
-.activeNavButton {
-  border-bottom: 3px solid var(--primary-color);
-  font-weight: 500;
-  color: var(--primary-color);
-}
-
-.hubContent {
-  margin-top: 20px;
-}
-
-.homeTab {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.gridStats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.statCard {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.statContent {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.statIcon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: var(--primary-light);
-  color: var(--primary-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-}
-
-.statInfo h3 {
+.negoziHeader h3 {
   margin: 0;
-  font-size: 1.5rem;
-  color: var(--text-color);
-}
-
-.statInfo p {
-  margin: 5px 0 0;
-  color: var(--text-muted);
-}
-
-.statAction {
-  margin-top: auto;
-  align-self: flex-end;
-  padding: 8px 16px;
-  background-color: var(--primary-lightest);
-  color: var(--primary-color);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.statAction:hover {
-  background-color: var(--primary-light);
-}
-
-.infoCard {
-  padding: 20px;
-}
-
-.infoCardTitle {
-  margin-top: 0;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-size: 1.2rem;
 }
 
-.infoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
+.negoziInfo {
+  padding: 15px 20px;
 }
 
 .infoItem {
+  margin-bottom: 10px;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  align-items: flex-start;
+}
+
+.infoItem i {
+  width: 20px;
+  margin-right: 10px;
+  color: var(--primary-color);
 }
 
 .infoLabel {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  font-weight: 600;
+  margin-right: 8px;
 }
 
-.infoValue {
-  font-size: 1rem;
+.negoziActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btnEdit, .btnDelete {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btnEdit {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btnEdit:hover {
+  background-color: var(--primary-dark);
+}
+
+.btnDelete {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.btnDelete:hover {
+  background-color: var(--danger-dark);
+}
+
+/* NegozioForm Styles */
+.formContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.formHeader {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.formHeader h2 {
+  margin: 0;
   color: var(--text-color);
 }
 
-.notesSection {
+.formSection {
+  margin-bottom: 25px;
+}
+
+.formSection h3 {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: var(--text-color);
+}
+
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -10px;
+}
+
+.formGroup {
+  flex: 1 0 calc(50% - 20px);
+  margin: 10px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+}
+
+.formGroup textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border-color);
 }
 
-.notesSection h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 1rem;
-}
-
-.notesSection p {
-  margin: 0;
-  color: var(--text-color);
-  line-height: 1.5;
-}
-
-.infoActions {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.infoAction {
-  padding: 8px 16px;
-  background-color: var(--secondary-bg);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
+.btnPrimary {
+  padding: 10px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background-color 0.2s;
+  font-weight: 600;
 }
 
-.infoAction:hover {
-  background-color: var(--secondary-hover);
+.btnPrimary:hover {
+  background-color: var(--primary-dark);
 }
 
-.sectionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+.btnSecondary {
+  padding: 10px 20px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
 }
 
-.sectionHeader h3 {
-  margin: 0;
-  font-size: 1.2rem;
+.btnSecondary:hover {
+  background-color: var(--secondary-dark);
 }
 
-.emptyState {
-  text-align: center;
-  padding: 40px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.emptyIcon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background-color: var(--secondary-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  color: var(--text-muted);
-}
-
-.emptyState h3 {
-  margin: 0;
-  color: var(--text-color);
-}
-
-.emptyState p {
-  margin: 0;
-  color: var(--text-muted);
-  max-width: 400px;
-}
-
-.turniContent {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 20px;
-}
-
-.turniIcon {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.5rem;
-  color: var(--primary-color);
-}
-
-.turniInfo {
-  flex: 1;
-}
-
-.turniInfo h3 {
-  margin: 0 0 10px;
-  font-size: 1.2rem;
-}
-
-.turniInfo p {
-  margin: 0 0 20px;
-  color: var(--text-muted);
-}
-
-.turniActions {
-  display: flex;
-  gap: 10px;
-}
-
-.dipendentiGrid, .turniGrid {
+/* NegozioList Styles */
+.negoziList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+  margin-top: 20px;
 }
 
-.dipendenteCard {
+.negoziItem {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.negoziItem:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.negoziItemHeader {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 15px;
+  position: relative;
+}
+
+.negoziItemHeader h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.headerBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.negoziItemContent {
   padding: 15px;
 }
 
-.dipendenteHeader {
+.negoziItemAddress {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.dipendenteHeader h4 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.dipendenteActions {
-  display: flex;
-  gap: 8px;
-}
-
-.dipendenteInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dipendenteInfo p {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-color);
-}
-
-.iconButton {
-  background: transparent;
-  border: none;
+  align-items: flex-start;
+  margin-bottom: 10px;
   color: var(--text-muted);
+}
+
+.negoziItemAddress i {
+  margin-right: 8px;
+  color: var(--primary-color);
+}
+
+.negoziItemInfo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.infoItem i {
+  margin-right: 5px;
+  color: var(--primary-color);
+}
+
+.negoziItemFooter {
+  padding: 15px;
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid var(--border-light);
+}
+
+.negoziItemAction {
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+  border: none;
+  background-color: transparent;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
+  transition: background-color 0.2s;
+}
+
+.negoziItemAction:hover {
+  background-color: var(--hover-bg);
+}
+
+.negoziItemAction i {
+  color: var(--primary-color);
+}
+
+.addButton {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: background-color 0.2s, color 0.2s;
+  font-size: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  z-index: 100;
 }
 
-.iconButton:hover {
-  background-color: var(--secondary-bg);
-  color: var(--text-color);
+.addButton:hover {
+  transform: scale(1.1);
+  background-color: var(--primary-dark);
 }
 
-/* Stile per il ParticolaritaManager */
+/* NegozioHub Specific Styles */
 .particolaritaManager {
-  padding: 20px;
-  background-color: var(--background-color);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .particolaritaHeader {
@@ -366,11 +328,10 @@
 }
 
 .particolaritaHeader h3 {
-  margin: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 1.2rem;
+  margin: 0;
   color: var(--text-color);
 }
 
@@ -385,156 +346,47 @@
 }
 
 .searchBox input {
-  padding: 8px 15px 8px 35px;
-  border-radius: 4px;
+  padding: 8px 35px 8px 15px;
+  border-radius: 20px;
   border: 1px solid var(--border-color);
   background-color: var(--input-bg);
   color: var(--text-color);
-  width: 200px;
-  font-size: 0.9rem;
-  transition: all 0.2s;
+  width: 250px;
 }
 
 .searchBox i {
   position: absolute;
-  left: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
 }
 
-.addButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 15px;
-  border-radius: 4px;
-  border: none;
-  background-color: var(--primary-color);
-  color: white;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.addButton:hover {
-  background-color: var(--primary-hover);
-}
-
 .particolaritaForm {
   background-color: var(--card-bg);
-  padding: 20px;
   border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.formRow {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
-}
-
-.formGroup {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.formGroup label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-color);
-}
-
-.formGroup input,
-.formGroup select,
-.formGroup textarea {
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 25px;
   border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
-  color: var(--text-color);
-  font-size: 0.95rem;
-}
-
-.formGroup textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.formActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.btnPrimary {
-  padding: 8px 16px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btnPrimary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btnSecondary {
-  padding: 8px 16px;
-  background-color: var(--secondary-bg);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.btnSecondary:hover {
-  background-color: var(--secondary-hover);
 }
 
 .particolaritaList {
-  margin-top: 20px;
-}
-
-.emptyState {
-  text-align: center;
-  padding: 40px 0;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.loading {
-  text-align: center;
-  padding: 20px;
-  color: var(--text-muted);
-  font-style: italic;
+  margin-top: 25px;
 }
 
 .particolaritaCategory {
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .particolaritaCategory h4 {
-  margin: 0 0 15px 0;
-  font-size: 1rem;
-  color: var(--text-color);
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: var(--text-color);
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .particolaritaGrid {
@@ -610,4 +462,95 @@
   font-size: 0.85rem;
   color: var(--text-muted);
   margin: 0;
+}
+
+/* Motivazioni Manager Styles */
+.motivazioniManager {
+  width: 100%;
+}
+
+.motivazioniGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.motivazioneCard {
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.motivazioneCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.motivazioneContent {
+  padding: 15px;
+}
+
+.motivazioneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.motivazioneHeader h5 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.motivazioneActions {
+  display: flex;
+  gap: 8px;
+}
+
+.motivazioneSigla {
+  margin-top: 10px;
+}
+
+.siglaBox {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 4px;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.noSigla {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.predefinedBadge, .calcOreBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  margin-left: 8px;
+}
+
+.predefinedBadge {
+  background-color: var(--warning-color);
+  color: #fff;
+}
+
+.calcOreBadge {
+  background-color: var(--info-color);
+  color: #fff;
 }

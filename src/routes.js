@@ -9,7 +9,7 @@ const NegoziPage = lazy(() => import('./pages/NegoziPage'));
 const NegozioFormPage = lazy(() => import('./pages/NegozioFormPage'));
 const DipendentiPage = lazy(() => import('./pages/DipendentiPage'));
 const DipendenteFormPage = lazy(() => import('./pages/DipendenteFormPage'));
-const TurniListPage = lazy(() => import('./pages/TurniListPage'));
+const TurniListPage = lazy(() => import('./pages/TurniListPage')); // Mantenuto per struttura
 const TurniEditorPage = lazy(() => import('./pages/TurniEditorPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -83,9 +83,10 @@ export const routes = [
     exact: true,
     protected: true
   },
+  // La rotta viene lasciata ma reindirizziamo a NotFound
   {
     path: '/negozi/:negozioId/turni',
-    component: TurniListPage,
+    component: NotFoundPage,
     exact: true,
     protected: true
   },

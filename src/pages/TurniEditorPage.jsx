@@ -60,7 +60,8 @@ const TurniEditorPage = () => {
   }, [dispatch, negozioId, anno, mese, negozio]);
   
   const handleReturn = () => {
-    navigate(`/negozi/${negozioId}/turni`);
+    // Ora che la vecchia pagina è stata rimossa, reindirizziamo all'hub
+    navigate(`/negozi/${negozioId}`);
   };
   
   if (loading) {

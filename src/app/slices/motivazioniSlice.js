@@ -19,10 +19,13 @@ export const saveMotivazione = createAsyncThunk(
   'motivazioni/save',
   async ({ motivazioneData, negozioId, id = null }, { rejectWithValue }) => {
     try {
+      console.log("saveMotivazione thunk called with:", { motivazioneData, negozioId, id });
       const savedMotivazione = await motivazioniAPI.saveMotivazione(motivazioneData, negozioId, id);
+      console.log("saveMotivazione thunk result:", savedMotivazione);
       return savedMotivazione;
     } catch (error) {
-      return rejectWithValue(error.message);
+      console.error("saveMotivazione thunk error:", error);
+      return rejectWithValue(error.message || "Errore sconosciuto");
     }
   }
 );

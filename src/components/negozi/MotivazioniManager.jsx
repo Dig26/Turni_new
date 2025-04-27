@@ -9,6 +9,8 @@ import {
 import { addNotification } from '../../app/slices/uiSlice';
 import styles from './Negozi.module.css';
 
+// Debug tramite console standard
+
 const MotivazioniManager = ({ negozioId }) => {
   const dispatch = useDispatch();
   const motivazioniItems = useSelector(state => 
@@ -75,30 +77,44 @@ const MotivazioniManager = ({ negozioId }) => {
       return;
     }
 
-    const saveAction = saveMotivazione({
-      motivazioneData: formData, 
-      negozioId, 
-      id: editingId
-    });
-    
-    dispatch(saveAction)
-      .unwrap()
-      .then(() => {
-        resetForm();
-        setShowForm(false);
-        dispatch(addNotification({
-          type: 'success',
-          message: `Motivazione ${editingId ? 'aggiornata' : 'creata'} con successo`,
-          duration: 3000
-        }));
-      })
-      .catch(error => {
-        dispatch(addNotification({
-          type: 'error',
-          message: `Errore: ${error}`,
-          duration: 5000
-        }));
+    try {
+      console.log("Tentativo di salvataggio motivazione:", {
+        formData,
+        negozioId,
+        editingId
       });
+      
+      dispatch(saveMotivazione({
+        motivazioneData: formData, 
+        negozioId, 
+        id: editingId
+      }))
+        .unwrap()
+        .then(() => {
+          resetForm();
+          setShowForm(false);
+          dispatch(addNotification({
+            type: 'success',
+            message: `Motivazione ${editingId ? 'aggiornata' : 'creata'} con successo`,
+            duration: 3000
+          }));
+        })
+        .catch(error => {
+          console.error("Errore nel dispatch:", error);
+          dispatch(addNotification({
+            type: 'error',
+            message: `Errore: ${error}`,
+            duration: 5000
+          }));
+        });
+    } catch (error) {
+      console.error("Errore nel try/catch:", error);
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore durante il salvataggio: ${error.message || 'Errore sconosciuto'}`,
+        duration: 5000
+      }));
+    }
   };
 
   const handleEdit = (motivazione) => {
@@ -151,7 +167,7 @@ const MotivazioniManager = ({ negozioId }) => {
     <div className={styles.motivazioniManager}>
       <div className={styles.particolaritaHeader}>
         <h3>
-          <i className="fas fa-tag"></i> Gestione Motivazioni Assenze
+          <i className="fas fa-calendar-check"></i> Gestione Motivazioni Assenze
         </h3>
         <div className={styles.particolaritaActions}>
           <div className={styles.searchBox}>

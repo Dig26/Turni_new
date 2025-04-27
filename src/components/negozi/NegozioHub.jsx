@@ -12,6 +12,57 @@ import MotivazioniManager from './MotivazioniManager';
 import TurniPanel from './TurniPanel';
 import '../../styles/NegozioHub.css';
 
+// Utility functions for formatting
+const settoreLabel = (settore) => {
+  const settoriMap = {
+    'commercio': 'Commercio',
+    'ristorazione': 'Ristorazione',
+    'abbigliamento': 'Abbigliamento',
+    'alimentari': 'Alimentari', 
+    'tecnologia': 'Tecnologia',
+    'servizi': 'Servizi',
+    'altro': 'Altro'
+  };
+  return settoriMap[settore] || settore;
+};
+
+const paeseLabel = (paese) => {
+  const paesiMap = {
+    'IT': 'Italia',
+    'FR': 'Francia',
+    'DE': 'Germania',
+    'UK': 'Regno Unito',
+    'ES': 'Spagna'
+  };
+  return paesiMap[paese] || paese;
+};
+
+const formattaGiorniLiberi = (giorni) => {
+  if (!giorni || giorni.length === 0) return 'Nessuno';
+  
+  const giorniMap = {
+    'lunedi': 'Lunedì',
+    'martedi': 'Martedì',
+    'mercoledi': 'Mercoledì',
+    'giovedi': 'Giovedì',
+    'venerdi': 'Venerdì',
+    'sabato': 'Sabato',
+    'domenica': 'Domenica'
+  };
+  
+  return giorni.map(g => giorniMap[g] || g).join(', ');
+};
+
+const findResponsabile = (dipendenti) => {
+  if (!dipendenti || dipendenti.length === 0) return null;
+  
+  const responsabile = dipendenti.find(d => d.ruolo === 'responsabile' || d.ruolo === 'direttore');
+  if (responsabile) {
+    return `${responsabile.nome} ${responsabile.cognome}`;
+  }
+  return null;
+};
+
 const NegozioHub = ({ negozioId }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -25,9 +76,19 @@ const NegozioHub = ({ negozioId }) => {
     state.particolarita.items[negozioId] || []
   );
   
-  const motivazioni = useSelector(state => 
-    state.motivazioni && state.motivazioni.items[negozioId] || []
-  );
+  const motivazioni = useSelector(state => {
+    try {
+      if (state.motivazioni && state.motivazioni.items && negozioId) {
+        return Array.isArray(state.motivazioni.items[negozioId]) 
+          ? state.motivazioni.items[negozioId] 
+          : [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Errore nell'accesso alle motivazioni:", error);
+      return [];
+    }
+  });
   
   const loading = useSelector(state => 
     state.negozi.loading || 
@@ -126,7 +187,7 @@ const NegozioHub = ({ negozioId }) => {
           className={`nav-button ${activeTab === 'motivazioni' ? 'active-nav-button' : ''}`} 
           onClick={() => setActiveTab('motivazioni')}
         >
-          <i className="fas fa-home"></i> Motivazioni
+          <i className="fas fa-calendar-check"></i> Motivazioni
         </button>
       </div>
 
@@ -182,7 +243,7 @@ const NegozioHub = ({ negozioId }) => {
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-icon">
-                    <i className="fas fa-home"></i>
+                    <i className="fas fa-calendar-check"></i>
                   </div>
                   <div className="stat-info">
                     <h3>{motivazioni.length}</h3>
@@ -202,23 +263,37 @@ const NegozioHub = ({ negozioId }) => {
               <div className="info-grid">
                 <div className="info-item">
                   <span className="info-label">Responsabile</span>
-                  <span className="info-value">{negozio.responsabile || 'Non specificato'}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Telefono</span>
-                  <span className="info-value">{negozio.telefono || 'Non specificato'}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Email</span>
-                  <span className="info-value">{negozio.email || 'Non specificato'}</span>
+                  <span className="info-value">
+                    {findResponsabile(dipendenti) || 'Non specificato'}
+                  </span>
                 </div>
                 <div className="info-item">
                   <span className="info-label">Settore</span>
-                  <span className="info-value">{negozio.settore || 'Non specificato'}</span>
+                  <span className="info-value">{settoreLabel(negozio.settore) || 'Non specificato'}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">Orari</span>
-                  <span className="info-value">{negozio.orari || 'Non specificato'}</span>
+                  <span className="info-label">Città</span>
+                  <span className="info-value">{negozio.citta || 'Non specificato'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Paese</span>
+                  <span className="info-value">{paeseLabel(negozio.paese) || 'Non specificato'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Orario apertura</span>
+                  <span className="info-value">{negozio.orarioApertura || 'Non specificato'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Orario chiusura</span>
+                  <span className="info-value">{negozio.orarioChiusura || 'Non specificato'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Giorni lavorativi</span>
+                  <span className="info-value">{negozio.giorniLavorativi || 'Non specificato'} giorni/settimana</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Giorni fissi liberi</span>
+                  <span className="info-value">{formattaGiorniLiberi(negozio.giorniFissiLiberi) || 'Nessuno'}</span>
                 </div>
               </div>
               {negozio.note && (
@@ -279,7 +354,7 @@ const NegozioHub = ({ negozioId }) => {
                     dipendente.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     dipendente.cognome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     dipendente.ruolo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    dipendente.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                    dipendente.nomeTurno?.toLowerCase().includes(searchTerm.toLowerCase())
                   )
                   .map(dipendente => (
                   <div key={dipendente.id} className="dipendente-card">
@@ -288,24 +363,46 @@ const NegozioHub = ({ negozioId }) => {
                       <div className="dipendente-actions">
                         <Link to={`/negozi/${negozioId}/dipendenti/${dipendente.id}`}>
                           <button className="icon-button">
-                            <i className="fas fa-eye"></i>
-                          </button>
-                        </Link>
-                        <Link to={`/negozi/${negozioId}/dipendenti/${dipendente.id}`}>
-                          <button className="icon-button">
                             <i className="fas fa-edit"></i>
                           </button>
                         </Link>
                       </div>
                     </div>
                     <div className="dipendente-info">
-                      <p><i className="fas fa-id-badge"></i> {dipendente.ruolo || dipendente.mansione || 'Nessuna mansione'}</p>
-                      <p><i className="fas fa-phone"></i> {dipendente.telefono || 'Non specificato'}</p>
-                      <p><i className="fas fa-envelope"></i> {dipendente.email || 'Non specificato'}</p>
-                      <p><i className="fas fa-calendar-alt"></i> {dipendente.orarioLavoro || dipendente.disponibilita || 'Non specificato'}</p>
-                      {dipendente.dataNascita && <p><i className="fas fa-birthday-cake"></i> {new Date(dipendente.dataNascita).toLocaleDateString()}</p>}
-                      {dipendente.dataAssunzione && <p><i className="fas fa-briefcase"></i> {new Date(dipendente.dataAssunzione).toLocaleDateString()}</p>}
-                      {dipendente.note && <p><i className="fas fa-sticky-note"></i> {dipendente.note.substring(0, 50)}...</p>}
+                      <div className="dipendente-info-grid">
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-id-badge"></i> <strong>Ruolo:</strong></div>
+                          <div className="info-value">{dipendente.ruolo || 'Non specificato'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-user-tag"></i> <strong>Nome turno:</strong></div>
+                          <div className="info-value">{dipendente.nomeTurno || 'Non specificato'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-clock"></i> <strong>Ore sett.:</strong></div>
+                          <div className="info-value">{dipendente.oreSettimanali || '0'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-briefcase"></i> <strong>Assunzione:</strong></div>
+                          <div className="info-value">{dipendente.dataAssunzione ? new Date(dipendente.dataAssunzione).toLocaleDateString() : 'Non spec.'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-calendar-times"></i> <strong>Fine contr.:</strong></div>
+                          <div className="info-value">{dipendente.dataFineContratto ? new Date(dipendente.dataFineContratto).toLocaleDateString() : 'Non spec.'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-umbrella-beach"></i> <strong>Ferie:</strong></div>
+                          <div className="info-value">{dipendente.giorniFerie || '0'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-calendar-day"></i> <strong>ROL:</strong></div>
+                          <div className="info-value">{dipendente.giorniROL || '0'}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label"><i className="fas fa-calendar-plus"></i> <strong>Ex fest.:</strong></div>
+                          <div className="info-value">{dipendente.giorniExFestivita || '0'}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -332,8 +429,16 @@ const NegozioHub = ({ negozioId }) => {
         {activeTab === 'motivazioni' && (
           <div className="motivazioni-tab">
             <div className="section-header">
-              <h3>Gestione Motivazioni Assenze</h3>
-              <div></div> {/* Placeholder vuoto per mantenere l'allineamento */}
+              <h3>
+                <i className="fas fa-calendar-check"></i> Gestione Motivazioni Assenze
+              </h3>
+              <div className="section-info">
+                <p>
+                  Qui puoi gestire le motivazioni per le assenze dei dipendenti. 
+                  <strong> Le motivazioni predefinite (Ferie, ROL, EX Festività) non possono essere eliminate</strong>, 
+                  ma puoi personalizzare le loro sigle.
+                </p>
+              </div>
             </div>
             
             <MotivazioniManager negozioId={negozioId} />

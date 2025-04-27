@@ -13,11 +13,19 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   
   // Ottieni le motivazioni dal Redux store
   const negozioId = useSelector(state => state.negozi.currentNegozio ? state.negozi.currentNegozio.id : null);
-  const motivazioni = useSelector(state => 
-    state.motivazioni && state.motivazioni.items && negozioId
-      ? state.motivazioni.items[negozioId] || []
-      : []
-  );
+  const motivazioni = useSelector(state => {
+    try {
+      if (state.motivazioni && state.motivazioni.items && negozioId) {
+        return Array.isArray(state.motivazioni.items[negozioId]) 
+          ? state.motivazioni.items[negozioId] 
+          : [];
+      }
+      return [];
+    } catch (error) {
+      console.error("Errore nell'accesso alle motivazioni:", error);
+      return [];
+    }
+  });
   
   useEffect(() => {
     if (selectedCell && hotInstance) {

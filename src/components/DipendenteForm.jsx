@@ -137,7 +137,8 @@ function DipendenteForm({ negozioId, dipendenteId }) {
       }
       
       await saveDipendente(formData, dipendenteId);
-      navigate(`/negozi/${negozioId}/dipendenti`);
+      // Reindirizzamento al NegozioHub con la tab dipendenti attiva
+      navigate(`/negozi/${negozioId}`);
     } catch (error) {
       console.error('Errore nel salvataggio del dipendente:', error);
       setError('Errore nel salvataggio del dipendente. Riprova.');
@@ -167,7 +168,7 @@ function DipendenteForm({ negozioId, dipendenteId }) {
             <i className="fas fa-chevron-right"></i>
             <button 
               className="btn-link" 
-              onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
+              onClick={() => navigate(`/negozi/${negozioId}`)}
             >
               {negozio?.nome}
             </button>
@@ -337,7 +338,7 @@ function DipendenteForm({ negozioId, dipendenteId }) {
           <button 
             type="button" 
             className="btn-secondary"
-            onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
+            onClick={() => navigate(`/negozi/${negozioId}`)}
           >
             Annulla
           </button>

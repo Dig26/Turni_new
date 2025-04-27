@@ -67,9 +67,9 @@ const TurniEditor = ({ negozioId, anno, mese, dipendenti }) => {
     });
   };
   
-  // Gestisce il ritorno alla lista
+  // Gestisce il ritorno alla hub del negozio
   const handleReturn = () => {
-    navigate(`/negozi/${negozioId}/turni`);
+    navigate(`/negozi/${negozioId}`);
   };
   
   if (loading) {
