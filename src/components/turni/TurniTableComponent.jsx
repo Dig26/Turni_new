@@ -54,6 +54,40 @@ const TurniTableComponent = ({
         diffCorrenteRowIndex: 0
     });
 
+    // Array dei mesi con il numero corretto di giorni (considerando anche gli anni bisestili)
+    const getDaysInMonth = (month, year) => {
+        // Nota: month è 0-based (0-11)
+        return new Date(year, month + 1, 0).getDate();
+    };
+
+    // Verifica se un anno è bisestile
+    const isLeapYear = (year) => {
+        return ((year % 4 === 0) && (year % 100 !== 0)) || (year % 400 === 0);
+    };
+
+    useEffect(() => {
+        // Verifica il mese e l'anno correnti
+        const annoNum = parseInt(anno, 10);
+        const meseNum = parseInt(mese, 10);
+
+        // Log per debug
+        console.log(`Inizializzazione tabella per ${meseNum + 1}/${annoNum} con ${getDaysInMonth(meseNum, annoNum)} giorni`);
+
+        // Verifica se dobbiamo inizializzare per marzo 2025 (caso specifico)
+        if (meseNum === 2 && annoNum === 2025) {
+            console.log("Rilevato marzo 2025 - attivazione modalità speciale di inizializzazione");
+
+            // Forza una reinizializzazione completa
+            if (initialData && !isNewTable) {
+                const timeoutId = setTimeout(() => {
+                    console.log("Reinizializzazione forzata per marzo 2025");
+                    initNewTable();
+                }, 100);
+                return () => clearTimeout(timeoutId);
+            }
+        }
+    }, [anno, mese, isNewTable, initialData]);
+
     const parseNumericValue = (value) => {
         if (value === null || value === undefined || value === '') return 0;
         // Rimuove tutti i caratteri non numerici tranne virgola e punto, poi converte la virgola in punto
@@ -119,7 +153,7 @@ const TurniTableComponent = ({
             initNewTable();
         }
     }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
-    
+
     // Effect specifico per aggiornare le ore pagate all'avvio della tabella
     useEffect(() => {
         // Esegui solo quando la tabella è stata caricata (non in loading) e hotRef esiste
@@ -127,24 +161,45 @@ const TurniTableComponent = ({
             // Breve timeout per garantire che la tabella sia completamente renderizzata
             const timeoutId = setTimeout(() => {
                 console.log("Aggiornamento automatico delle ore pagate all'avvio");
-                
+
                 // Aggiornamento delle ore pagate
                 updateOrePagate();
-                
+
                 // Aggiornamento delle differenze del mese corrente
                 updateDifferenzeCorrente();
-                
+
                 // Forza il rendering della tabella
                 hotRef.current.hotInstance.render();
-                
+
                 console.log("Aggiornamento ore pagate completato");
             }, 300);
-            
+
             return () => clearTimeout(timeoutId);
         }
-    }, [loading]); // Dipendenza da loading per eseguire solo quando la tabella è caricata
+    }, [loading]);
 
+    // Aggiungi questa funzione per forzare immediatamente il ricalcolo dopo che le variazioni sono state aggiornate
+    useEffect(() => {
+        // Questo effetto si attiva quando employeeVariations cambia
+        if (Object.keys(employeeVariations).length > 0 && !loading && hotRef.current) {
+            console.log("Rilevata modifica alle variazioni, avvio ricalcolo...");
 
+            // Usa un breve timeout per assicurarsi che la UI si sia aggiornata
+            const timeoutId = setTimeout(() => {
+                recalculateMotiveHours();
+                recalculateWorkHours();
+                updateTotaleOre();
+                updateOrePagate();
+                updateDifferenzeCorrente();
+                calculateStraordinari();
+
+                // Forza il rendering
+                hotRef.current.hotInstance.render();
+            }, 50);
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [employeeVariations]);
 
     const generateAllTimesTable = () => {
         const times = [];
@@ -244,33 +299,48 @@ const TurniTableComponent = ({
     const createTableData = (pairToEmpArray, employeesObj) => {
         const dipendentiCount = pairToEmpArray.length;
 
-        // Corretto calcolo dei giorni nel mese
-        const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+        // Converti anno e mese in numeri per garantire il calcolo corretto
+        const annoNum = parseInt(anno, 10);
+        const meseNum = parseInt(mese, 10);
+
+        // Calcola correttamente i giorni nel mese
+        const giorniNelMese = new Date(annoNum, meseNum + 1, 0).getDate();
 
         // Crea l'array delle unità per le colonne
         const colUnits = [];
 
-        // Aggiungi le unità per i dipendenti
+        // Prepara tutte le chiavi che useremo per evitare il problema "object is not extensible"
+        const allKeys = ['giorno', 'giornoMese'];
+
+        // Aggiungi le unità per i dipendenti e raccogli tutte le chiavi
         pairToEmpArray.forEach((emp, i) => {
+            const inizioKey = `inizio_${i}`;
+            const fineKey = `fine_${i}`;
+            allKeys.push(inizioKey, fineKey);
+
             colUnits.push({
                 type: "employee",
-                inizio: `inizio_${i}`,
-                fine: `fine_${i}`,
+                inizio: inizioKey,
+                fine: fineKey,
                 header: `☰ ${emp}`
             });
         });
 
         // Aggiungi l'unità per il fatturato
+        const fatturatoKey = "fatturato";
+        allKeys.push(fatturatoKey);
         colUnits.push({
             type: "fatturato",
-            key: "fatturato",
+            key: fatturatoKey,
             header: "☰ Fatturato"
         });
 
         // Aggiungi l'unità per le particolarità
+        const particolaritaKey = "particolarita";
+        allKeys.push(particolaritaKey);
         colUnits.push({
             type: "particolarita",
-            key: "particolarita",
+            key: particolaritaKey,
             header: "☰ Particolarità"
         });
 
@@ -279,11 +349,19 @@ const TurniTableComponent = ({
         // Crea i dati della tabella
         const tableData = [];
 
-        // Header
-        const headerRow = {
-            giorno: "Giorno Settimana",
-            giornoMese: "Giorno"
+        // Funzione helper per creare un oggetto riga con tutte le proprietà inizializzate
+        const createRowObject = () => {
+            const rowObj = {};
+            allKeys.forEach(key => {
+                rowObj[key] = "";
+            });
+            return rowObj;
         };
+
+        // Header
+        const headerRow = createRowObject();
+        headerRow.giorno = "Giorno Settimana";
+        headerRow.giornoMese = "Giorno";
 
         // Imposta i dati dell'header per ciascuna unità
         colUnits.forEach(unit => {
@@ -298,21 +376,14 @@ const TurniTableComponent = ({
 
         tableData.push(headerRow);
 
-        // Giorni del mese - utilizziamo il calcolo corretto
+        // Giorni del mese - utilizziamo i numeri convertiti per garantire il calcolo esatto
         for (let i = 1; i <= giorniNelMese; i++) {
-            const row = {};
-            const currentDate = new Date(anno, mese, i);
+            // Crea un nuovo oggetto riga con tutte le proprietà inizializzate
+            const row = createRowObject();
+            // Utilizza i numeri per la creazione della data
+            const currentDate = new Date(annoNum, meseNum, i);
             row["giorno"] = currentDate.toLocaleDateString("it-IT", { weekday: "long" });
             row["giornoMese"] = currentDate.getDate();
-
-            colUnits.forEach(unit => {
-                if (unit.type === "employee") {
-                    row[unit.inizio] = "";
-                    row[unit.fine] = "";
-                } else if (unit.type === "fatturato" || unit.type === "particolarita") {
-                    row[unit.key] = "";
-                }
-            });
 
             tableData.push(row);
         }
@@ -331,9 +402,8 @@ const TurniTableComponent = ({
 
         // Aggiungi le righe di riepilogo
         summaryLabels.forEach(label => {
-            const row = {};
+            const row = createRowObject();
             row["giorno"] = label;
-            row["giornoMese"] = "";
 
             colUnits.forEach(unit => {
                 if (unit.type === "employee") {
@@ -341,9 +411,8 @@ const TurniTableComponent = ({
                     row[unit.fine] = "0,00";
                 } else if (unit.type === "fatturato") {
                     row[unit.key] = "0,00 €"; // Inizializza le celle fatturato a 0
-                } else if (unit.type === "particolarita") {
-                    row[unit.key] = ""; // Celle particolarità vuote
                 }
+                // Niente da fare per particolarità, lasciamo vuoto come già impostato da createRowObject
             });
 
             tableData.push(row);
@@ -515,8 +584,6 @@ const TurniTableComponent = ({
     };
 
     // Modifica il metodo handleCellClick per gestire correttamente i click sull'header
-    // src/components/turni/TurniTableComponent.jsx - Aggiornamento del metodo handleCellClick
-
     const handleCellClick = (event, coords) => {
         // Gestione click su cella
         const { row, col } = coords;
@@ -615,6 +682,7 @@ const TurniTableComponent = ({
             }
         }
     };
+
     const getUnitByCol = (col) => {
         let current = 2; // Le prime 2 colonne sono giorno e giornoMese
 
@@ -675,12 +743,10 @@ const TurniTableComponent = ({
     };
 
     // Versione completa e corretta di buildColumnsFromUnits() che include tutte le colonne
-    // Sostituisci l'intera funzione con questa versione
-
     const buildColumnsFromUnits = () => {
         const cols = [
-            { 
-                data: "giorno", 
+            {
+                data: "giorno",
                 readOnly: true,
                 renderer: (instance, td, row, col, prop, value, cellProperties) => {
                     // Applica stile di riepilogo alle celle di intestazione delle righe riepilogative
@@ -690,8 +756,8 @@ const TurniTableComponent = ({
                     Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                 }
             },
-            { 
-                data: "giornoMese", 
+            {
+                data: "giornoMese",
                 readOnly: true,
                 renderer: (instance, td, row, col, prop, value, cellProperties) => {
                     // Applica stile di riepilogo alle celle di intestazione delle righe riepilogative
@@ -713,7 +779,7 @@ const TurniTableComponent = ({
                         if (Object.values(summaryRows).includes(row)) {
                             td.className += ' summary-cell';
                         }
-                        
+
                         // Se è la riga di intestazione, manteniamo lo stile originale
                         if (row === 0 && value && value.includes('☰')) {
                             // Utilizziamo la struttura originale dell'header
@@ -824,7 +890,7 @@ const TurniTableComponent = ({
         return cols;
     };
 
-    // 2. Aggiungi il gestore di eventi per il click sull'header
+    // Aggiungi il gestore di eventi per il click sull'header
     const handleHeaderClick = (event) => {
         // Recupera l'indice di colonna dall'attributo data-col
         const colStr = event.currentTarget.getAttribute('data-col');
@@ -842,6 +908,7 @@ const TurniTableComponent = ({
             setShowVariationPopup(true);
         }
     };
+
     // Definizione della funzione updateHeaderListeners
     const updateHeaderListeners = () => {
         if (!hotRef.current) return;
@@ -861,7 +928,8 @@ const TurniTableComponent = ({
         const timeoutId = setTimeout(updateHeaderListeners, 100);
         return () => clearTimeout(timeoutId);
     }, [data, columnUnits]);
-    // 3. Aggiungi un handler per prevenire il doppio click
+
+    // Aggiungi un handler per prevenire il doppio click
     const handleBeforeCellDblClick = (event, coords) => {
         if (coords.row === 0) {
             // Previeni completamente il doppio click sulle celle di intestazione
@@ -869,7 +937,6 @@ const TurniTableComponent = ({
             return false;
         }
     };
-
 
     const buildMerges = () => {
         const merges = [];
@@ -906,8 +973,29 @@ const TurniTableComponent = ({
         return merges;
     };
 
+    // Aggiungi questa funzione per generare lo schema dati per Handsontable
+    const buildDataSchema = () => {
+        const schema = {
+            giorno: "",
+            giornoMese: ""
+        };
+
+        // Aggiungi tutte le proprietà per le colonne definite nelle unità
+        columnUnits.forEach(unit => {
+            if (unit.type === "employee") {
+                schema[unit.inizio] = "";
+                schema[unit.fine] = "";
+            } else if (unit.type === "fatturato" || unit.type === "particolarita") {
+                schema[unit.key] = "";
+            }
+        });
+
+        return schema;
+    };
+
+    // Versione corretta della funzione updateTotaleOre
     const updateTotaleOre = () => {
-        if (!hotRef.current) return;
+        if (!hotRef.current || !hotRef.current.hotInstance) return;
 
         for (let u = 0, unitCol = 2; u < columnUnits.length; u++) {
             const unit = columnUnits[u];
@@ -926,32 +1014,89 @@ const TurniTableComponent = ({
             ];
 
             summaryIndices.forEach(rowIndex => {
-                const cellVal = hotRef.current.hotInstance.getDataAtCell(rowIndex, unitCol);
-
-                if (cellVal === null || cellVal === undefined || cellVal === "") {
+                if (rowIndex === undefined || rowIndex < 0 || rowIndex >= hotRef.current.hotInstance.countRows()) {
+                    console.warn(`Indice riga ${rowIndex} non valido per il calcolo del totale`);
                     return;
                 }
 
-                const numStr = cellVal.toString().replace(",", ".");
-                const num = parseFloat(numStr);
+                try {
+                    const cellVal = hotRef.current.hotInstance.getDataAtCell(rowIndex, unitCol);
 
-                if (!isNaN(num)) {
-                    totale += num;
+                    if (cellVal === null || cellVal === undefined || cellVal === "") {
+                        return;
+                    }
+
+                    const numStr = String(cellVal).replace(",", ".");
+                    const num = parseFloat(numStr);
+
+                    if (!isNaN(num)) {
+                        totale += num;
+                    }
+                } catch (error) {
+                    console.error(`Errore nel leggere la cella [${rowIndex}, ${unitCol}]:`, error);
                 }
             });
 
-            hotRef.current.hotInstance.setDataAtCell(
-                summaryRows.totaleOreRowIndex,
-                unitCol,
-                totale.toFixed(2).replace(".", ","),
-                "updateTotaleOre"
-            );
+            try {
+                if (summaryRows.totaleOreRowIndex === undefined ||
+                    summaryRows.totaleOreRowIndex < 0 ||
+                    summaryRows.totaleOreRowIndex >= hotRef.current.hotInstance.countRows()) {
+                    console.warn(`Indice riga totale ore ${summaryRows.totaleOreRowIndex} non valido`);
+                    return;
+                }
+
+                hotRef.current.hotInstance.setDataAtCell(
+                    summaryRows.totaleOreRowIndex,
+                    unitCol,
+                    totale.toFixed(2).replace(".", ","),
+                    "updateTotaleOre"
+                );
+            } catch (error) {
+                console.error(`Errore nell'impostare la cella totale [${summaryRows.totaleOreRowIndex}, ${unitCol}]:`, error);
+            }
 
             unitCol += 2;
         }
 
         // Aggiorna le differenze mese corrente
         updateDifferenzeCorrente();
+    };
+
+    // Aggiungi questa funzione per aggiornare in modo sicuro i dati della tabella
+    const updateCellSafely = (row, col, value, source) => {
+        if (!hotRef.current || !hotRef.current.hotInstance) return false;
+
+        // Verifica che gli indici siano validi
+        if (row < 0 || row >= hotRef.current.hotInstance.countRows() ||
+            col < 0 || col >= hotRef.current.hotInstance.countCols()) {
+            console.warn(`Tentativo di aggiornare una cella fuori dai limiti: [${row}, ${col}]`);
+            return false;
+        }
+
+        try {
+            // Ottieni i dati correnti
+            const currentData = hotRef.current.hotInstance.getSourceDataAtRow(row);
+
+            // Se i dati non hanno la struttura giusta, crea un nuovo oggetto
+            if (!currentData || typeof currentData !== 'object') {
+                console.warn(`I dati alla riga ${row} non sono un oggetto valido`);
+                return false;
+            }
+
+            // Assicurati che la proprietà esista prima di impostarla
+            const propertyName = hotRef.current.hotInstance.colToProp(col);
+            if (!propertyName) {
+                console.warn(`Impossibile ottenere il nome della proprietà per la colonna ${col}`);
+                return false;
+            }
+
+            // Usa setDataAtCell che è più sicuro
+            hotRef.current.hotInstance.setDataAtCell(row, col, value, source);
+            return true;
+        } catch (error) {
+            console.error(`Errore nell'aggiornare la cella [${row}, ${col}]:`, error);
+            return false;
+        }
     };
 
     const updateOrePagate = () => {
@@ -1051,8 +1196,9 @@ const TurniTableComponent = ({
         return null;
     };
 
+    // Aggiornamento sicuro della funzione updateDifferenzeCorrente
     const updateDifferenzeCorrente = () => {
-        if (!hotRef.current) return;
+        if (!hotRef.current || !hotRef.current.hotInstance) return;
 
         for (let u = 0, unitCol = 2; u < columnUnits.length; u++) {
             const unit = columnUnits[u];
@@ -1061,34 +1207,44 @@ const TurniTableComponent = ({
                 continue;
             }
 
-            // Ottieni i valori di TOTALE ORE e ORE PAGATE
-            const totaleOreVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.totaleOreRowIndex, unitCol);
-            const orePagateVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.orePagateRowIndex, unitCol);
+            try {
+                // Ottieni i valori di TOTALE ORE e ORE PAGATE
+                const totaleOreVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.totaleOreRowIndex, unitCol) || "0,00";
+                const orePagateVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.orePagateRowIndex, unitCol) || "0,00";
 
-            // Converti in numeri
-            const totaleOre = parseFloat(totaleOreVal.toString().replace(",", ".")) || 0;
-            const orePagate = parseFloat(orePagateVal.toString().replace(",", ".")) || 0;
+                // Converti in numeri
+                const totaleOre = parseFloat(String(totaleOreVal).replace(",", ".")) || 0;
+                const orePagate = parseFloat(String(orePagateVal).replace(",", ".")) || 0;
 
-            // Calcola la differenza
-            const differenza = totaleOre - orePagate;
+                // Calcola la differenza
+                const differenza = totaleOre - orePagate;
+                const formattedDiff = differenza.toFixed(2).replace(".", ",");
 
-            // Aggiorna la cella
-            hotRef.current.hotInstance.setDataAtCell(
-                summaryRows.diffCorrenteRowIndex,
-                unitCol,
-                differenza.toFixed(2).replace(".", ","),
-                "updateDifferenzeCorrente"
-            );
+                // Aggiorna la cella in modo sicuro
+                updateCellSafely(
+                    summaryRows.diffCorrenteRowIndex,
+                    unitCol,
+                    formattedDiff,
+                    "updateDifferenzeCorrente"
+                );
 
-            // Applica la classe CSS in base al valore
-            const cssClass = differenza >= 0 ? "differenza-positiva" : "differenza-negativa";
-            hotRef.current.hotInstance.setCellMeta(summaryRows.diffCorrenteRowIndex, unitCol, "className", cssClass);
+                // Applica la classe CSS in base al valore
+                const cssClass = differenza >= 0 ? "differenza-positiva" : "differenza-negativa";
+                hotRef.current.hotInstance.setCellMeta(summaryRows.diffCorrenteRowIndex, unitCol, "className", cssClass);
 
-            unitCol += 2;
+                unitCol += 2;
+            } catch (error) {
+                console.error(`Errore nel calcolo della differenza corrente per la colonna ${unitCol}:`, error);
+                unitCol += 2; // Continuiamo con la prossima unità
+            }
         }
 
         // Forza il rendering
-        hotRef.current.hotInstance.render();
+        try {
+            hotRef.current.hotInstance.render();
+        } catch (error) {
+            console.error("Errore durante il rendering della tabella:", error);
+        }
     };
 
     const calculateStraordinari = () => {
@@ -1105,7 +1261,7 @@ const TurniTableComponent = ({
             const oreLavorate = parseNumericValue(oreLavorateCell);
 
             // Calcola le ore settimanali standard per il mese
-            const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+            const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
             const settimaneMese = giorniNelMese / 7;
             const oreStandardMese = oreSettimanaliStandard * settimaneMese;
 
@@ -1198,7 +1354,7 @@ const TurniTableComponent = ({
         if (fatturatoColIndex === null) return;
 
         let totale = 0;
-        const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+        const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
 
         // Somma tutti i valori nella colonna fatturato
         for (let i = 1; i <= giorniNelMese; i++) {
@@ -1259,7 +1415,7 @@ const TurniTableComponent = ({
             const [row, col, oldVal, newVal] = changes[i];
 
             // Se la riga è un giorno del mese (non intestazione e non riepilogo)
-            if (row > 0 && row <= new Date(anno, mese + 1, 0).getDate()) {
+            if (row > 0 && row <= new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate()) {
                 // Determina il tipo di colonna
                 const unitInfo = getUnitByCol(col);
                 if (!unitInfo) continue;
@@ -1342,7 +1498,7 @@ const TurniTableComponent = ({
     const recalculateWorkHours = () => {
         if (!hotRef.current) return;
 
-        const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+        const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
 
         // Per ogni dipendente
         for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
@@ -1387,7 +1543,214 @@ const TurniTableComponent = ({
         }
     };
 
-    // Gestisce il salvataggio dei dati dal popup cella
+    // Calcola le ore relative ai motivi (ferie, ROL, ex festività)
+    const recalculateMotiveHours = () => {
+        if (!hotRef.current) return;
+        console.log("Ricalcolo ore motivi");
+
+        // Arrays per i totali dei motivi
+        const ferieTotals = Array(pairToEmployee.length).fill(0);
+        const exFestivitaTotals = Array(pairToEmployee.length).fill(0);
+        const rolTotals = Array(pairToEmployee.length).fill(0);
+
+        const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
+
+        // Per ogni dipendente
+        for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
+            const emp = pairToEmployee[pairIndex];
+
+            // Per ogni giorno del mese
+            for (let day = 1; day <= giorniNelMese; day++) {
+                const inizio = hotRef.current.hotInstance.getDataAtCell(day, 2 + 2 * pairIndex);
+                const fine = hotRef.current.hotInstance.getDataAtCell(day, 3 + 2 * pairIndex);
+
+                // Se c'è una "X" nella cella "inizio" e un valore con "|" nella cella "fine"
+                if (inizio === "X" && fine && fine.indexOf("|") !== -1) {
+                    const parts = fine.split("|");
+                    const motive = parts[0].trim().toLowerCase();
+
+                    // Calcola le ore giornaliere per il dipendente
+                    const rowDate = new Date(parseInt(anno), parseInt(mese), day);
+                    let oreSettimanali = employees[emp];
+
+                    // Controllo variazioni orarie
+                    if (employeeVariations[emp]) {
+                        for (let i = 0; i < employeeVariations[emp].length; i++) {
+                            const entry = employeeVariations[emp][i];
+                            const startDate = new Date(entry.start + "T00:00:00");
+                            const endDate = new Date(entry.end + "T00:00:00");
+
+                            if (rowDate >= startDate && rowDate <= endDate) {
+                                oreSettimanali = entry.hours;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Calcola ore giornaliere
+                    const oreGiornaliere = oreSettimanali / giorniLavorativiSettimanali;
+                    console.log(`Giorno ${day}, Dipendente ${emp}, Motivo ${motive}, Ore ${oreGiornaliere}`);
+
+                    // Aggiungi al totale corrispondente
+                    if (motive === "ferie") {
+                        ferieTotals[pairIndex] += oreGiornaliere;
+                    } else if (motive === "rol") {
+                        rolTotals[pairIndex] += oreGiornaliere;
+                    } else if (motive === "exfestivita") {
+                        exFestivitaTotals[pairIndex] += oreGiornaliere;
+                    }
+                }
+            }
+
+            // Imposta i valori nella tabella
+            console.log(`Dipendente ${emp}: Ferie=${ferieTotals[pairIndex]}, ROL=${rolTotals[pairIndex]}, Ex Festività=${exFestivitaTotals[pairIndex]}`);
+
+            hotRef.current.hotInstance.setDataAtCell(
+                summaryRows.ferieRowIndex,
+                2 + 2 * pairIndex,
+                ferieTotals[pairIndex].toFixed(2).replace(".", ","),
+                "recalculate"
+            );
+
+            hotRef.current.hotInstance.setDataAtCell(
+                summaryRows.exFestivitaRowIndex,
+                2 + 2 * pairIndex,
+                exFestivitaTotals[pairIndex].toFixed(2).replace(".", ","),
+                "recalculate"
+            );
+
+            hotRef.current.hotInstance.setDataAtCell(
+                summaryRows.rolRowIndex,
+                2 + 2 * pairIndex,
+                rolTotals[pairIndex].toFixed(2).replace(".", ","),
+                "recalculate"
+            );
+        }
+
+        // Forza il rendering della tabella
+        hotRef.current.hotInstance.render();
+    };
+
+    // Funzione per ricalcolare tutti i totali
+    const recalculateAllTotals = () => {
+        if (!hotRef.current) return;
+
+        // Prima rimuoviamo tutte le classi dalle celle
+        const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
+        const totalRows = giorniNelMese + Object.values(summaryRows).length + 1; // +1 per l'header
+        const totalCols = hotRef.current.hotInstance.countCols();
+
+        for (let row = 0; row < totalRows; row++) {
+            for (let col = 0; col < totalCols; col++) {
+                hotRef.current.hotInstance.removeCellMeta(row, col, "className");
+            }
+        }
+
+        // Esegui tutti i calcoli necessari in sequenza
+        recalculateWorkHours();
+        recalculateMotiveHours();
+        updateTotaleOre();
+        updateOrePagate();
+        updateDifferenzeCorrente();
+        updateFatturatoTotale();
+        calculateStraordinari();
+
+        // Applica gli stili per le celle riepilogative
+        applyStylesToCells();
+
+        // Forza il rendering della tabella
+        hotRef.current.hotInstance.render();
+    };
+
+    const logCurrentMotiveHours = () => {
+        if (!hotRef.current) return;
+
+        console.log("STATO ATTUALE DEI CALCOLI:");
+
+        for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
+            const emp = pairToEmployee[pairIndex];
+            const ferie = hotRef.current.hotInstance.getDataAtCell(summaryRows.ferieRowIndex, 2 + 2 * pairIndex);
+            const rol = hotRef.current.hotInstance.getDataAtCell(summaryRows.rolRowIndex, 2 + 2 * pairIndex);
+            const exFestivita = hotRef.current.hotInstance.getDataAtCell(summaryRows.exFestivitaRowIndex, 2 + 2 * pairIndex);
+
+            console.log(`Dipendente ${emp}: Ferie=${ferie}, ROL=${rol}, Ex Festività=${exFestivita}`);
+
+            // Variazioni attive
+            if (employeeVariations[emp] && employeeVariations[emp].length > 0) {
+                console.log("Variazioni orarie attive:");
+                employeeVariations[emp].forEach((v, i) => {
+                    console.log(`  ${i + 1}. Da ${v.start} a ${v.end}: ${v.hours} ore`);
+                });
+            } else {
+                console.log("Nessuna variazione oraria attiva");
+            }
+        }
+    };
+
+    // Applica gli stili alle celle riepilogative
+    const applyStylesToCells = () => {
+        if (!hotRef.current) return;
+
+        // Applica stili alle celle delle righe riepilogative
+        Object.values(summaryRows).forEach(rowIndex => {
+            // Applica stile alle celle dei titoli delle righe (prime due colonne)
+            hotRef.current.hotInstance.setCellMeta(rowIndex, 0, "className", "summary-cell summary-row-header");
+            hotRef.current.hotInstance.setCellMeta(rowIndex, 1, "className", "summary-cell summary-row-header");
+
+            // Applica stile alle celle dei dipendenti
+            for (let u = 0; u < columnUnits.length; u++) {
+                const unit = columnUnits[u];
+                const colIndex = getUnitStartIndex(u);
+
+                if (unit.type === "employee") {
+                    // Celle dipendente nelle righe riepilogative
+                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "summary-cell");
+                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex + 1, "className", "summary-cell");
+                } else if (unit.type === "fatturato") {
+                    // Mantieni lo stile originale per celle fatturato (senza aggiungere summary-cell)
+                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "fatturato-riepilogo");
+
+                    // Inizializza a 0 se vuota
+                    const cellVal = hotRef.current.hotInstance.getDataAtCell(rowIndex, colIndex);
+                    if (!cellVal || cellVal.trim() === '') {
+                        hotRef.current.hotInstance.setDataAtCell(rowIndex, colIndex, "0,00 €");
+                    }
+                } else if (unit.type === "particolarita") {
+                    // Mantieni lo stile originale per celle particolarità (senza aggiungere summary-cell)
+                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "particolarita-riepilogo");
+                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "readOnly", true);
+                }
+            }
+        });
+
+        // Applica stili alle celle di differenza (positive/negative)
+        for (let u = 0; u < columnUnits.length; u++) {
+            const unit = columnUnits[u];
+            if (unit.type !== "employee") continue;
+
+            const colIndex = getUnitStartIndex(u);
+
+            // Differenza mese precedente
+            const diffPrecedenteVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.diffPrecedenteRowIndex, colIndex);
+            if (diffPrecedenteVal) {
+                const diffValue = parseFloat(diffPrecedenteVal.toString().replace(',', '.'));
+                const className = diffValue >= 0 ? 'differenza-positiva' : 'differenza-negativa';
+                hotRef.current.hotInstance.setCellMeta(summaryRows.diffPrecedenteRowIndex, colIndex, "className", className);
+                hotRef.current.hotInstance.setCellMeta(summaryRows.diffPrecedenteRowIndex, colIndex + 1, "className", className);
+            }
+
+            // Differenza mese corrente
+            const diffCorrenteVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.diffCorrenteRowIndex, colIndex);
+            if (diffCorrenteVal) {
+                const diffValue = parseFloat(diffCorrenteVal.toString().replace(',', '.'));
+                const className = diffValue >= 0 ? 'differenza-positiva' : 'differenza-negativa';
+                hotRef.current.hotInstance.setCellMeta(summaryRows.diffCorrenteRowIndex, colIndex, "className", className);
+                hotRef.current.hotInstance.setCellMeta(summaryRows.diffCorrenteRowIndex, colIndex + 1, "className", className);
+            }
+        }
+    };
+
+    // Gestione del salvataggio dei dati dal popup cella
     const handleCellPopupSave = (cellData) => {
         if (!selectedCell || !hotRef.current) return;
 
@@ -1480,124 +1843,158 @@ const TurniTableComponent = ({
         recalculateAllTotals();
     };
 
-    // Gestisce il salvataggio dei dati dal popup variazione
-    const handleVariationPopupSave = (variationData) => {
-        if (!selectedCell || !hotRef.current) return;
-    
-        const { col } = selectedCell;
-        const unitInfo = getUnitByCol(col);
-    
-        if (!unitInfo || unitInfo.unit.type !== "employee") return;
-    
-        const pairIndex = unitInfo.unitIndex;
-        const emp = pairToEmployee[pairIndex];
-    
-        // Salva le vecchie variazioni per confronto
-        const oldVariations = employeeVariations[emp] || [];
-        
-        // Aggiorna le variazioni nello stato
-        setEmployeeVariations(prev => {
-            const newEmployeeVariations = {
-                ...prev,
-                [emp]: variationData.variations
-            };
-            
-            // Ritorna il nuovo stato
-            return newEmployeeVariations;
-        });
-    
-        // Chiudi il popup
-        setShowVariationPopup(false);
-    
-        // Funzione per ricalcolare le assenze dopo che lo stato è stato aggiornato
-        setTimeout(() => {
-            if (!hotRef.current) return;
-            
-            console.log("Ricalcolo assenze dopo variazione orario");
-            
-            // Per questo dipendente, trova tutti i giorni con "X" (assenze)
-            // e aggiorna il valore orario in base alle nuove ore settimanali
-            const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
-            const colInizio = 2 + 2 * pairIndex;
-            const colFine = colInizio + 1;
-            
-            // Calcola le ore per l'intestazione
-            const assignedHours = [];
-            for (let day = 1; day <= giorniNelMese; day++) {
-                const rowDate = new Date(anno, mese, day);
-                let hoursForDay = employees[emp];
-                
+    // Nuova funzione per aggiornare l'intestazione della colonna
+    const updateEmployeeColumnHeader = (pairIndex, emp, variations) => {
+        if (!hotRef.current) return;
+
+        const annoNum = parseInt(anno, 10);
+        const meseNum = parseInt(mese, 10);
+        const giorniNelMese = new Date(annoNum, meseNum + 1, 0).getDate();
+        const colInizio = 2 + 2 * pairIndex;
+        const colFine = colInizio + 1;
+
+        // Calcola le ore per ogni giorno del mese
+        const assignedHours = [];
+        for (let day = 1; day <= giorniNelMese; day++) {
+            const rowDate = new Date(annoNum, meseNum, day);
+            let hoursForDay = employees[emp];
+
+            // Applica le variazioni
+            for (let j = 0; j < variations.length; j++) {
+                const variation = variations[j];
+                const startDate = new Date(variation.start + "T00:00:00");
+                const endDate = new Date(variation.end + "T00:00:00");
+
+                if (rowDate >= startDate && rowDate <= endDate) {
+                    hoursForDay = variation.hours;
+                    break;
+                }
+            }
+
+            assignedHours.push(hoursForDay);
+        }
+
+        // Mostra le ore nell'header
+        const uniqueHours = Array.from(new Set(assignedHours)).sort((a, b) => a - b);
+        const headerValue = uniqueHours.join("-");
+
+        // Aggiorna l'intestazione
+        try {
+            hotRef.current.hotInstance.setDataAtCell(0, colFine, headerValue);
+        } catch (error) {
+            console.error("Errore nell'aggiornare l'intestazione:", error);
+        }
+    };
+
+    // Nuova funzione per aggiornare i valori delle celle dei giorni
+    const updateEmployeeDayValues = (pairIndex, emp, variations) => {
+        if (!hotRef.current) return;
+
+        const annoNum = parseInt(anno, 10);
+        const meseNum = parseInt(mese, 10);
+        const giorniNelMese = new Date(annoNum, meseNum + 1, 0).getDate();
+        const colInizio = 2 + 2 * pairIndex;
+        const colFine = colInizio + 1;
+
+        // Aggiorna ogni giorno del mese
+        for (let day = 1; day <= giorniNelMese; day++) {
+            const rowDate = new Date(annoNum, meseNum, day);
+            const inizio = hotRef.current.hotInstance.getDataAtCell(day, colInizio);
+            const fine = hotRef.current.hotInstance.getDataAtCell(day, colFine);
+
+            // Se è un'assenza (X nella cella inizio e un valore con "|" nella cella fine)
+            if (inizio === "X" && fine && fine.indexOf("|") !== -1) {
+                const parts = fine.split("|");
+                const motivo = parts[0].trim();
+                const abbr = parts[1].trim();
+
+                // Calcola le nuove ore giornaliere basate sulle variazioni
+                let oreSettimanali = employees[emp];
+
                 // Applica le variazioni
-                for (let j = 0; j < variationData.variations.length; j++) {
-                    const variation = variationData.variations[j];
+                for (let j = 0; j < variations.length; j++) {
+                    const variation = variations[j];
                     const startDate = new Date(variation.start + "T00:00:00");
                     const endDate = new Date(variation.end + "T00:00:00");
-                    
+
                     if (rowDate >= startDate && rowDate <= endDate) {
-                        hoursForDay = variation.hours;
+                        oreSettimanali = variation.hours;
                         break;
                     }
                 }
-                
-                assignedHours.push(hoursForDay);
-            }
-            
-            // Mostra le ore nell'header
-            const uniqueHours = Array.from(new Set(assignedHours)).sort((a, b) => a - b);
-            const headerValue = uniqueHours.join("-");
-            const headerCol = col + 1;
-            
-            hotRef.current.hotInstance.setDataAtCell(0, headerCol, headerValue);
-            
-            // Aggiorna gli orari giornalieri per i giorni con assenze
-            for (let day = 1; day <= giorniNelMese; day++) {
-                const rowDate = new Date(anno, mese, day);
-                const inizio = hotRef.current.hotInstance.getDataAtCell(day, colInizio);
-                const fine = hotRef.current.hotInstance.getDataAtCell(day, colFine);
-                
-                // Se è un'assenza (X nella cella inizio e un valore con "|" nella cella fine)
-                if (inizio === "X" && fine && fine.indexOf("|") !== -1) {
-                    const parts = fine.split("|");
-                    const motivo = parts[0].trim();
-                    const abbr = parts[1].trim();
-                    
-                    // Calcola le nuove ore giornaliere basate sulle variazioni
-                    let oreSettimanali = employees[emp];
-                    
-                    // Applica le variazioni
-                    for (let j = 0; j < variationData.variations.length; j++) {
-                        const variation = variationData.variations[j];
-                        const startDate = new Date(variation.start + "T00:00:00");
-                        const endDate = new Date(variation.end + "T00:00:00");
-                        
-                        if (rowDate >= startDate && rowDate <= endDate) {
-                            oreSettimanali = variation.hours;
-                            break;
-                        }
-                    }
-                    
-                    // Manteniamo lo stesso motivo e abbreviazione, ma aggiorniamo la seconda cella
+
+                // Manteniamo lo stesso motivo e abbreviazione ma aggiorniamo la cella
+                try {
+                    // Aggiorna la cella fine
                     hotRef.current.hotInstance.setDataAtCell(
-                        day, 
-                        colFine, 
+                        day,
+                        colFine,
                         `${motivo}|${abbr}`
                     );
+                } catch (error) {
+                    console.error(`Errore nell'aggiornare la cella [${day}, ${colFine}]:`, error);
                 }
             }
-            
-            // Ora forza il ricalcolo di tutti i totali
-            recalculateMotiveHours();
-            recalculateWorkHours();
-            updateTotaleOre();
-            updateOrePagate();
-            updateDifferenzeCorrente();
-            calculateStraordinari();
-            
-            // Forza il rendering
-            hotRef.current.hotInstance.render();
-        }, 100);
+        }
     };
 
+    // Versione migliorata della funzione handleVariationPopupSave
+    const handleVariationPopupSave = (variationData) => {
+        if (!selectedCell || !hotRef.current) return;
+
+        const { col } = selectedCell;
+        const unitInfo = getUnitByCol(col);
+
+        if (!unitInfo || unitInfo.unit.type !== "employee") return;
+
+        const pairIndex = unitInfo.unitIndex;
+        const emp = pairToEmployee[pairIndex];
+
+        // Confronta le vecchie variazioni con le nuove per capire se sono cambiate
+        const oldVariations = employeeVariations[emp] || [];
+        const newVariations = variationData.variations || [];
+
+        // Flag per indicare se ci sono cambiamenti
+        let hasChanges = false;
+
+        // Controlla se il numero di variazioni è cambiato
+        if (oldVariations.length !== newVariations.length) {
+            hasChanges = true;
+        } else {
+            // Confronta ogni variazione
+            for (let i = 0; i < newVariations.length; i++) {
+                const newVar = newVariations[i];
+                const oldVar = oldVariations[i];
+                if (newVar.start !== oldVar.start ||
+                    newVar.end !== oldVar.end ||
+                    newVar.hours !== oldVar.hours) {
+                    hasChanges = true;
+                    break;
+                }
+            }
+        }
+
+        // Aggiorna lo stato delle variazioni
+        setEmployeeVariations(prev => ({
+            ...prev,
+            [emp]: newVariations
+        }));
+
+        // Chiudi il popup
+        setShowVariationPopup(false);
+
+        // Procedi con l'aggiornamento solo se ci sono cambiamenti
+        if (hasChanges) {
+            // Prima aggiorna l'intestazione della colonna con le nuove ore
+            updateEmployeeColumnHeader(pairIndex, emp, newVariations);
+
+            // Poi aggiorna i valori delle celle per le assenze
+            updateEmployeeDayValues(pairIndex, emp, newVariations);
+
+            // Infine, forza il ricalcolo di tutti i totali
+            recalculateAllTotals();
+        }
+    };
 
     // Gestisce il salvataggio dei dati dal popup particolarità
     const handleParticolaritaPopupSave = (particolaritaData) => {
@@ -1618,7 +2015,6 @@ const TurniTableComponent = ({
         // Ricalcola i totali perché le particolarità possono influenzare il calcolo delle ore pagate
         recalculateAllTotals();
     };
-
     // Gestisce il salvataggio dei dati dal popup fatturato
     const handleFatturatoPopupSave = (fatturatoData) => {
         if (!selectedCell || !hotRef.current) return;
@@ -1675,211 +2071,6 @@ const TurniTableComponent = ({
         updateDifferenzeCorrente();
     };
 
-    // Calcola le ore relative ai motivi (ferie, ROL, ex festività)
-    const recalculateMotiveHours = () => {
-        if (!hotRef.current) return;
-        console.log("Ricalcolo ore motivi");
-
-        // Arrays per i totali dei motivi
-        const ferieTotals = Array(pairToEmployee.length).fill(0);
-        const exFestivitaTotals = Array(pairToEmployee.length).fill(0);
-        const rolTotals = Array(pairToEmployee.length).fill(0);
-
-        const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
-
-        // Per ogni dipendente
-        for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
-            const emp = pairToEmployee[pairIndex];
-
-            // Per ogni giorno del mese
-            for (let day = 1; day <= giorniNelMese; day++) {
-                const inizio = hotRef.current.hotInstance.getDataAtCell(day, 2 + 2 * pairIndex);
-                const fine = hotRef.current.hotInstance.getDataAtCell(day, 3 + 2 * pairIndex);
-
-                // Se c'è una "X" nella cella "inizio" e un valore con "|" nella cella "fine"
-                if (inizio === "X" && fine && fine.indexOf("|") !== -1) {
-                    const parts = fine.split("|");
-                    const motive = parts[0].trim().toLowerCase();
-
-                    // Calcola le ore giornaliere per il dipendente
-                    const rowDate = new Date(anno, mese, day);
-                    let oreSettimanali = employees[emp];
-
-                    // Controllo variazioni orarie
-                    if (employeeVariations[emp]) {
-                        for (let i = 0; i < employeeVariations[emp].length; i++) {
-                            const entry = employeeVariations[emp][i];
-                            const startDate = new Date(entry.start + "T00:00:00");
-                            const endDate = new Date(entry.end + "T00:00:00");
-
-                            if (rowDate >= startDate && rowDate <= endDate) {
-                                oreSettimanali = entry.hours;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Calcola ore giornaliere
-                    const oreGiornaliere = oreSettimanali / giorniLavorativiSettimanali;
-                    console.log(`Giorno ${day}, Dipendente ${emp}, Motivo ${motive}, Ore ${oreGiornaliere}`);
-
-                    // Aggiungi al totale corrispondente
-                    if (motive === "ferie") {
-                        ferieTotals[pairIndex] += oreGiornaliere;
-                    } else if (motive === "rol") {
-                        rolTotals[pairIndex] += oreGiornaliere;
-                    } else if (motive === "exfestivita") {
-                        exFestivitaTotals[pairIndex] += oreGiornaliere;
-                    }
-                }
-            }
-
-            // Imposta i valori nella tabella
-            console.log(`Dipendente ${emp}: Ferie=${ferieTotals[pairIndex]}, ROL=${rolTotals[pairIndex]}, Ex Festività=${exFestivitaTotals[pairIndex]}`);
-
-            hotRef.current.hotInstance.setDataAtCell(
-                summaryRows.ferieRowIndex,
-                2 + 2 * pairIndex,
-                ferieTotals[pairIndex].toFixed(2).replace(".", ","),
-                "recalculate"
-            );
-
-            hotRef.current.hotInstance.setDataAtCell(
-                summaryRows.exFestivitaRowIndex,
-                2 + 2 * pairIndex,
-                exFestivitaTotals[pairIndex].toFixed(2).replace(".", ","),
-                "recalculate"
-            );
-
-            hotRef.current.hotInstance.setDataAtCell(
-                summaryRows.rolRowIndex,
-                2 + 2 * pairIndex,
-                rolTotals[pairIndex].toFixed(2).replace(".", ","),
-                "recalculate"
-            );
-        }
-
-        // Forza il rendering della tabella
-        hotRef.current.hotInstance.render();
-    };
-
-    // Funzione per ricalcolare tutti i totali
-    const recalculateAllTotals = () => {
-        if (!hotRef.current) return;
-
-        // Prima rimuoviamo tutte le classi dalle celle
-        const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
-        const totalRows = giorniNelMese + Object.values(summaryRows).length + 1; // +1 per l'header
-        const totalCols = hotRef.current.hotInstance.countCols();
-
-        for (let row = 0; row < totalRows; row++) {
-            for (let col = 0; col < totalCols; col++) {
-                hotRef.current.hotInstance.removeCellMeta(row, col, "className");
-            }
-        }
-
-        // Esegui tutti i calcoli necessari in sequenza
-        recalculateWorkHours();
-        recalculateMotiveHours();
-        updateTotaleOre();
-        updateOrePagate();
-        updateDifferenzeCorrente();
-        updateFatturatoTotale();
-        calculateStraordinari();
-
-        // Applica gli stili per le celle riepilogative
-        applyStylesToCells();
-
-        // Forza il rendering della tabella
-        hotRef.current.hotInstance.render();
-    };
-    const logCurrentMotiveHours = () => {
-        if (!hotRef.current) return;
-        
-        console.log("STATO ATTUALE DEI CALCOLI:");
-        
-        for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
-            const emp = pairToEmployee[pairIndex];
-            const ferie = hotRef.current.hotInstance.getDataAtCell(summaryRows.ferieRowIndex, 2 + 2 * pairIndex);
-            const rol = hotRef.current.hotInstance.getDataAtCell(summaryRows.rolRowIndex, 2 + 2 * pairIndex);
-            const exFestivita = hotRef.current.hotInstance.getDataAtCell(summaryRows.exFestivitaRowIndex, 2 + 2 * pairIndex);
-            
-            console.log(`Dipendente ${emp}: Ferie=${ferie}, ROL=${rol}, Ex Festività=${exFestivita}`);
-            
-            // Variazioni attive
-            if (employeeVariations[emp] && employeeVariations[emp].length > 0) {
-                console.log("Variazioni orarie attive:");
-                employeeVariations[emp].forEach((v, i) => {
-                    console.log(`  ${i+1}. Da ${v.start} a ${v.end}: ${v.hours} ore`);
-                });
-            } else {
-                console.log("Nessuna variazione oraria attiva");
-            }
-        }
-    };
-    // Applica gli stili alle celle riepilogative
-    const applyStylesToCells = () => {
-        if (!hotRef.current) return;
-
-        // Applica stili alle celle delle righe riepilogative
-        Object.values(summaryRows).forEach(rowIndex => {
-            // Applica stile alle celle dei titoli delle righe (prime due colonne)
-            hotRef.current.hotInstance.setCellMeta(rowIndex, 0, "className", "summary-cell summary-row-header");
-            hotRef.current.hotInstance.setCellMeta(rowIndex, 1, "className", "summary-cell summary-row-header");
-            
-            // Applica stile alle celle dei dipendenti
-            for (let u = 0; u < columnUnits.length; u++) {
-                const unit = columnUnits[u];
-                const colIndex = getUnitStartIndex(u);
-
-                if (unit.type === "employee") {
-                    // Celle dipendente nelle righe riepilogative
-                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "summary-cell");
-                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex + 1, "className", "summary-cell");
-                } else if (unit.type === "fatturato") {
-                    // Mantieni lo stile originale per celle fatturato (senza aggiungere summary-cell)
-                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "fatturato-riepilogo");
-
-                    // Inizializza a 0 se vuota
-                    const cellVal = hotRef.current.hotInstance.getDataAtCell(rowIndex, colIndex);
-                    if (!cellVal || cellVal.trim() === '') {
-                        hotRef.current.hotInstance.setDataAtCell(rowIndex, colIndex, "0,00 €");
-                    }
-                } else if (unit.type === "particolarita") {
-                    // Mantieni lo stile originale per celle particolarità (senza aggiungere summary-cell)
-                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "className", "particolarita-riepilogo");
-                    hotRef.current.hotInstance.setCellMeta(rowIndex, colIndex, "readOnly", true);
-                }
-            }
-        });
-
-        // Applica stili alle celle di differenza (positive/negative)
-        for (let u = 0; u < columnUnits.length; u++) {
-            const unit = columnUnits[u];
-            if (unit.type !== "employee") continue;
-
-            const colIndex = getUnitStartIndex(u);
-
-            // Differenza mese precedente
-            const diffPrecedenteVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.diffPrecedenteRowIndex, colIndex);
-            if (diffPrecedenteVal) {
-                const diffValue = parseFloat(diffPrecedenteVal.toString().replace(',', '.'));
-                const className = diffValue >= 0 ? 'differenza-positiva' : 'differenza-negativa';
-                hotRef.current.hotInstance.setCellMeta(summaryRows.diffPrecedenteRowIndex, colIndex, "className", className);
-                hotRef.current.hotInstance.setCellMeta(summaryRows.diffPrecedenteRowIndex, colIndex + 1, "className", className);
-            }
-
-            // Differenza mese corrente
-            const diffCorrenteVal = hotRef.current.hotInstance.getDataAtCell(summaryRows.diffCorrenteRowIndex, colIndex);
-            if (diffCorrenteVal) {
-                const diffValue = parseFloat(diffCorrenteVal.toString().replace(',', '.'));
-                const className = diffValue >= 0 ? 'differenza-positiva' : 'differenza-negativa';
-                hotRef.current.hotInstance.setCellMeta(summaryRows.diffCorrenteRowIndex, colIndex, "className", className);
-                hotRef.current.hotInstance.setCellMeta(summaryRows.diffCorrenteRowIndex, colIndex + 1, "className", className);
-            }
-        }
-    };
-
     const handleReturn = () => {
         if (typeof onReturn === 'function') {
             onReturn();
@@ -1929,6 +2120,7 @@ const TurniTableComponent = ({
                         <HotTable
                             ref={hotRef}
                             data={data}
+                            dataSchema={buildDataSchema()}
                             colHeaders={false}
                             rowHeaders={false}
                             height="auto"
