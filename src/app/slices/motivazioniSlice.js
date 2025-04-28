@@ -5,11 +5,19 @@ import * as motivazioniAPI from '../../services/motivazioniService';
 // Thunks
 export const fetchMotivazioniByNegozio = createAsyncThunk(
   'motivazioni/fetchByNegozio',
-  async (negozioId, { rejectWithValue }) => {
+  async (negozioId, { rejectWithValue, getState }) => {
     try {
-      const motivazioni = await motivazioniAPI.getMotivazioniByNegozio(negozioId);
+      console.log(`fetchMotivazioniByNegozio thunk chiamato per negozioId: ${negozioId}`);
+      console.log("Stato attuale motivazioni:", getState().motivazioni.items[negozioId]);
+      
+      // Aggiungi un timestamp per forzare un nuovo caricamento e prevenire la cache
+      const timestamp = Date.now();
+      const motivazioni = await motivazioniAPI.getMotivazioniByNegozio(negozioId, timestamp);
+      
+      console.log(`fetchMotivazioniByNegozio thunk risultato:`, motivazioni);
       return motivazioni;
     } catch (error) {
+      console.error(`fetchMotivazioniByNegozio thunk errore:`, error);
       return rejectWithValue(error.message);
     }
   }

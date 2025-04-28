@@ -99,7 +99,27 @@ const NegozioHub = ({ negozioId }) => {
   
   const [activeTab, setActiveTab] = useState('home');
   const [searchTerm, setSearchTerm] = useState('');
+  const [lastActiveTab, setLastActiveTab] = useState(null);
+  
+  // Gestore per il cambio di tab
+  const handleTabChange = (tabName) => {
+    console.log(`Cambio tab da "${activeTab}" a "${tabName}"`);
+    
+    // Se si seleziona la tab delle motivazioni, ricarica le motivazioni 
+    // per assicurarsi di avere i dati più aggiornati
+    if (tabName === 'motivazioni') {
+      console.log("Tab motivazioni selezionata, ricarico i dati");
+      dispatch(fetchMotivazioniByNegozio(negozioId));
+    }
+    
+    setLastActiveTab(activeTab);
+    setActiveTab(tabName);
+  };
 
+  // Non è più necessario alcun cleanup quando il componente si smonta
+  // poiché tutte le motivazioni sono permanenti nel database locale
+
+  // Effetto per caricare i dati iniziali e quando cambia il negozio
   useEffect(() => {
     if (negozioId) {
       dispatch(fetchNegozioById(negozioId));
@@ -108,6 +128,14 @@ const NegozioHub = ({ negozioId }) => {
       dispatch(fetchMotivazioniByNegozio(negozioId));
     }
   }, [dispatch, negozioId]);
+  
+  // Effetto per ricaricare le motivazioni quando si cambia tab
+  useEffect(() => {
+    if (negozioId && activeTab === 'motivazioni') {
+      console.log('Ricarico le motivazioni perché è stata selezionata la tab motivazioni');
+      dispatch(fetchMotivazioniByNegozio(negozioId));
+    }
+  }, [dispatch, negozioId, activeTab]);
 
   if (loading && !negozio) {
     return (
@@ -161,31 +189,31 @@ const NegozioHub = ({ negozioId }) => {
       <div className="hub-navigation">
         <button 
           className={`nav-button ${activeTab === 'home' ? 'active-nav-button' : ''}`} 
-          onClick={() => setActiveTab('home')}
+          onClick={() => handleTabChange('home')}
         >
           <i className="fas fa-home"></i> Home
         </button>
         <button 
           className={`nav-button ${activeTab === 'dipendenti' ? 'active-nav-button' : ''}`} 
-          onClick={() => setActiveTab('dipendenti')}
+          onClick={() => handleTabChange('dipendenti')}
         >
           <i className="fas fa-users"></i> Dipendenti
         </button>
         <button 
           className={`nav-button ${activeTab === 'turni' ? 'active-nav-button' : ''}`} 
-          onClick={() => setActiveTab('turni')}
+          onClick={() => handleTabChange('turni')}
         >
           <i className="fas fa-calendar-alt"></i> Turni
         </button>
         <button 
           className={`nav-button ${activeTab === 'particolarita' ? 'active-nav-button' : ''}`} 
-          onClick={() => setActiveTab('particolarita')}
+          onClick={() => handleTabChange('particolarita')}
         >
           <i className="fas fa-tag"></i> Particolarità
         </button>
         <button 
           className={`nav-button ${activeTab === 'motivazioni' ? 'active-nav-button' : ''}`} 
-          onClick={() => setActiveTab('motivazioni')}
+          onClick={() => handleTabChange('motivazioni')}
         >
           <i className="fas fa-calendar-check"></i> Motivazioni
         </button>
@@ -235,7 +263,7 @@ const NegozioHub = ({ negozioId }) => {
                     <p>Particolarità</p>
                   </div>
                 </div>
-                <button className="stat-action" onClick={() => setActiveTab('particolarita')}>
+                <button className="stat-action" onClick={() => handleTabChange('particolarita')}>
                   Gestisci <i className="fas fa-arrow-right"></i>
                 </button>
               </div>

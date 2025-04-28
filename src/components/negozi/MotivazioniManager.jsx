@@ -28,10 +28,32 @@ const MotivazioniManager = ({ negozioId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
 
+  // Effect per caricare le motivazioni all'inizializzazione e quando cambia il negozio
   useEffect(() => {
     if (negozioId) {
-      dispatch(fetchMotivazioniByNegozio(negozioId));
+      console.log(`MotivazioniManager: carico motivazioni per negozioId ${negozioId}`);
+      // Forza la rilettura da localStorage ogni volta che il componente viene montato
+      dispatch(fetchMotivazioniByNegozio(negozioId))
+        .then(result => {
+          console.log("MotivazioniManager: motivazioni caricate con successo:", result);
+        })
+        .catch(error => {
+          console.error("MotivazioniManager: errore caricamento motivazioni:", error);
+        });
     }
+
+    // Imposta un intervallo per ricaricare periodicamente le motivazioni
+    const intervalId = setInterval(() => {
+      if (negozioId) {
+        console.log("MotivazioniManager: ricarico motivazioni (timer periodico)");
+        dispatch(fetchMotivazioniByNegozio(negozioId));
+      }
+    }, 10000); // Ricarica ogni 10 secondi
+
+    // Cleanup dell'intervallo quando il componente si smonta
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [dispatch, negozioId]);
 
   const resetForm = () => {
@@ -145,22 +167,41 @@ const MotivazioniManager = ({ negozioId }) => {
       });
   };
 
-  const filteredItems = motivazioniItems.filter(item => {
+    // Log delle motivazioni caricate ogni volta che cambiano
+  useEffect(() => {
+    console.log("MotivazioniManager: motivazioni nel componente:", motivazioniItems);
+  }, [motivazioniItems]);
+
+  const filteredItems = (motivazioniItems || []).filter(item => {
+    if (!item) return false;
     const searchLower = searchTerm.toLowerCase();
     return (
-      item.sigla.toLowerCase().includes(searchLower) ||
-      item.nome.toLowerCase().includes(searchLower)
+      (item.sigla || '').toLowerCase().includes(searchLower) ||
+      (item.nome || '').toLowerCase().includes(searchLower)
     );
   });
 
-  // Ordina le motivazioni: predefinite prima, poi tutte le altre
+  // Ordina le motivazioni in base alla loro priorità e ordine
   const sortedItems = [...filteredItems].sort((a, b) => {
-    // Prima ordina per predefinita (true prima di false)
+    // Prima per la proprietà 'ordine'
+    if (a.ordine !== undefined && b.ordine !== undefined) {
+      return a.ordine - b.ordine;
+    }
+    
+    // Se solo uno ha la proprietà 'ordine' definita, quello viene prima
+    if (a.ordine !== undefined) return -1;
+    if (b.ordine !== undefined) return 1;
+    
+    // Predefinite prima delle altre
     if (a.predefinita && !b.predefinita) return -1;
     if (!a.predefinita && b.predefinita) return 1;
     
-    // Poi per nome
-    return a.nome.localeCompare(b.nome);
+    // Infine per data di creazione (prima i più vecchi)
+    if (a.createdAt && b.createdAt) {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    }
+    
+    return 0;
   });
 
   return (
