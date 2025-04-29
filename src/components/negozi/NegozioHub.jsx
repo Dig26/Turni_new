@@ -101,41 +101,41 @@ const NegozioHub = ({ negozioId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [lastActiveTab, setLastActiveTab] = useState(null);
   
-  // Gestore per il cambio di tab
+  // Gestore per il cambio di tab - MODIFICATO
   const handleTabChange = (tabName) => {
     console.log(`Cambio tab da "${activeTab}" a "${tabName}"`);
     
-    // Se si seleziona la tab delle motivazioni, ricarica le motivazioni 
-    // per assicurarsi di avere i dati più aggiornati
-    if (tabName === 'motivazioni') {
-      console.log("Tab motivazioni selezionata, ricarico i dati");
-      dispatch(fetchMotivazioniByNegozio(negozioId));
-    }
+    // Rimuoviamo la ricarica automatica delle motivazioni quando si seleziona la tab
+    // per evitare di sovrascrivere le motivazioni personalizzate
     
     setLastActiveTab(activeTab);
     setActiveTab(tabName);
   };
 
-  // Non è più necessario alcun cleanup quando il componente si smonta
-  // poiché tutte le motivazioni sono permanenti nel database locale
-
-  // Effetto per caricare i dati iniziali e quando cambia il negozio
+  // Effetto per caricare i dati iniziali e quando cambia il negozio - MODIFICATO
   useEffect(() => {
     if (negozioId) {
       dispatch(fetchNegozioById(negozioId));
       dispatch(fetchDipendentiByNegozioId(negozioId));
       dispatch(fetchParticolaritaByNegozio(negozioId));
-      dispatch(fetchMotivazioniByNegozio(negozioId));
+      
+      // Carica le motivazioni solo se non sono già state caricate
+      if (!motivazioni || motivazioni.length === 0) {
+        dispatch(fetchMotivazioniByNegozio(negozioId));
+      }
     }
-  }, [dispatch, negozioId]);
+  }, [dispatch, negozioId, motivazioni]);
   
-  // Effetto per ricaricare le motivazioni quando si cambia tab
+  // Rimuoviamo l'effect che ricarica le motivazioni quando si cambia tab
+  // per evitare di sovrascrivere le motivazioni personalizzate
+  /*
   useEffect(() => {
     if (negozioId && activeTab === 'motivazioni') {
       console.log('Ricarico le motivazioni perché è stata selezionata la tab motivazioni');
       dispatch(fetchMotivazioniByNegozio(negozioId));
     }
   }, [dispatch, negozioId, activeTab]);
+  */
 
   if (loading && !negozio) {
     return (

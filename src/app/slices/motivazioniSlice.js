@@ -8,11 +8,26 @@ export const fetchMotivazioniByNegozio = createAsyncThunk(
   async (negozioId, { rejectWithValue, getState }) => {
     try {
       console.log(`fetchMotivazioniByNegozio thunk chiamato per negozioId: ${negozioId}`);
-      console.log("Stato attuale motivazioni:", getState().motivazioni.items[negozioId]);
       
-      // Aggiungi un timestamp per forzare un nuovo caricamento e prevenire la cache
-      const timestamp = Date.now();
-      const motivazioni = await motivazioniAPI.getMotivazioniByNegozio(negozioId, timestamp);
+      // Verifica se ci sono già motivazioni personalizzate nello store
+      const currentMotivazioni = getState().motivazioni.items[negozioId] || [];
+      const hasCustomMotivazioni = currentMotivazioni.some(m => !m.predefinita);
+      
+      console.log("Stato attuale motivazioni:", currentMotivazioni);
+      console.log("Ci sono motivazioni personalizzate?", hasCustomMotivazioni);
+      
+      // Se ci sono già motivazioni personalizzate, restituisci quelle esistenti
+      if (hasCustomMotivazioni && currentMotivazioni.length > 0) {
+        console.log("Utilizzo le motivazioni esistenti anziché ricaricarle");
+        return {
+          negozioId,
+          motivazioni: currentMotivazioni
+        };
+      }
+      
+      // Altrimenti carica le motivazioni dal servizio
+      console.log("Carico le motivazioni dal servizio");
+      const motivazioni = await motivazioniAPI.getMotivazioniByNegozio(negozioId);
       
       console.log(`fetchMotivazioniByNegozio thunk risultato:`, motivazioni);
       return motivazioni;
@@ -74,7 +89,13 @@ const motivazioniSlice = createSlice({
       .addCase(fetchMotivazioniByNegozio.fulfilled, (state, action) => {
         state.loading = false;
         const { negozioId, motivazioni } = action.payload;
-        state.items[negozioId] = motivazioni;
+        
+        // Cambiato qui: se non ci sono motivazioni o se sono vuote, 
+        // aggiorna lo stato. Altrimenti preserva le motivazioni esistenti.
+        if (!state.items[negozioId] || state.items[negozioId].length === 0) {
+          state.items[negozioId] = motivazioni;
+        }
+        // Non sovrascriviamo se ci sono già motivazioni per evitare di perdere quelle personalizzate
       })
       .addCase(fetchMotivazioniByNegozio.rejected, (state, action) => {
         state.loading = false;

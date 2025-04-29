@@ -9,8 +9,6 @@ import {
 import { addNotification } from '../../app/slices/uiSlice';
 import styles from './Negozi.module.css';
 
-// Debug tramite console standard
-
 const MotivazioniManager = ({ negozioId }) => {
   const dispatch = useDispatch();
   const motivazioniItems = useSelector(state => 
@@ -32,7 +30,7 @@ const MotivazioniManager = ({ negozioId }) => {
   useEffect(() => {
     if (negozioId) {
       console.log(`MotivazioniManager: carico motivazioni per negozioId ${negozioId}`);
-      // Forza la rilettura da localStorage ogni volta che il componente viene montato
+      // Carica le motivazioni solo all'inizializzazione o cambio negozio
       dispatch(fetchMotivazioniByNegozio(negozioId))
         .then(result => {
           console.log("MotivazioniManager: motivazioni caricate con successo:", result);
@@ -41,19 +39,10 @@ const MotivazioniManager = ({ negozioId }) => {
           console.error("MotivazioniManager: errore caricamento motivazioni:", error);
         });
     }
-
-    // Imposta un intervallo per ricaricare periodicamente le motivazioni
-    const intervalId = setInterval(() => {
-      if (negozioId) {
-        console.log("MotivazioniManager: ricarico motivazioni (timer periodico)");
-        dispatch(fetchMotivazioniByNegozio(negozioId));
-      }
-    }, 10000); // Ricarica ogni 10 secondi
-
-    // Cleanup dell'intervallo quando il componente si smonta
-    return () => {
-      clearInterval(intervalId);
-    };
+    
+    // Rimuoviamo l'intervallo di ricarica automatica che causava la perdita
+    // delle motivazioni personalizzate
+    
   }, [dispatch, negozioId]);
 
   const resetForm = () => {
@@ -167,7 +156,7 @@ const MotivazioniManager = ({ negozioId }) => {
       });
   };
 
-    // Log delle motivazioni caricate ogni volta che cambiano
+  // Log delle motivazioni caricate ogni volta che cambiano
   useEffect(() => {
     console.log("MotivazioniManager: motivazioni nel componente:", motivazioniItems);
   }, [motivazioniItems]);
