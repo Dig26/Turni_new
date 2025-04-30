@@ -147,36 +147,36 @@ const TurniTableComponent = ({
     const giorniLavorativiSettimanali = 6;
 
     useEffect(() => {
-        if (initialData && !isNewTable) {
-            loadSavedTable();
-        } else {
+        // Determina cosa caricare in base ai parametri
+        console.log(`Inizializzazione tabella per ${mese}/${anno} - isNewTable: ${isNewTable}`);
+
+        if (isNewTable || !initialData) {
+            console.log("Inizializzazione nuova tabella");
             initNewTable();
+        } else {
+            console.log("Caricamento tabella esistente");
+            loadSavedTable();
         }
     }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
 
     // Effect specifico per aggiornare le ore pagate all'avvio della tabella
     useEffect(() => {
-        // Esegui solo quando la tabella è stata caricata (non in loading) e hotRef esiste
-        if (!loading && hotRef.current && hotRef.current.hotInstance) {
+        if (!loading && hotRef.current && hotRef.current.hotInstance && data.length > 0) {
             // Breve timeout per garantire che la tabella sia completamente renderizzata
             const timeoutId = setTimeout(() => {
-                console.log("Aggiornamento automatico delle ore pagate all'avvio");
+                console.log("Esecuzione calcoli iniziali...");
 
-                // Aggiornamento delle ore pagate
-                updateOrePagate();
-
-                // Aggiornamento delle differenze del mese corrente
-                updateDifferenzeCorrente();
-
-                // Forza il rendering della tabella
-                hotRef.current.hotInstance.render();
-
-                console.log("Aggiornamento ore pagate completato");
-            }, 300);
+                try {
+                    // Ricalcola tutti i totali una volta che la tabella è caricata
+                    recalculateAllTotals();
+                } catch (error) {
+                    console.error("Errore nell'esecuzione dei calcoli iniziali:", error);
+                }
+            }, 500);
 
             return () => clearTimeout(timeoutId);
         }
-    }, [loading]);
+    }, [loading, data]);
 
     // Aggiungi questa funzione per forzare immediatamente il ricalcolo dopo che le variazioni sono state aggiornate
     useEffect(() => {
@@ -216,6 +216,7 @@ const TurniTableComponent = ({
     const initNewTable = () => {
         try {
             setLoading(true);
+            console.log("Avvio inizializzazione nuova tabella");
 
             // Genera gli orari disponibili
             const timesArray = generateAllTimesTable();
@@ -242,6 +243,7 @@ const TurniTableComponent = ({
             // Crea i dati della tabella
             createTableData(pairToEmpArray, employeesObj);
 
+            console.log("Nuova tabella inizializzata con successo");
         } catch (error) {
             console.error('Errore nell\'inizializzazione della tabella', error);
             dispatch(addNotification({
@@ -257,27 +259,81 @@ const TurniTableComponent = ({
     const loadSavedTable = () => {
         try {
             setLoading(true);
+            console.log("Caricamento tabella salvata");
 
             if (initialData) {
+                console.log("Dati iniziali trovati, elaborazione...");
+
                 // Imposta i valori dalle variabili salvate
                 setAllTimes(generateAllTimesTable());
-                setPairToEmployee(initialData.pairToEmployee || []);
-                setEmployees(initialData.employees || {});
-                setEmployeeVariations(initialData.employeeVariations || {});
-                setColumnUnits(initialData.columnUnits || []);
 
-                if (initialData.tableData) {
-                    setData(initialData.tableData);
+                // IMPORTANTE: Assicurati che tutte queste proprietà esistano
+                const pairToEmp = initialData.pairToEmployee || [];
+                const employeesData = initialData.employees || {};
+                const variations = initialData.employeeVariations || {};
+                const colUnits = initialData.columnUnits || [];
+
+                setPairToEmployee(pairToEmp);
+                setEmployees(employeesData);
+                setEmployeeVariations(variations);
+                setColumnUnits(colUnits);
+
+                // Debug
+                console.log("Dipendenti:", pairToEmp);
+                console.log("Ore settimanali:", employeesData);
+                console.log("Unità colonne:", colUnits);
+
+                // Gestione dei dati della tabella
+                if (initialData.tableData && Array.isArray(initialData.tableData) && initialData.tableData.length > 0) {
+                    console.log("Dati tabella trovati, totale righe:", initialData.tableData.length);
+
+                    // IMPORTANTE: Crea nuovi oggetti per ogni riga
+                    const extensibleData = initialData.tableData.map(row => {
+                        // Crea un nuovo oggetto per ogni riga
+                        const newRow = {};
+
+                        // Copia tutte le proprietà dalla riga originale
+                        if (row && typeof row === 'object') {
+                            Object.keys(row).forEach(key => {
+                                newRow[key] = row[key];
+                            });
+                        } else {
+                            console.warn("Riga non valida nei dati salvati:", row);
+                        }
+
+                        return newRow;
+                    });
+
+                    // Verifica che i dati contengano le intestazioni e gli elementi essenziali
+                    const hasHeaders = extensibleData[0] && extensibleData[0].giorno === "Giorno Settimana";
+                    const hasSummary = extensibleData.some(row => row.giorno === "ORE LAVORATE");
+
+                    if (!hasHeaders || !hasSummary) {
+                        console.warn("I dati caricati non contengono intestazioni o righe di riepilogo, ricostruzione...");
+
+                        // Se mancano elementi essenziali, ricrea la tabella
+                        createTableData(pairToEmp, employeesData);
+                    } else {
+                        // Altrimenti usa i dati esistenti
+                        setData(extensibleData);
+                    }
                 } else {
+                    console.warn("Dati tabella non trovati o vuoti, creazione nuova struttura");
                     // Se non ci sono dati, crea la tabella
-                    createTableData(initialData.pairToEmployee, initialData.employees);
+                    createTableData(pairToEmp, employeesData);
                 }
 
                 // Imposta gli indici delle righe di riepilogo
                 if (initialData.summaryRows) {
+                    console.log("Indici riepilogo trovati:", initialData.summaryRows);
                     setSummaryRows(initialData.summaryRows);
+                } else {
+                    console.warn("Indici riepilogo non trovati");
                 }
+
+                console.log("Caricamento tabella completato");
             } else {
+                console.warn("Nessun dato iniziale trovato, inizializzazione nuova tabella");
                 // Se non ci sono dati salvati, inizializza una nuova tabella
                 initNewTable();
             }
@@ -297,7 +353,7 @@ const TurniTableComponent = ({
     };
 
     const createTableData = (pairToEmpArray, employeesObj) => {
-        const dipendentiCount = pairToEmpArray.length;
+        console.log("Creazione struttura tabella");
 
         // Converti anno e mese in numeri per garantire il calcolo corretto
         const annoNum = parseInt(anno, 10);
@@ -305,12 +361,13 @@ const TurniTableComponent = ({
 
         // Calcola correttamente i giorni nel mese
         const giorniNelMese = new Date(annoNum, meseNum + 1, 0).getDate();
+        console.log(`Mese ${meseNum + 1}/${annoNum}: ${giorniNelMese} giorni`);
 
         // Crea l'array delle unità per le colonne
         const colUnits = [];
 
-        // Prepara tutte le chiavi che useremo per evitare il problema "object is not extensible"
-        const allKeys = ['giorno', 'giornoMese'];
+        // Prepara tutte le chiavi che useremo
+        let allKeys = ['giorno', 'giornoMese'];
 
         // Aggiungi le unità per i dipendenti e raccogli tutte le chiavi
         pairToEmpArray.forEach((emp, i) => {
@@ -345,48 +402,53 @@ const TurniTableComponent = ({
         });
 
         setColumnUnits(colUnits);
+        console.log("Unità colonne create:", colUnits);
 
         // Crea i dati della tabella
         const tableData = [];
 
-        // Funzione helper per creare un oggetto riga con tutte le proprietà inizializzate
-        const createRowObject = () => {
-            const rowObj = {};
-            allKeys.forEach(key => {
-                rowObj[key] = "";
-            });
-            return rowObj;
-        };
+        // Header row
+        const headerRow = {};
+        // Inizializza con valori vuoti tutte le chiavi possibili
+        allKeys.forEach(key => {
+            headerRow[key] = "";
+        });
 
-        // Header
-        const headerRow = createRowObject();
         headerRow.giorno = "Giorno Settimana";
         headerRow.giornoMese = "Giorno";
 
         // Imposta i dati dell'header per ciascuna unità
-        colUnits.forEach(unit => {
+        colUnits.forEach((unit, index) => {
             if (unit.type === "employee") {
                 headerRow[unit.inizio] = unit.header;
                 // In "fine" mettiamo il valore di default (le ore di default per il dipendente)
-                headerRow[unit.fine] = employeesObj[pairToEmpArray[colUnits.indexOf(unit)]].toString();
+                const empName = pairToEmpArray[index];
+                headerRow[unit.fine] = employeesObj[empName].toString();
             } else if (unit.type === "fatturato" || unit.type === "particolarita") {
                 headerRow[unit.key] = unit.header;
             }
         });
 
         tableData.push(headerRow);
+        console.log("Riga header creata:", headerRow);
 
         // Giorni del mese - utilizziamo i numeri convertiti per garantire il calcolo esatto
         for (let i = 1; i <= giorniNelMese; i++) {
             // Crea un nuovo oggetto riga con tutte le proprietà inizializzate
-            const row = createRowObject();
+            const dayRow = {};
+            // Inizializza con valori vuoti
+            allKeys.forEach(key => {
+                dayRow[key] = "";
+            });
+
             // Utilizza i numeri per la creazione della data
             const currentDate = new Date(annoNum, meseNum, i);
-            row["giorno"] = currentDate.toLocaleDateString("it-IT", { weekday: "long" });
-            row["giornoMese"] = currentDate.getDate();
+            dayRow["giorno"] = currentDate.toLocaleDateString("it-IT", { weekday: "long" });
+            dayRow["giornoMese"] = currentDate.getDate();
 
-            tableData.push(row);
+            tableData.push(dayRow);
         }
+        console.log(`Aggiunte ${giorniNelMese} righe per i giorni del mese`);
 
         // Righe riepilogative
         const summaryLabels = [
@@ -402,21 +464,26 @@ const TurniTableComponent = ({
 
         // Aggiungi le righe di riepilogo
         summaryLabels.forEach(label => {
-            const row = createRowObject();
-            row["giorno"] = label;
+            const summaryRow = {};
+            // Inizializza con valori vuoti
+            allKeys.forEach(key => {
+                summaryRow[key] = "";
+            });
+
+            summaryRow["giorno"] = label;
 
             colUnits.forEach(unit => {
                 if (unit.type === "employee") {
-                    row[unit.inizio] = "0,00";
-                    row[unit.fine] = "0,00";
+                    summaryRow[unit.inizio] = "0,00";
+                    summaryRow[unit.fine] = "0,00";
                 } else if (unit.type === "fatturato") {
-                    row[unit.key] = "0,00 €"; // Inizializza le celle fatturato a 0
+                    summaryRow[unit.key] = "0,00 €"; // Inizializza le celle fatturato a 0
                 }
-                // Niente da fare per particolarità, lasciamo vuoto come già impostato da createRowObject
             });
 
-            tableData.push(row);
+            tableData.push(summaryRow);
         });
+        console.log(`Aggiunte ${summaryLabels.length} righe riepilogative`);
 
         // Imposta gli indici delle righe riepilogative
         const summaryIndices = {
@@ -431,7 +498,10 @@ const TurniTableComponent = ({
         };
 
         setSummaryRows(summaryIndices);
+        console.log("Indici riepilogo impostati:", summaryIndices);
+
         setData(tableData);
+        console.log("Tabella completa creata con", tableData.length, "righe");
     };
 
     const saveTable = () => {
@@ -444,24 +514,29 @@ const TurniTableComponent = ({
             setSaving(true);
             setSavedSuccess(false);
 
-            // Ottieni tutti i dati dalla tabella
-            const allData = hotRef.current.hotInstance.getData();
+            // IMPORTANTE: Ottieni dati direttamente dal componente, non dall'API di Handsontable
+            // Questo evita problemi di serializzazione/deserializzazione
+            const tableData = data; // Usa lo stato React invece di hotRef.current.hotInstance.getData()
 
-            // Prepara i dati da salvare
+            // Prepara i dati da salvare - salva anche le strutture necessarie per il rendering
             const dataToSave = {
-                tableData: allData,
+                tableData: tableData, // Usa lo stato React
                 employeeVariations,
                 columnUnits,
                 mese,
                 anno,
                 pairToEmployee,
                 employees,
-                summaryRows
+                summaryRows,
+                // Aggiungi un flag per indicare che la tabella è stata salvata almeno una volta
+                // Questo verrà usato dal componente padre per determinare se è ancora una "nuova" tabella
+                isSaved: true
             };
 
             // Salvataggio tramite callback fornita dal parent
             if (typeof onSave === 'function') {
-                onSave(dataToSave)
+                // Salva una copia dei dati per evitare problemi di riferimento
+                onSave(JSON.parse(JSON.stringify(dataToSave)))
                     .then(() => {
                         setSaving(false);
                         setSavedSuccess(true);
@@ -477,21 +552,23 @@ const TurniTableComponent = ({
                             message: 'Tabella turni salvata con successo',
                             duration: 3000
                         }));
+
+                        console.log("Salvataggio completato con successo");
                     })
                     .catch(error => {
                         setSaving(false);
 
                         dispatch(addNotification({
                             type: 'error',
-                            message: `Errore nel salvataggio della tabella: ${error.message}`,
+                            message: `Errore nel salvataggio della tabella: ${error.message || String(error)}`,
                             duration: 5000
                         }));
                     });
             } else {
                 setSaving(false);
                 dispatch(addNotification({
-                    type: 'success',
-                    message: 'Tabella turni salvata con successo',
+                    type: 'warning',
+                    message: 'Nessuna funzione di salvataggio disponibile',
                     duration: 3000
                 }));
             }
@@ -502,7 +579,7 @@ const TurniTableComponent = ({
             console.error('Errore nel salvataggio della tabella', error);
             dispatch(addNotification({
                 type: 'error',
-                message: `Errore nel salvataggio della tabella: ${error.message}`,
+                message: `Errore nel salvataggio della tabella: ${error.message || String(error)}`,
                 duration: 5000
             }));
             return false;
@@ -1077,7 +1154,7 @@ const TurniTableComponent = ({
             // Ottieni i dati correnti
             const currentData = hotRef.current.hotInstance.getSourceDataAtRow(row);
 
-            // Se i dati non hanno la struttura giusta, crea un nuovo oggetto
+            // Se i dati non hanno la struttura giusta, evita l'aggiornamento
             if (!currentData || typeof currentData !== 'object') {
                 console.warn(`I dati alla riga ${row} non sono un oggetto valido`);
                 return false;
@@ -1088,6 +1165,17 @@ const TurniTableComponent = ({
             if (!propertyName) {
                 console.warn(`Impossibile ottenere il nome della proprietà per la colonna ${col}`);
                 return false;
+            }
+
+            // Verifica se l'oggetto è estensibile prima di procedere
+            if (!Object.isExtensible(currentData)) {
+                console.warn(`L'oggetto alla riga ${row} non è estensibile. Creazione di un nuovo oggetto.`);
+
+                // Crea un nuovo oggetto estensibile con le stesse proprietà
+                const newData = { ...currentData };
+
+                // Imposta la nuova proprietà
+                hotRef.current.hotInstance.setSourceDataAtRow(row, newData);
             }
 
             // Usa setDataAtCell che è più sicuro
@@ -1633,33 +1721,49 @@ const TurniTableComponent = ({
 
     // Funzione per ricalcolare tutti i totali
     const recalculateAllTotals = () => {
-        if (!hotRef.current) return;
-
-        // Prima rimuoviamo tutte le classi dalle celle
-        const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
-        const totalRows = giorniNelMese + Object.values(summaryRows).length + 1; // +1 per l'header
-        const totalCols = hotRef.current.hotInstance.countCols();
-
-        for (let row = 0; row < totalRows; row++) {
-            for (let col = 0; col < totalCols; col++) {
-                hotRef.current.hotInstance.removeCellMeta(row, col, "className");
-            }
+        if (!hotRef.current || !hotRef.current.hotInstance) {
+            console.warn("Impossibile ricalcolare i totali: riferimento alla tabella non disponibile");
+            return;
         }
 
-        // Esegui tutti i calcoli necessari in sequenza
-        recalculateWorkHours();
-        recalculateMotiveHours();
-        updateTotaleOre();
-        updateOrePagate();
-        updateDifferenzeCorrente();
-        updateFatturatoTotale();
-        calculateStraordinari();
+        try {
+            console.log("Inizio ricalcolo di tutti i totali...");
 
-        // Applica gli stili per le celle riepilogative
-        applyStylesToCells();
+            // Prima verifichiamo che i dati siano estensibili
+            const dataCount = hotRef.current.hotInstance.countRows();
+            for (let row = 0; row < dataCount; row++) {
+                const rowData = hotRef.current.hotInstance.getSourceDataAtRow(row);
 
-        // Forza il rendering della tabella
-        hotRef.current.hotInstance.render();
+                if (rowData && !Object.isExtensible(rowData)) {
+                    console.warn(`Rilevato oggetto non estensibile alla riga ${row}. Creazione di un nuovo oggetto.`);
+
+                    // Crea un nuovo oggetto estensibile con le stesse proprietà
+                    const newData = { ...rowData };
+
+                    // Sostituisci l'oggetto non estensibile
+                    hotRef.current.hotInstance.setSourceDataAtRow(row, newData);
+                }
+            }
+
+            // Ora esegui tutti i calcoli in modo sicuro
+            recalculateWorkHours();
+            recalculateMotiveHours();
+            updateTotaleOre();
+            updateOrePagate();
+            updateDifferenzeCorrente();
+            updateFatturatoTotale();
+            calculateStraordinari();
+
+            // Applica gli stili per le celle riepilogative
+            applyStylesToCells();
+
+            // Forza il rendering della tabella
+            hotRef.current.hotInstance.render();
+
+            console.log("Ricalcolo di tutti i totali completato con successo");
+        } catch (error) {
+            console.error("Errore durante il ricalcolo dei totali:", error);
+        }
     };
 
     const logCurrentMotiveHours = () => {

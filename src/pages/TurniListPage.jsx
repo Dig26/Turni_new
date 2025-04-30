@@ -78,7 +78,7 @@ const TurniListPage = () => {
   };
   
   const handleCreateTable = () => {
-    navigate(`/negozi/${negozioId}/turni/${selectedYear}/${selectedMonth}`);
+    navigate(`/negozi/${negozioId}/turni/${selectedYear}/${selectedMonth}?nuova=true`);
   };
   
   const handleOpenTable = (year, month) => {

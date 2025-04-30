@@ -56,50 +56,50 @@ function TabellaTurni({ negozioId, anno, mese }) {
     // Funzione per caricare l'elenco delle tabelle salvate
     // // Modifica da implementare nel metodo loadSavedTablesList
     const loadSavedTablesList = () => {
-      try {
-        const savedTablesArray = [];
-        
-        // Cerca tutte le chiavi nel localStorage che iniziano con il prefisso
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(`tabella_turni_${negozioId}_`)) {
-            try {
-              const savedData = JSON.parse(localStorage.getItem(key));
-              if (savedData && savedData.timestamp) {
-                // Estrai anno e mese dalla chiave
-                const keyParts = key.split('_');
-                const year = keyParts[3];
-                const month = keyParts[4];
-                
-                // Nome del mese
-                const monthName = mesi[parseInt(month)];
-                
-                savedTablesArray.push({
-                  id: key,
-                  year: year,
-                  month: month,
-                  monthName: monthName,
-                  timestamp: savedData.timestamp,
-                  name: `${monthName} ${year}`
-                });
-              }
-            } catch (e) {
-              console.error('Errore nella lettura della tabella salvata:', e);
+        try {
+            const savedTablesArray = [];
+
+            // Cerca tutte le chiavi nel localStorage che iniziano con il prefisso
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(`tabella_turni_${negozioId}_`)) {
+                    try {
+                        const savedData = JSON.parse(localStorage.getItem(key));
+                        if (savedData && savedData.timestamp) {
+                            // Estrai anno e mese dalla chiave
+                            const keyParts = key.split('_');
+                            const year = keyParts[3];
+                            const month = keyParts[4];
+
+                            // Nome del mese
+                            const monthName = mesi[parseInt(month)];
+
+                            savedTablesArray.push({
+                                id: key,
+                                year: year,
+                                month: month,
+                                monthName: monthName,
+                                timestamp: savedData.timestamp,
+                                name: `${monthName} ${year}`
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Errore nella lettura della tabella salvata:', e);
+                    }
+                }
             }
-          }
+
+            // Ordina per data, più recenti prima
+            savedTablesArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            setSavedTables(savedTablesArray);
+        } catch (error) {
+            console.error('Errore nel caricamento delle tabelle salvate:', error);
         }
-        
-        // Ordina per data, più recenti prima
-        savedTablesArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
-        setSavedTables(savedTablesArray);
-      } catch (error) {
-        console.error('Errore nel caricamento delle tabelle salvate:', error);
-      }
     };
-    
+
     // Correzione per il metodo handleBackToList
-    
+
 
     // Funzione per comunicare con l'iframe
     const sendMessageToIframe = (message) => {
@@ -150,10 +150,34 @@ function TabellaTurni({ negozioId, anno, mese }) {
             // Aggiorna l'elenco delle tabelle salvate
             loadSavedTablesList();
 
-            return true;
+            // Mostra messaggio di successo
+            setSaveMessage('Turni salvati con successo!');
+            setTimeout(() => setSaveMessage(''), 3000);
+
+            // Invia messaggio di successo all'iframe
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'SAVE_SUCCESS'
+                }, window.location.origin);
+            }
+
+            return Promise.resolve(true);
         } catch (error) {
             console.error('Errore nel salvataggio dei dati:', error);
-            return false;
+
+            // Mostra messaggio di errore
+            setSaveMessage('Errore nel salvataggio: ' + (error.message || String(error)));
+            setTimeout(() => setSaveMessage(''), 5000);
+
+            // Invia messaggio di errore all'iframe
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+                iframeRef.current.contentWindow.postMessage({
+                    type: 'SAVE_ERROR',
+                    message: error.message || String(error)
+                }, window.location.origin);
+            }
+
+            return Promise.reject(error);
         }
     };
 
@@ -176,7 +200,7 @@ function TabellaTurni({ negozioId, anno, mese }) {
         setShowTable(false);
         // Ricarica l'elenco delle tabelle salvate
         loadSavedTablesList();
-      };
+    };
 
     // Gestione apertura tabella esistente
     const handleOpenTable = (tableId) => {
