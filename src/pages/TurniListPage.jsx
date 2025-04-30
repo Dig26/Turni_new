@@ -1,4 +1,4 @@
-// src/pages/TurniListPage.jsx - Versione corretta con gestione sicura dello stato
+// src/pages/TurniListPage.jsx - Versione completa aggiornata con raggruppamento per anno
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -29,6 +29,32 @@ const TurniListPage = () => {
       ? state.turni.byNegozio[negozioId] || [] 
       : []
   );
+  
+  // Funzione per organizzare le tabelle per anno e mese
+  const organizeTablesByYear = (tables) => {
+    const organizedTables = {};
+    
+    // Raggruppa le tabelle per anno
+    tables.forEach(table => {
+      const year = table.year;
+      if (!organizedTables[year]) {
+        organizedTables[year] = [];
+      }
+      organizedTables[year].push(table);
+    });
+    
+    // Ordina gli anni in ordine decrescente (più recenti prima)
+    const sortedYears = Object.keys(organizedTables).sort((a, b) => b - a);
+    
+    // Per ogni anno, ordina le tabelle per mese (da gennaio a dicembre)
+    sortedYears.forEach(year => {
+      organizedTables[year].sort((a, b) => {
+        return parseInt(a.month) - parseInt(b.month);
+      });
+    });
+    
+    return { organizedTables, sortedYears };
+  };
   
   // Nomi dei mesi in italiano
   const mesi = [
@@ -78,6 +104,7 @@ const TurniListPage = () => {
   };
   
   const handleCreateTable = () => {
+    // Aggiungi il parametro "nuova=true" all'URL per forzare la creazione di una nuova tabella
     navigate(`/negozi/${negozioId}/turni/${selectedYear}/${selectedMonth}?nuova=true`);
   };
   
@@ -220,7 +247,7 @@ const TurniListPage = () => {
         )}
       </div>
       
-      {/* Elenco delle tabelle salvate */}
+      {/* Elenco delle tabelle salvate raggruppate per anno */}
       <div className="tabelle-salvate-container">
         <h3>Tabelle turni salvate</h3>
 
@@ -230,38 +257,50 @@ const TurniListPage = () => {
             <p>Non ci sono ancora tabelle turni salvate. Crea la tua prima tabella!</p>
           </div>
         ) : (
-          <div className="tabelle-grid">
-            {tabelleSalvate.map((tabella) => (
-              <div
-                key={tabella.id}
-                className="tabella-card"
-                onClick={() => handleOpenTable(tabella.year, tabella.month)}
-              >
-                <div className="tabella-card-header">
-                  <h4>{tabella.name}</h4>
-                  <button
-                    className="btn-icon btn-delete"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteTable(tabella.id);
-                    }}
-                    title="Elimina tabella"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </button>
-                </div>
-                <div className="tabella-card-body">
-                  <div className="tabella-info">
-                    <i className="fas fa-clock"></i>
-                    <span>Ultimo aggiornamento: {formatDate(tabella.timestamp)}</span>
+          <>
+            {/* Vista raggruppata per anno */}
+            {(() => {
+              const { organizedTables, sortedYears } = organizeTablesByYear(tabelleSalvate);
+              
+              return sortedYears.map(year => (
+                <div key={year} className="tabelle-year-section">
+                  <h4 className="tabelle-year-header">{year}</h4>
+                  <div className="tabelle-grid">
+                    {organizedTables[year].map((tabella) => (
+                      <div
+                        key={tabella.id}
+                        className="tabella-card"
+                        onClick={() => handleOpenTable(tabella.year, tabella.month)}
+                      >
+                        <div className="tabella-card-header">
+                          <h4>{tabella.monthName}</h4>
+                          <button
+                            className="btn-icon btn-delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTable(tabella.id);
+                            }}
+                            title="Elimina tabella"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                        <div className="tabella-card-body">
+                          <div className="tabella-info">
+                            <i className="fas fa-clock"></i>
+                            <span>Ultimo aggiornamento: {formatDate(tabella.timestamp)}</span>
+                          </div>
+                        </div>
+                        <div className="tabella-card-footer">
+                          <span className="view-prompt">Clicca per visualizzare <i className="fas fa-arrow-right"></i></span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="tabella-card-footer">
-                  <span className="view-prompt">Clicca per visualizzare <i className="fas fa-arrow-right"></i></span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ));
+            })()}
+          </>
         )}
       </div>
       

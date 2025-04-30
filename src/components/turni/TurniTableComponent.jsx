@@ -73,10 +73,14 @@ const TurniTableComponent = ({
         // Log per debug
         console.log(`Inizializzazione tabella per ${meseNum + 1}/${annoNum} con ${getDaysInMonth(meseNum, annoNum)} giorni`);
 
+        // RIMUOVI O COMMENTA TUTTO IL CODICE SPECIFICO PER MARZO 2025
+        // Non abbiamo più bisogno di un trattamento speciale per marzo 2025
+
+        /* CODICE DA RIMUOVERE
         // Verifica se dobbiamo inizializzare per marzo 2025 (caso specifico)
         if (meseNum === 2 && annoNum === 2025) {
             console.log("Rilevato marzo 2025 - attivazione modalità speciale di inizializzazione");
-
+    
             // Forza una reinizializzazione completa
             if (initialData && !isNewTable) {
                 const timeoutId = setTimeout(() => {
@@ -86,6 +90,7 @@ const TurniTableComponent = ({
                 return () => clearTimeout(timeoutId);
             }
         }
+        */
     }, [anno, mese, isNewTable, initialData]);
 
     const parseNumericValue = (value) => {
@@ -145,18 +150,26 @@ const TurniTableComponent = ({
 
     // Costante per i giorni lavorativi settimanali (potrebbe essere recuperata dalle impostazioni del negozio)
     const giorniLavorativiSettimanali = 6;
+    const [hasInitialized, setHasInitialized] = useState(false);
 
     useEffect(() => {
-        // Determina cosa caricare in base ai parametri
-        console.log(`Inizializzazione tabella per ${mese}/${anno} - isNewTable: ${isNewTable}`);
+        // Se abbiamo già inizializzato e NON è una richiesta esplicita
+        // di nuova tabella (isNewTable === true), non fare nulla
+        if (hasInitialized && !isNewTable) {
+            console.log("Tabella già inizializzata, nessun caricamento necessario");
+            return;
+        }
 
-        if (isNewTable || !initialData) {
-            console.log("Inizializzazione nuova tabella");
-            initNewTable();
-        } else {
+        if (initialData && !isNewTable) {
             console.log("Caricamento tabella esistente");
             loadSavedTable();
+        } else {
+            console.log("Inizializzazione nuova tabella");
+            initNewTable();
         }
+
+        // Marca come inizializzato
+        setHasInitialized(true);
     }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
 
     // Effect specifico per aggiornare le ore pagate all'avvio della tabella
@@ -514,13 +527,12 @@ const TurniTableComponent = ({
             setSaving(true);
             setSavedSuccess(false);
 
-            // IMPORTANTE: Ottieni dati direttamente dal componente, non dall'API di Handsontable
-            // Questo evita problemi di serializzazione/deserializzazione
-            const tableData = data; // Usa lo stato React invece di hotRef.current.hotInstance.getData()
+            // IMPORTANTE: Crea una copia profonda dei dati attuali
+            const currentData = JSON.parse(JSON.stringify(data));
 
-            // Prepara i dati da salvare - salva anche le strutture necessarie per il rendering
+            // Prepara i dati da salvare
             const dataToSave = {
-                tableData: tableData, // Usa lo stato React
+                tableData: currentData,  // Usa la copia profonda
                 employeeVariations,
                 columnUnits,
                 mese,
@@ -528,15 +540,15 @@ const TurniTableComponent = ({
                 pairToEmployee,
                 employees,
                 summaryRows,
-                // Aggiungi un flag per indicare che la tabella è stata salvata almeno una volta
-                // Questo verrà usato dal componente padre per determinare se è ancora una "nuova" tabella
-                isSaved: true
+                isSaved: true  // Aggiungi flag
             };
 
             // Salvataggio tramite callback fornita dal parent
             if (typeof onSave === 'function') {
-                // Salva una copia dei dati per evitare problemi di riferimento
-                onSave(JSON.parse(JSON.stringify(dataToSave)))
+                // IMPORTANTE: Crea una nuova copia per il salvataggio effettivo
+                const dataToSend = JSON.parse(JSON.stringify(dataToSave));
+
+                onSave(dataToSend)
                     .then(() => {
                         setSaving(false);
                         setSavedSuccess(true);
@@ -546,18 +558,17 @@ const TurniTableComponent = ({
                             setSavedSuccess(false);
                         }, 3000);
 
-                        // Mostra notifica di successo
                         dispatch(addNotification({
                             type: 'success',
                             message: 'Tabella turni salvata con successo',
                             duration: 3000
                         }));
 
+                        // NESSUNA reinizializzazione o modifiche ai dati qui
                         console.log("Salvataggio completato con successo");
                     })
                     .catch(error => {
                         setSaving(false);
-
                         dispatch(addNotification({
                             type: 'error',
                             message: `Errore nel salvataggio della tabella: ${error.message || String(error)}`,
@@ -1729,23 +1740,9 @@ const TurniTableComponent = ({
         try {
             console.log("Inizio ricalcolo di tutti i totali...");
 
-            // Prima verifichiamo che i dati siano estensibili
-            const dataCount = hotRef.current.hotInstance.countRows();
-            for (let row = 0; row < dataCount; row++) {
-                const rowData = hotRef.current.hotInstance.getSourceDataAtRow(row);
+            // NON ricreate la tabella o modificate i dati fondamentali
+            // Esegui solo i calcoli numerici necessari
 
-                if (rowData && !Object.isExtensible(rowData)) {
-                    console.warn(`Rilevato oggetto non estensibile alla riga ${row}. Creazione di un nuovo oggetto.`);
-
-                    // Crea un nuovo oggetto estensibile con le stesse proprietà
-                    const newData = { ...rowData };
-
-                    // Sostituisci l'oggetto non estensibile
-                    hotRef.current.hotInstance.setSourceDataAtRow(row, newData);
-                }
-            }
-
-            // Ora esegui tutti i calcoli in modo sicuro
             recalculateWorkHours();
             recalculateMotiveHours();
             updateTotaleOre();
