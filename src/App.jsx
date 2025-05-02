@@ -15,6 +15,7 @@ import NegozioHubPage from './pages/NegozioHubPage';
 import DipendentiPage from './pages/DipendentiPage';
 import DipendenteFormPage from './pages/DipendenteFormPage';
 import TurniListPage from './pages/TurniListPage';
+import TurniAllPage from './pages/TurniAllPage';
 import TurniEditorPage from './pages/TurniEditorPage';
 import NotFoundPage from './pages/NotFoundPage';
 import SettingsPage from './pages/SettingsPage';
@@ -141,6 +142,12 @@ function App() {
           <Route path="/negozi/:negozioId/turni" element={
             <AuthRequired>
               <TurniListPage />
+            </AuthRequired>
+          } />
+          {/* Nuova rotta per visualizzare tutti i turni */}
+          <Route path="/negozi/:negozioId/turni/all" element={
+            <AuthRequired>
+              <TurniAllPage />
             </AuthRequired>
           } />
           <Route path="/negozi/:negozioId/turni/:anno/:mese" element={

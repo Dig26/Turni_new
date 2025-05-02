@@ -54,7 +54,6 @@ function TabellaTurni({ negozioId, anno, mese }) {
     }, [negozioId]);
 
     // Funzione per caricare l'elenco delle tabelle salvate
-    // // Modifica da implementare nel metodo loadSavedTablesList
     const loadSavedTablesList = () => {
         try {
             const savedTablesArray = [];
@@ -98,9 +97,6 @@ function TabellaTurni({ negozioId, anno, mese }) {
         }
     };
 
-    // Correzione per il metodo handleBackToList
-
-
     // Funzione per comunicare con l'iframe
     const sendMessageToIframe = (message) => {
         if (iframeRef.current && iframeRef.current.contentWindow) {
@@ -132,7 +128,7 @@ function TabellaTurni({ negozioId, anno, mese }) {
         };
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [negozioId, loadSavedTablesList]);
+    }, [negozioId]);
 
     // Funzione per salvare i dati della tabella
     const saveTableData = (data) => {
@@ -226,6 +222,11 @@ function TabellaTurni({ negozioId, anno, mese }) {
                 alert('Errore nell\'eliminazione della tabella.');
             }
         }
+    };
+
+    // Funzione per navigare alla pagina con tutti i turni
+    const handleViewAllTables = () => {
+        navigate(`/negozi/${negozioId}/turni/all`);
     };
 
     // Formatta la data in modo leggibile
@@ -337,6 +338,9 @@ function TabellaTurni({ negozioId, anno, mese }) {
         );
     }
 
+    // Filtra solo gli ultimi 5 turni per mostrarli nella pagina principale
+    const recentTables = savedTables.slice(0, 5);
+
     // Visualizza la pagina con l'elenco delle tabelle salvate
     return (
         <div className="tabella-turni-container">
@@ -357,6 +361,13 @@ function TabellaTurni({ negozioId, anno, mese }) {
                 </div>
 
                 <div className="header-actions">
+                    <button
+                        className="btn-primary"
+                        onClick={handleViewAllTables}
+                        title="Visualizza tutti i turni ordinati per anno e mese"
+                    >
+                        <i className="fas fa-calendar-alt"></i> Visualizza Tutti i Turni
+                    </button>
                     <button
                         className="btn-secondary"
                         onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
@@ -421,18 +432,26 @@ function TabellaTurni({ negozioId, anno, mese }) {
                 )}
             </div>
 
-            {/* Elenco delle tabelle salvate */}
+            {/* Elenco delle tabelle salvate (solo le ultime 5) */}
             <div className="tabelle-salvate-container">
-                <h3>Tabelle turni salvate</h3>
+                <div className="tabelle-header">
+                    <h3>Tabelle turni recenti</h3>
+                    <button
+                        className="btn-link view-all"
+                        onClick={handleViewAllTables}
+                    >
+                        Visualizza tutti <i className="fas fa-arrow-right"></i>
+                    </button>
+                </div>
 
-                {savedTables.length === 0 ? (
+                {recentTables.length === 0 ? (
                     <div className="no-tabelle-message">
                         <i className="fas fa-info-circle"></i>
                         <p>Non ci sono ancora tabelle turni salvate. Crea la tua prima tabella!</p>
                     </div>
                 ) : (
                     <div className="tabelle-grid">
-                        {savedTables.map((table) => (
+                        {recentTables.map((table) => (
                             <div
                                 key={table.id}
                                 className="tabella-card"
