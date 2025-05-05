@@ -1570,9 +1570,12 @@ const TurniTableComponent = ({
     };
 
     // Funzione per calcolare correttamente le ore tra due orari
-    const calculateHoursBetween = (startTime, endTime) => {
+    const calculateHoursBetween = (startTime, endTime, includePausa = false) => {
         try {
-            const [startHours, startMinutes] = startTime.split(":").map(Number);
+            // Se startTime contiene l'indicatore di pausa (P), lo rimuoviamo per il calcolo
+            const cleanStartTime = startTime.replace(/\s*\([P]\)|\s*\(P\)/g, '');
+
+            const [startHours, startMinutes] = cleanStartTime.split(":").map(Number);
             const [endHours, endMinutes] = endTime.split(":").map(Number);
 
             // Converti in minuti totali
@@ -1585,7 +1588,13 @@ const TurniTableComponent = ({
             }
 
             // Calcola la differenza e converti in ore decimali
-            const diffMinutes = endTotalMinutes - startTotalMinutes;
+            let diffMinutes = endTotalMinutes - startTotalMinutes;
+
+            // Se includePausa è true e il tempo lavorato è > 6 ore, sottraiamo 30 minuti per la pausa
+            if (includePausa && (diffMinutes / 60) > 6) {
+                diffMinutes -= 30; // Sottrai 30 minuti per la pausa
+            }
+
             return parseFloat((diffMinutes / 60).toFixed(2));
         } catch (e) {
             console.error('Errore nel calcolo delle ore:', e);
@@ -1619,14 +1628,19 @@ const TurniTableComponent = ({
                     // Estrai orari dall'intervallo
                     const [startTime, endTime] = inizio.split(" - ").map(t => t.trim());
                     if (startTime && endTime) {
-                        // Calcola la differenza di ore
-                        const hoursWorked = calculateHoursBetween(startTime, endTime);
+                        // Controlla se l'indicatore di pausa (P) è presente
+                        const includePausa = inizio.includes("(P)");
+
+                        // Calcola la differenza di ore, includendo la logica della pausa se necessario
+                        const hoursWorked = calculateHoursBetween(startTime, endTime, includePausa);
+
                         // Aggiorna la seconda cella
                         hotRef.current.hotInstance.setDataAtCell(
                             day,
                             3 + 2 * pairIndex,
-                            hoursWorked.toFixed(2).replace(".", ",")
+                            hoursWorked.toFixed(2).replace(".", ",") + (includePausa ? "P" : "")
                         );
+
                         sumHours += hoursWorked;
                     }
                 }
@@ -1874,22 +1888,22 @@ const TurniTableComponent = ({
         // Poi inseriamo i nuovi dati
         if (cellData.mode === "lavora") {
             if (cellData.orarioInizio && cellData.orarioFine) {
-                // Calcola la differenza di tempo
-                const hoursWorked = calculateHoursBetween(cellData.orarioInizio, cellData.orarioFine);
-
                 // Determina la colonna inizio
                 const inizioCol = col % 2 === 0 ? col : col - 1;
 
+                // Inserisci l'intervallo orario nella prima cella
                 hotRef.current.hotInstance.setDataAtCell(
                     row,
                     inizioCol,
                     `${cellData.orarioInizio} - ${cellData.orarioFine}`
                 );
 
+                // Usa le ore effettive (già calcolate con eventuale sottrazione di 0.5 per la pausa)
+                const formattedHours = cellData.effectiveHours.toFixed(2).replace(".", ",");
                 hotRef.current.hotInstance.setDataAtCell(
                     row,
                     inizioCol + 1,
-                    hoursWorked.toFixed(2).replace(".", ",")
+                    formattedHours
                 );
             }
         } else {
@@ -1917,11 +1931,13 @@ const TurniTableComponent = ({
     };
 
     // Gestisce il salvataggio dei dati dal popup tempo
+    // In TurniTableComponent.jsx
+
     const handleTimePopupSave = (timeData) => {
         if (!selectedCell || !hotRef.current) return;
 
         const { row, col } = selectedCell;
-        const decimalHours = timeData.hours;
+        const decimalHours = timeData.hours; // Questo valore è già comprensivo della riduzione per pausa
 
         // Identifica la colonna di inizio
         const inizioCol = col % 2 === 0 ? col : col - 1;
@@ -1931,10 +1947,12 @@ const TurniTableComponent = ({
         hotRef.current.hotInstance.setDataAtCell(row, inizioCol + 1, "");
 
         // Inserisci il nuovo valore solo nella colonna "fine"
+        // Formatta il valore senza indicatori
+        const formattedHours = decimalHours.toFixed(2).replace(".", ",");
         hotRef.current.hotInstance.setDataAtCell(
             row,
             inizioCol + 1,
-            decimalHours.toFixed(2).replace(".", ",")
+            formattedHours
         );
 
         // Chiudi il popup

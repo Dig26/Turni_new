@@ -30,14 +30,13 @@ function NegozioForm({ negozioId }) {
         { value: 'domenica', label: 'Domenica' },
     ];
 
+    // Aggiornati i settori in base ai dati del PDF
     const settoriOptions = [
-        { value: 'commercio', label: 'Commercio' },
-        { value: 'ristorazione', label: 'Ristorazione' },
-        { value: 'abbigliamento', label: 'Abbigliamento' },
-        { value: 'alimentari', label: 'Alimentari' },
-        { value: 'tecnologia', label: 'Tecnologia' },
-        { value: 'servizi', label: 'Servizi' },
-        { value: 'altro', label: 'Altro' },
+        { value: 'sanita', label: 'Sanità (Pubblica e Privata)' },
+        { value: 'commercio', label: 'Commercio e Grande Distribuzione' },
+        { value: 'metalmeccanico', label: 'Metalmeccanico' },
+        { value: 'logistica', label: 'Logistica e Trasporti' },
+        { value: 'turismo', label: 'Turismo e Ristorazione' },
     ];
 
     useEffect(() => {
@@ -183,12 +182,13 @@ function NegozioForm({ negozioId }) {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="settore">Settore</label>
+                        <label htmlFor="settore">Settore *</label>
                         <select
                             id="settore"
                             name="settore"
                             value={formData.settore}
                             onChange={handleChange}
+                            required
                         >
                             {settoriOptions.map(option => (
                                 <option key={option.value} value={option.value}>
@@ -196,6 +196,9 @@ function NegozioForm({ negozioId }) {
                                 </option>
                             ))}
                         </select>
+                        <small className="helper-text">
+                            Tutti i settori prevedono una pausa obbligatoria di 30 minuti se si lavora più di 6 ore.
+                        </small>
                     </div>
                 </div>
 
