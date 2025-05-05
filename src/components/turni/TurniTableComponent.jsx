@@ -1891,19 +1891,22 @@ const TurniTableComponent = ({
                 // Determina la colonna inizio
                 const inizioCol = col % 2 === 0 ? col : col - 1;
 
+                // Verifica se c'è pausa inclusa per aggiungere un indicatore
+                const hasPausa = cellData.pausaIncluded && cellData.effectiveHours < calculateHoursBetween(cellData.orarioInizio, cellData.orarioFine);
+
                 // Inserisci l'intervallo orario nella prima cella
                 hotRef.current.hotInstance.setDataAtCell(
                     row,
                     inizioCol,
-                    `${cellData.orarioInizio} - ${cellData.orarioFine}`
+                    `${cellData.orarioInizio} - ${cellData.orarioFine}${hasPausa ? " (P)" : ""}`
                 );
 
-                // Usa le ore effettive (già calcolate con eventuale sottrazione di 0.5 per la pausa)
+                // Formatta le ore con indicatore di pausa se necessario
                 const formattedHours = cellData.effectiveHours.toFixed(2).replace(".", ",");
                 hotRef.current.hotInstance.setDataAtCell(
                     row,
                     inizioCol + 1,
-                    formattedHours
+                    hasPausa ? `${formattedHours}P` : formattedHours
                 );
             }
         } else {

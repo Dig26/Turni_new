@@ -10,6 +10,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   const [motivo, setMotivo] = useState('nessuna');
   const [abbr, setAbbr] = useState('');
   const [totalHours, setTotalHours] = useState(0);
+  const [theoreticalHours, setTheoreticalHours] = useState(0);  // Ore teoriche senza pausa
   const [pausaIncluded, setPausaIncluded] = useState(false);
   const [showPausaOption, setShowPausaOption] = useState(false);
   const pausaCheckboxRef = useRef(null);
@@ -45,67 +46,100 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
 
       // Se l'inizio è "X", allora siamo in modalità "a casa"
       if (inizioVal === 'X') {
-        // ...codice esistente invariato...
+        setMode('aCasa');
+
+        // Estrai motivo e abbreviazione
+        if (fineVal && fineVal.indexOf('|') !== -1) {
+          const parts = fineVal.split('|');
+          setMotivo(parts[0].trim());
+          setAbbr(parts[1].trim());
+        }
       } else if (inizioVal && inizioVal.indexOf(' - ') !== -1) {
         // Siamo in modalità "lavora" con orari già definiti
         setMode('lavora');
 
         // Estrai orario inizio e fine
         const parts = inizioVal.split(' - ');
-        const startTime = parts[0].trim();
+        const startTime = parts[0].trim().replace(/\s*\([P]\)|\s*\(P\)/g, ''); // Rimuovi l'indicatore di pausa
         const endTime = parts[1].trim();
 
         setOrarioInizio(startTime);
         setOrarioFine(endTime);
 
-        // Calcola le ore teoriche basate sugli orari
-        const theoreticalHours = calculateHoursBetween(startTime, endTime);
+        // Calcola le ore teoriche basate sugli orari (sempre senza pausa)
+        const calculatedTheoreticalHours = calculateHoursBetween(startTime, endTime);
+        setTheoreticalHours(calculatedTheoreticalHours);
 
-        // Leggi le ore effettive dalla cella
+        // Leggi le ore effettive dalla cella fine
         let actualHours = 0;
         if (fineVal) {
           try {
-            actualHours = parseFloat(fineVal.replace(',', '.'));
+            // Rimuovi qualsiasi suffisso (come 'P')
+            const numericValue = fineVal.replace(/[^0-9,\.]/g, '');
+            actualHours = parseFloat(numericValue.replace(',', '.'));
           } catch (e) {
             console.error('Errore nella conversione delle ore:', e);
           }
         }
 
-        // Imposta le ore totali a quelle effettive
-        setTotalHours(actualHours);
-
-        // Verifica se le ore sono > 6 (condizione per la pausa)
-        if (theoreticalHours > 6) {
+        // Se è un turno di almeno 6 ore, mostra l'opzione pausa
+        if (calculatedTheoreticalHours >= 6) {
           setShowPausaOption(true);
 
-          // Verifica se c'è una differenza di circa 0.5 ore tra teoriche ed effettive
-          const difference = theoreticalHours - actualHours;
-          console.log("Differenza ore:", difference, "Teoriche:", theoreticalHours, "Effettive:", actualHours);
+          // Calcola la differenza tra ore teoriche e ore effettive
+          const difference = calculatedTheoreticalHours - actualHours;
+          console.log("Differenza ore:", difference, "Teoriche:", calculatedTheoreticalHours, "Effettive:", actualHours);
 
-          // Se la differenza è tra 0.4 e 0.6, assumiamo che la pausa sia inclusa
+          // Se c'è una differenza tra 0.4 e 0.6, assumiamo che la pausa sia stata applicata
           if (difference >= 0.4 && difference <= 0.6) {
-            console.log("Pausa rilevata!");
+            console.log("Pausa rilevata! Ore originali (teoriche): " + calculatedTheoreticalHours);
+
+            // IMPORTANTE: Impostiamo deliberatamente la pausa come attiva
             setPausaIncluded(true);
+
+            // IMPORTANTE: Impostiamo il totalHours alle ore teoriche, NON alle ore effettive
+            // Questo permette di visualizzare le ore originali nel popup
+            setTotalHours(calculatedTheoreticalHours);
           } else {
             setPausaIncluded(false);
+            setTotalHours(actualHours);
           }
         } else {
           setShowPausaOption(false);
           setPausaIncluded(false);
+          setTotalHours(actualHours);
+        }
+
+        // Verifica se il valore di inizio contiene l'indicatore di pausa
+        const hasPauseIndicator = inizioVal.includes('(P)');
+        if (hasPauseIndicator) {
+          setPausaIncluded(true);
         }
       } else {
-        // ...codice esistente invariato...
+        // Se non ci sono orari definiti, imposta la modalità "lavora" di default
+        setMode('lavora');
       }
     }
   }, [selectedCell, hotInstance]);
 
-  // Aggiorna visivamente lo stato della checkbox quando cambiano i valori
   useEffect(() => {
-    // Forzare l'aggiornamento visivo della checkbox quando cambiano i dati
-    if (pausaCheckboxRef.current) {
-      pausaCheckboxRef.current.checked = pausaIncluded;
-      console.log("Checkbox aggiornata:", pausaIncluded);
-    }
+    // Utilizza un timeout per assicurarsi che il DOM sia già renderizzato
+    // e che lo stato pausaIncluded sia stato aggiornato completamente
+    const timeoutId = setTimeout(() => {
+      // Forza direttamente lo stato della checkbox usando l'API DOM
+      if (pausaCheckboxRef.current) {
+        // Usa il .checked direttamente per aggirare il controllo React
+        pausaCheckboxRef.current.checked = pausaIncluded;
+
+        // Forza un event dispatch per simulare l'interazione utente
+        const event = new Event('change', { bubbles: true });
+        pausaCheckboxRef.current.dispatchEvent(event);
+
+        console.log("Checkbox forzata a:", pausaIncluded);
+      }
+    }, 100); // Un ritardo più lungo per sicurezza
+
+    return () => clearTimeout(timeoutId);
   }, [pausaIncluded]);
 
   // Funzione per calcolare le ore tra due orari
@@ -178,7 +212,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
 
   // Quando cambiano le ore totali, verifica se mostrare l'opzione pausa
   useEffect(() => {
-    if (totalHours > 6) {
+    if (totalHours >= 6) {
       setShowPausaOption(true);
     } else {
       setShowPausaOption(false);
@@ -190,15 +224,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   const handlePausaChange = (e) => {
     const isChecked = e.target.checked;
     setPausaIncluded(isChecked);
-
-    // Aggiorna la preview delle ore quando cambia lo stato della checkbox
-    if (orarioInizio && orarioFine) {
-      // Calcola le ore totali
-      const rawHours = calculateHoursBetween(orarioInizio, orarioFine);
-
-      // Aggiorna il valore totale delle ore mostrato nella preview
-      setTotalHours(rawHours);
-    }
   };
 
   const handleSubmit = () => {
@@ -228,14 +253,14 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
       // Calcola le ore effettive considerando la pausa
       let effectiveHours = hoursWorked;
 
-      // Se le ore sono > 6 e la checkbox è spuntata, sottrai 30 minuti (0.5 ore)
-      if (pausaIncluded && hoursWorked > 6) {
+      // Se le ore sono >= 6 e la checkbox è spuntata, sottrai 30 minuti per la pausa
+      if (pausaIncluded && hoursWorked >= 6) {
         effectiveHours = hoursWorked - 0.5;
       }
 
       onSave({
         mode: 'lavora',
-        orarioInizio: orarioInizio,
+        orarioInizio: orarioInizio,  // Nessun indicatore visibile esterno
         orarioFine: orarioFine,
         effectiveHours: effectiveHours
       });
@@ -257,15 +282,11 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     if (orarioFine) {
       const hours = calculateHoursBetween(value, orarioFine);
       setTotalHours(hours);
+      setTheoreticalHours(hours);
 
       // Verifica se mostrare l'opzione pausa
-      if (hours > 6) {
+      if (hours >= 6) {
         setShowPausaOption(true);
-
-        // Aggiorna la preview considerando la pausa se è inclusa
-        if (pausaIncluded) {
-          setTotalHours(hours - 0.5);
-        }
       } else {
         setShowPausaOption(false);
         setPausaIncluded(false);
@@ -280,21 +301,15 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     if (orarioInizio) {
       // Calcola le ore totali
       const hours = calculateHoursBetween(orarioInizio, value);
+      setTotalHours(hours);
+      setTheoreticalHours(hours);
 
       // Verifica se mostrare l'opzione pausa
-      if (hours > 6) {
+      if (hours >= 6) {
         setShowPausaOption(true);
-
-        // Aggiorna le ore considerando la pausa se è inclusa
-        if (pausaIncluded) {
-          setTotalHours(hours - 0.5);
-        } else {
-          setTotalHours(hours);
-        }
       } else {
         setShowPausaOption(false);
         setPausaIncluded(false);
-        setTotalHours(hours);
       }
     }
   };
@@ -326,7 +341,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
 
   // Calcola e formatta le ore effettive considerando la pausa
   const getEffectiveHours = () => {
-    if (pausaIncluded && totalHours > 6) {
+    if (pausaIncluded && totalHours >= 6) {
       return (totalHours - 0.5).toFixed(2).replace('.', ',');
     }
     return totalHours.toFixed(2).replace('.', ',');
@@ -385,11 +400,14 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
 
                   {totalHours > 0 && (
                     <div className="form-group" style={{ marginTop: '10px', color: '#2980b9', fontSize: '0.9em' }}>
-                      <i className="fas fa-info-circle"></i> Tempo calcolato: {getEffectiveHours()} ore
-                      {pausaIncluded && totalHours > 6 && (
-                        <span style={{ marginLeft: '5px', color: '#e67e22' }}>
-                          (pausa inclusa)
-                        </span>
+                      <i className="fas fa-info-circle"></i> Ore teoriche: {totalHours.toFixed(2).replace('.', ',')} ore
+                      {pausaIncluded && totalHours >= 6 && (
+                        <>
+                          <br />
+                          <span style={{ marginLeft: '5px', color: '#e67e22' }}>
+                            Ore effettive: {getEffectiveHours()} ore (con pausa)
+                          </span>
+                        </>
                       )}
                     </div>
                   )}
