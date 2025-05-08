@@ -72,25 +72,6 @@ const TurniTableComponent = ({
 
         // Log per debug
         console.log(`Inizializzazione tabella per ${meseNum + 1}/${annoNum} con ${getDaysInMonth(meseNum, annoNum)} giorni`);
-
-        // RIMUOVI O COMMENTA TUTTO IL CODICE SPECIFICO PER MARZO 2025
-        // Non abbiamo più bisogno di un trattamento speciale per marzo 2025
-
-        /* CODICE DA RIMUOVERE
-        // Verifica se dobbiamo inizializzare per marzo 2025 (caso specifico)
-        if (meseNum === 2 && annoNum === 2025) {
-            console.log("Rilevato marzo 2025 - attivazione modalità speciale di inizializzazione");
-    
-            // Forza una reinizializzazione completa
-            if (initialData && !isNewTable) {
-                const timeoutId = setTimeout(() => {
-                    console.log("Reinizializzazione forzata per marzo 2025");
-                    initNewTable();
-                }, 100);
-                return () => clearTimeout(timeoutId);
-            }
-        }
-        */
     }, [anno, mese, isNewTable, initialData]);
 
     const parseNumericValue = (value) => {
@@ -392,7 +373,7 @@ const TurniTableComponent = ({
                 type: "employee",
                 inizio: inizioKey,
                 fine: fineKey,
-                header: `☰ ${emp}`
+                header: emp
             });
         });
 
@@ -402,7 +383,7 @@ const TurniTableComponent = ({
         colUnits.push({
             type: "fatturato",
             key: fatturatoKey,
-            header: "☰ Fatturato"
+            header: "Fatturato"
         });
 
         // Aggiungi l'unità per le particolarità
@@ -411,7 +392,7 @@ const TurniTableComponent = ({
         colUnits.push({
             type: "particolarita",
             key: particolaritaKey,
-            header: "☰ Particolarità"
+            header: "Particolarità"
         });
 
         setColumnUnits(colUnits);
@@ -597,108 +578,21 @@ const TurniTableComponent = ({
         }
     };
 
-    // Migliora la gestione del drag and drop permettendo solo sulla maniglia
-    const handleBeforeOnCellMouseDown = (event, coords) => {
-        if (coords.row === 0) {
-            // Verifica se si sta facendo click sulla maniglia di trascinamento
-            if (event.target.className &&
-                (event.target.className.includes('column-drag-handle') ||
-                    event.target.parentElement.className.includes('column-drag-handle'))) {
-                // Se è la maniglia, permettiamo il drag
-                return;
-            } else {
-                // Altrimenti, blocchiamo il drag ma permettiamo il click normale
-                event.stopImmediatePropagation();
-            }
-        }
-    };
-
-    // Verifica se è possibile spostare le colonne
-    const handleBeforeColumnMove = (columns, target) => {
-        // Verifica se le colonne che si stanno spostando sono pari
-        // e corrispondono alle colonne delle unità dipendente (che devono muoversi in coppia)
-        const canMove = columns.every(col => {
-            const unitInfo = getUnitByCol(col);
-            return unitInfo && (unitInfo.unit.type === "fatturato" ||
-                unitInfo.unit.type === "particolarita" ||
-                (unitInfo.unit.type === "employee" && (col % 2 === 0)));
-        });
-
-        // Se target è nelle colonne fisse (giorno e giornoMese), impedisci lo spostamento
-        if (target < 2) return false;
-
-        return canMove;
-    };
-
-    // Aggiorna le unità dopo lo spostamento delle colonne
-    const handleAfterColumnMove = (movedColumns, finalIndex) => {
-        if (movedColumns.length === 0) return;
-
-        // Crea un array di unità con l'ordine aggiornato
-        const newColumnUnits = [];
-
-        // Mappa per tenere traccia delle colonne già processate
-        const processedCols = new Set();
-
-        // Ottieni l'ordine attuale delle colonne
-        const columnOrder = hotRef.current.hotInstance.getSettings().manualColumnMove.columnsMapper || [];
-
-        // Scorri tutte le colonne nell'ordine attuale
-        for (let col = 2; col < columnOrder.length; col++) {
-            if (processedCols.has(col)) continue;
-
-            const unitInfo = getUnitByCol(col);
-            if (!unitInfo) continue;
-
-            // Aggiungi l'unità all'array
-            newColumnUnits.push(unitInfo.unit);
-
-            // Segna come processate tutte le colonne di questa unità
-            processedCols.add(col);
-            if (unitInfo.unit.type === "employee") {
-                processedCols.add(col + 1);
-            }
-        }
-
-        // Aggiorna lo stato delle unità
-        setColumnUnits(newColumnUnits);
-
-        // Forza il refresh della tabella
-        setTimeout(() => {
-            if (hotRef.current) {
-                hotRef.current.hotInstance.render();
-            }
-        }, 100);
-    };
-
     // Modifica il metodo handleCellClick per gestire correttamente i click sull'header
     const handleCellClick = (event, coords) => {
         // Gestione click su cella
         const { row, col } = coords;
 
         if (row === 0) {
-            // Click su header - Modifica per gestire meglio l'apertura del popup delle variazioni
+            // Click su header
             const unitInfo = getUnitByCol(col);
 
             // Verifica se è un'unità di tipo dipendente
             if (unitInfo && unitInfo.unit.type === "employee") {
-                // Ottieni l'elemento DOM cliccato
-                const target = event.target;
-
-                // Verifica se il click è stato fatto sulla maniglia di drag and drop
-                // o su un elemento figlio della maniglia
-                const isDragHandle =
-                    target.className.includes('column-drag-handle') ||
-                    target.parentElement.className.includes('column-drag-handle');
-
-                // Se non è la maniglia di drag, apri il popup delle variazioni
-                if (!isDragHandle) {
-                    setSelectedCell({ row, col });
-                    setShowVariationPopup(true);
-                }
+                setSelectedCell({ row, col });
+                setShowVariationPopup(true);
             }
         } else {
-            // Gestione click su celle non di intestazione (rimane invariata)
             // Verifica se è una riga riepilogativa speciale
             if (row === summaryRows.diffPrecedenteRowIndex) {
                 // Gestione click su riga differenza mese precedente
@@ -868,32 +762,19 @@ const TurniTableComponent = ({
                             td.className += ' summary-cell';
                         }
 
-                        // Se è la riga di intestazione, manteniamo lo stile originale
-                        if (row === 0 && value && value.includes('☰')) {
-                            // Utilizziamo la struttura originale dell'header
-                            td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
-                            <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
-                            <span class="employee-name-header" data-col="${col}" style="cursor: pointer; flex: 1; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; transition: all 0.2s;">
-                                <span>${value.replace('☰', '')}</span>
-                                <span class="settings-icon" style="margin-left: 8px; font-size: 14px; opacity: 0.7;">⚙️</span>
-                            </span>
-                        </div>`;
+                        // Se è la riga di intestazione, manteniamo lo stile originale ma senza drag handle
+                        if (row === 0) {
+                            td.innerHTML = `<div style="padding: 4px 8px;">
+                                <span class="employee-name-header" data-col="${col}" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; transition: all 0.2s;">
+                                    <span>${value}</span>
+                                    <span class="settings-icon" style="margin-left: 8px; font-size: 14px; opacity: 0.7;">⚙️</span>
+                                </span>
+                            </div>`;
                             td.className += ' header-cell';
 
                             // Manteniamo le proprietà originali
                             cellProperties.readOnly = true;
                             cellProperties.editor = false;
-
-                            // Manteniamo la gestione del click
-                            setTimeout(() => {
-                                const headerEl = td.querySelector('.employee-name-header');
-                                if (headerEl) {
-                                    // Rimuoviamo eventuali listener esistenti per sicurezza
-                                    headerEl.removeEventListener('click', handleHeaderClick);
-                                    // Aggiungiamo il nuovo listener
-                                    headerEl.addEventListener('click', handleHeaderClick);
-                                }
-                            }, 0);
                         } else {
                             Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                         }
@@ -920,15 +801,14 @@ const TurniTableComponent = ({
                     data: unit.key,
                     readOnly: true,
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
-                        // Se è la riga di intestazione, aggiungi l'icona drag handle con stile migliorato
-                        if (row === 0 && value && value.includes('☰')) {
-                            td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
-                            <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
-                            <span>${value.replace('☰', '')}</span>
-                        </div>`;
-                            td.className += ' drag-handle-cell';
+                        // Per l'header, mostra semplicemente il testo senza drag handle
+                        if (row === 0) {
+                            td.innerHTML = `<div style="padding: 4px 8px;">
+                                <span>${value}</span>
+                            </div>`;
+                            td.className += ' header-cell';
 
-                            // Aggiungiamo questa proprietà per evitare che Handsontable provi ad aprire un editor
+                            // Proprietà per evitare editing
                             cellProperties.readOnly = true;
                             cellProperties.editor = false;
                         } else if (Object.values(summaryRows).includes(row)) {
@@ -950,15 +830,14 @@ const TurniTableComponent = ({
                     readOnly: true,
                     className: "particolarita-cell",
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
-                        // Se è la riga di intestazione, aggiungi l'icona drag handle con stile migliorato
-                        if (row === 0 && value && value.includes('☰')) {
-                            td.innerHTML = `<div style="display: flex; align-items: center; width: 100%;">
-                            <span class="column-drag-handle" style="cursor: move; padding: 2px 6px; background: #f1f1f1; border-radius: 3px; margin-right: 8px;">☰</span>
-                            <span>${value.replace('☰', '')}</span>
-                        </div>`;
-                            td.className += ' drag-handle-cell';
+                        // Per l'header, mostra semplicemente il testo senza drag handle
+                        if (row === 0) {
+                            td.innerHTML = `<div style="padding: 4px 8px;">
+                                <span>${value}</span>
+                            </div>`;
+                            td.className += ' header-cell';
 
-                            // Aggiungiamo questa proprietà per evitare che Handsontable provi ad aprire un editor
+                            // Proprietà per evitare editing
                             cellProperties.readOnly = true;
                             cellProperties.editor = false;
                         } else if (Object.values(summaryRows).includes(row)) {
@@ -977,45 +856,6 @@ const TurniTableComponent = ({
 
         return cols;
     };
-
-    // Aggiungi il gestore di eventi per il click sull'header
-    const handleHeaderClick = (event) => {
-        // Recupera l'indice di colonna dall'attributo data-col
-        const colStr = event.currentTarget.getAttribute('data-col');
-        if (!colStr) return;
-
-        const col = parseInt(colStr, 10);
-
-        // Previeni propagazione per evitare che altri handler gestiscano lo stesso evento
-        event.stopPropagation();
-
-        // Ottieni informazioni sull'unità
-        const unitInfo = getUnitByCol(col);
-        if (unitInfo && unitInfo.unit.type === "employee") {
-            setSelectedCell({ row: 0, col });
-            setShowVariationPopup(true);
-        }
-    };
-
-    // Definizione della funzione updateHeaderListeners
-    const updateHeaderListeners = () => {
-        if (!hotRef.current) return;
-
-        // Seleziona tutti gli header dei dipendenti
-        const headerElements = document.querySelectorAll('.employee-name-header');
-
-        // Aggiungi listener di evento click a ciascuno
-        headerElements.forEach(el => {
-            el.removeEventListener('click', handleHeaderClick);
-            el.addEventListener('click', handleHeaderClick);
-        });
-    };
-
-    // Aggiungiamo un useEffect per aggiornare i listener quando necessario
-    useEffect(() => {
-        const timeoutId = setTimeout(updateHeaderListeners, 100);
-        return () => clearTimeout(timeoutId);
-    }, [data, columnUnits]);
 
     // Aggiungi un handler per prevenire il doppio click
     const handleBeforeCellDblClick = (event, coords) => {
@@ -1930,9 +1770,6 @@ const TurniTableComponent = ({
         recalculateAllTotals();
     };
 
-    // Gestisce il salvataggio dei dati dal popup tempo
-    // In TurniTableComponent.jsx
-
     const handleTimePopupSave = (timeData) => {
         if (!selectedCell || !hotRef.current) return;
 
@@ -2247,16 +2084,11 @@ const TurniTableComponent = ({
                             afterOnCellMouseDown={handleCellClick}
                             beforeOnCellDblClick={handleBeforeCellDblClick}
                             afterChange={handleAfterChange}
-                            afterRender={() => setTimeout(updateHeaderListeners, 50)}
                             columns={buildColumnsFromUnits()}
                             mergeCells={buildMerges()}
                             manualColumnResize={true}
                             columnSorting={false}
                             disableVisualSelection={true}
-                            manualColumnMove={true}
-                            beforeColumnMove={handleBeforeColumnMove}
-                            afterColumnMove={handleAfterColumnMove}
-                            beforeOnCellMouseDown={handleBeforeOnCellMouseDown}
                         />
                     </div>
 
