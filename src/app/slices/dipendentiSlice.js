@@ -1,6 +1,6 @@
 // src/app/slices/dipendentiSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as dipendentiAPI from '../../services/api/dipendentiAPI';
+import * as dipendentiService from '../services/dipendentiService';
 import { addNotification } from './uiSlice';
 
 // Thunks
@@ -8,7 +8,7 @@ export const fetchDipendentiByNegozioId = createAsyncThunk(
   'dipendenti/fetchDipendentiByNegozioId',
   async (negozioId, { rejectWithValue }) => {
     try {
-      const dipendenti = await dipendentiAPI.getDipendentiByNegozioId(negozioId);
+      const dipendenti = await dipendentiService.getDipendentiByNegozioId(negozioId);
       return { negozioId, dipendenti };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -20,7 +20,7 @@ export const fetchDipendenteById = createAsyncThunk(
   'dipendenti/fetchDipendenteById',
   async (id, { rejectWithValue }) => {
     try {
-      const dipendente = await dipendentiAPI.getDipendenteById(id);
+      const dipendente = await dipendentiService.getDipendenteById(id);
       return dipendente;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -32,7 +32,7 @@ export const saveDipendente = createAsyncThunk(
   'dipendenti/saveDipendente',
   async ({ dipendenteData, id }, { rejectWithValue, dispatch }) => {
     try {
-      const savedDipendente = await dipendentiAPI.saveDipendente(dipendenteData, id);
+      const savedDipendente = await dipendentiService.saveDipendente(dipendenteData, id);
       
       dispatch(addNotification({
         type: 'success',
@@ -51,7 +51,7 @@ export const deleteDipendenteThunk = createAsyncThunk(
   'dipendenti/deleteDipendente',
   async (id, { rejectWithValue }) => {
     try {
-      await dipendentiAPI.deleteDipendente(id);
+      await dipendentiService.deleteDipendente(id);
       return id;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -118,7 +118,7 @@ const dipendentiSlice = createSlice({
         state.loading = false;
         
         const dipendente = action.payload;
-        const negozioId = dipendente.negozioId;
+        const negozioId = dipendente.negozio_id;
         
         // Assicurati che esista l'array per il negozio
         if (!state.byNegozio[negozioId]) {

@@ -1,11 +1,23 @@
 import { createSlice } from '@reduxjs/toolkit';
-import * as authService from '../../services/api/authAPI';
+import * as authService from '../services/authService';
 
 const initialState = {
-  user: authService.getCurrentUser(),
-  isAuthenticated: !!authService.getCurrentUser(),
+  user: null,
+  isAuthenticated: false,
   error: null,
   loading: false
+};
+
+// Inizializza lo stato con i dati dell'utente corrente se esiste
+const initializeAuth = async (dispatch) => {
+  try {
+    const user = await authService.getCurrentUser();
+    if (user) {
+      dispatch(loginSuccess(user));
+    }
+  } catch (error) {
+    console.error('Errore nell\'inizializzazione dell\'autenticazione:', error);
+  }
 };
 
 const authSlice = createSlice({
@@ -63,6 +75,11 @@ export const register = (nome, cognome, email, password) => async (dispatch) => 
 export const logoutUser = () => async (dispatch) => {
   await authService.logout();
   dispatch(logout());
+};
+
+// Funzione per inizializzare lo stato dell'autenticazione
+export const initAuth = () => (dispatch) => {
+  initializeAuth(dispatch);
 };
 
 export default authSlice.reducer;

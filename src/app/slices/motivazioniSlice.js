@@ -1,6 +1,7 @@
 // src/app/slices/motivazioniSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as motivazioniAPI from '../../services/motivazioniService';
+import * as motivazioniService from '../services/motivazioniService';
+import { addNotification } from './uiSlice';
 
 // Thunks
 export const fetchMotivazioniByNegozio = createAsyncThunk(
@@ -27,10 +28,10 @@ export const fetchMotivazioniByNegozio = createAsyncThunk(
       
       // Altrimenti carica le motivazioni dal servizio
       console.log("Carico le motivazioni dal servizio");
-      const motivazioni = await motivazioniAPI.getMotivazioniByNegozio(negozioId);
+      const response = await motivazioniService.getMotivazioniByNegozio(negozioId);
       
-      console.log(`fetchMotivazioniByNegozio thunk risultato:`, motivazioni);
-      return motivazioni;
+      console.log(`fetchMotivazioniByNegozio thunk risultato:`, response);
+      return response;
     } catch (error) {
       console.error(`fetchMotivazioniByNegozio thunk errore:`, error);
       return rejectWithValue(error.message);
@@ -40,14 +41,28 @@ export const fetchMotivazioniByNegozio = createAsyncThunk(
 
 export const saveMotivazione = createAsyncThunk(
   'motivazioni/save',
-  async ({ motivazioneData, negozioId, id = null }, { rejectWithValue }) => {
+  async ({ motivazioneData, negozioId, id = null }, { rejectWithValue, dispatch }) => {
     try {
       console.log("saveMotivazione thunk called with:", { motivazioneData, negozioId, id });
-      const savedMotivazione = await motivazioniAPI.saveMotivazione(motivazioneData, negozioId, id);
+      const savedMotivazione = await motivazioniService.saveMotivazione(motivazioneData, negozioId, id);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: id ? 'Motivazione aggiornata con successo!' : 'Motivazione creata con successo!',
+        duration: 3000
+      }));
+      
       console.log("saveMotivazione thunk result:", savedMotivazione);
       return savedMotivazione;
     } catch (error) {
       console.error("saveMotivazione thunk error:", error);
+      
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore: ${error.message || "Errore sconosciuto"}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message || "Errore sconosciuto");
     }
   }
@@ -55,11 +70,24 @@ export const saveMotivazione = createAsyncThunk(
 
 export const deleteMotivazione = createAsyncThunk(
   'motivazioni/delete',
-  async ({ id, negozioId }, { rejectWithValue }) => {
+  async ({ id, negozioId }, { rejectWithValue, dispatch }) => {
     try {
-      await motivazioniAPI.deleteMotivazione(id, negozioId);
+      await motivazioniService.deleteMotivazione(id, negozioId);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Motivazione eliminata con successo!',
+        duration: 3000
+      }));
+      
       return { id, negozioId };
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore: ${error.message || "Errore sconosciuto"}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }

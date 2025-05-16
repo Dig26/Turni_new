@@ -1,79 +1,93 @@
-// Simulazione di un database locale per i dipendenti
-let dipendenti = localStorage.getItem('dipendenti') 
-  ? JSON.parse(localStorage.getItem('dipendenti')) 
-  : [];
+// services/dipendentiService.js
+import { supabase, handleResponse } from './api/apiClient';
 
-// Funzione per ottenere tutti i dipendenti di un negozio
+// Ottieni tutti i dipendenti di un negozio
 export const getDipendentiByNegozioId = async (negozioId) => {
-  // In un'app reale, qui ci sarebbe una chiamata API
-  return dipendenti.filter(dipendente => dipendente.negozioId === negozioId);
+  return handleResponse(
+    supabase
+      .from('dipendenti')
+      .select('*')
+      .eq('negozio_id', negozioId)
+      .order('cognome')
+  );
 };
 
-// Funzione per ottenere un dipendente tramite ID
+// Ottieni un dipendente specifico tramite ID
 export const getDipendenteById = async (id) => {
-  const dipendente = dipendenti.find(dipendente => dipendente.id === id);
+  const data = await handleResponse(
+    supabase
+      .from('dipendenti')
+      .select('*')
+      .eq('id', id)
+      .single()
+  );
   
-  if (!dipendente) {
+  if (!data) {
     throw new Error('Dipendente non trovato');
   }
   
-  return { ...dipendente };
+  return data;
 };
 
-// Funzione per salvare un dipendente (creazione o aggiornamento)
+// Salva un dipendente (creazione o aggiornamento)
 export const saveDipendente = async (dipendenteData, id = null) => {
+  // Prepara i dati del dipendente
+  const dipendente = {
+    ...dipendenteData,
+    // Assicurati che nome_turno sia valorizzato
+    nome_turno: dipendenteData.nome_turno || `${dipendenteData.nome} ${dipendenteData.cognome.charAt(0)}.`
+  };
+  
+  // Se c'è un ID, aggiorna il dipendente esistente
   if (id) {
-    // Aggiornamento
-    const index = dipendenti.findIndex(dipendente => dipendente.id === id);
+    const data = await handleResponse(
+      supabase
+        .from('dipendenti')
+        .update({
+          ...dipendente,
+          aggiornato_il: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
     
-    if (index === -1) {
-      throw new Error('Dipendente non trovato');
-    }
+    return data;
+  } 
+  // Altrimenti, crea un nuovo dipendente
+  else {
+    const data = await handleResponse(
+      supabase
+        .from('dipendenti')
+        .insert({
+          ...dipendente,
+          creato_il: new Date().toISOString(),
+          aggiornato_il: new Date().toISOString()
+        })
+        .select()
+        .single()
+    );
     
-    const updatedDipendente = {
-      ...dipendenti[index],
-      ...dipendenteData,
-      id,
-      updatedAt: new Date().toISOString()
-    };
-    
-    dipendenti[index] = updatedDipendente;
-    localStorage.setItem('dipendenti', JSON.stringify(dipendenti));
-    
-    return updatedDipendente;
-  } else {
-    // Creazione
-    const newDipendente = {
-      ...dipendenteData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    };
-    
-    dipendenti.push(newDipendente);
-    localStorage.setItem('dipendenti', JSON.stringify(dipendenti));
-    
-    return newDipendente;
+    return data;
   }
 };
 
-// Funzione per eliminare un dipendente
+// Elimina un dipendente
 export const deleteDipendente = async (id) => {
-  const index = dipendenti.findIndex(dipendente => dipendente.id === id);
-  
-  if (index === -1) {
-    throw new Error('Dipendente non trovato');
-  }
-  
-  dipendenti.splice(index, 1);
-  localStorage.setItem('dipendenti', JSON.stringify(dipendenti));
-  
-  return true;
+  return handleResponse(
+    supabase
+      .from('dipendenti')
+      .delete()
+      .eq('id', id)
+  );
 };
 
-// Funzione per eliminare tutti i dipendenti di un negozio (usata quando si elimina un negozio)
+// Elimina tutti i dipendenti di un negozio (usato quando si elimina un negozio)
 export const deleteDipendentiByNegozioId = async (negozioId) => {
-  dipendenti = dipendenti.filter(dipendente => dipendente.negozioId !== negozioId);
-  localStorage.setItem('dipendenti', JSON.stringify(dipendenti));
-  
-  return true;
+  return handleResponse(
+    supabase
+      .from('dipendenti')
+      .delete()
+      .eq('negozio_id', negozioId)
+  );
 };

@@ -1,70 +1,43 @@
 // src/app/slices/turniSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-
-// Funzione di utilità per gestire il localStorage
-const getStorageKey = (negozioId, anno, mese) =>
-  `tabella_turni_${negozioId}_${anno}_${mese}`;
+import * as turniService from "../services/turniService";
+import { addNotification } from './uiSlice';
 
 // Thunks
 export const fetchTurniSalvati = createAsyncThunk(
   "turni/fetchTurniSalvati",
   async (negozioId, { rejectWithValue }) => {
     try {
-      const tabelleSalvate = [];
-
-      // Cerca tutte le chiavi nel localStorage che iniziano con il prefisso per questo negozio
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(`tabella_turni_${negozioId}_`)) {
-          try {
-            const savedData = JSON.parse(localStorage.getItem(key));
-            if (savedData && savedData.timestamp) {
-              // Estrai anno e mese dalla chiave
-              const keyParts = key.split("_");
-              const year = keyParts[3];
-              const month = keyParts[4];
-
-              // Nome del mese
-              const mesi = [
-                "Gennaio",
-                "Febbraio",
-                "Marzo",
-                "Aprile",
-                "Maggio",
-                "Giugno",
-                "Luglio",
-                "Agosto",
-                "Settembre",
-                "Ottobre",
-                "Novembre",
-                "Dicembre",
-              ];
-              const monthName = mesi[parseInt(month)];
-
-              tabelleSalvate.push({
-                id: key,
-                year: year,
-                month: month,
-                monthName: monthName,
-                timestamp: savedData.timestamp,
-                name: `${monthName} ${year}`,
-              });
-            }
-          } catch (e) {
-            console.error("Errore nella lettura della tabella salvata:", e);
-          }
-        }
-      }
-
-      // MODIFICATO: Ordina per data di modifica (timestamp), più recenti prima
-      // Questo garantisce che le tabelle vengano ordinate per data di modifica
-      tabelleSalvate.sort(
-        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-      );
-
+      const tabelleSalvate = await turniService.getTabelleByNegozio(negozioId);
+      
+      // Formatta i dati per compatibilità con l'interfaccia esistente
+      const formattedTabelle = tabelleSalvate.map(tabella => {
+        // Estrai mese e anno
+        const mese = tabella.mese;
+        const anno = tabella.anno;
+        
+        // Nomi dei mesi in italiano
+        const mesi = [
+          "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+          "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+        ];
+        
+        return {
+          id: tabella.id,
+          year: anno.toString(),
+          month: mese.toString(),
+          monthName: mesi[parseInt(mese)],
+          timestamp: tabella.aggiornato_il,
+          name: tabella.nome || `${mesi[parseInt(mese)]} ${anno}`
+        };
+      });
+      
+      // Ordina per data di aggiornamento, più recenti prima
+      formattedTabelle.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
       return {
         negozioId,
-        tabelleSalvate,
+        tabelleSalvate: formattedTabelle
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -74,25 +47,41 @@ export const fetchTurniSalvati = createAsyncThunk(
 
 export const fetchTabellaById = createAsyncThunk(
   "turni/fetchTabellaById",
-  async ({ negozioId, anno, mese }, { rejectWithValue }) => {
+  async ({ negozioId, anno, mese, id = null }, { rejectWithValue }) => {
     try {
-      const storageKey = getStorageKey(negozioId, anno, mese);
-      const savedTabella = localStorage.getItem(storageKey);
-
-      if (!savedTabella) {
+      let tabella;
+      
+      if (id) {
+        // Se abbiamo direttamente l'ID, usa quello
+        tabella = await turniService.getTabellaById(id);
+      } else {
+        // Altrimenti cerca per negozio, anno e mese
+        tabella = await turniService.getTabellaByPeriodo(negozioId, anno, mese);
+      }
+      
+      if (!tabella) {
         return {
           negozioId,
           anno,
           mese,
-          data: null,
+          data: null
         };
       }
-
+      
+      // Estrai i dati dal formato DB
+      const datiTabella = tabella.dati_turni?.length > 0 ? 
+        tabella.dati_turni[0] : null;
+      
       return {
         negozioId,
-        anno,
-        mese,
-        data: JSON.parse(savedTabella),
+        anno: tabella.anno,
+        mese: tabella.mese,
+        data: {
+          data: datiTabella?.dati || {},
+          riepilogo: datiTabella?.riepilogo || {},
+          employeeVariations: datiTabella?.variazioni_orarie || {},
+          timestamp: tabella.aggiornato_il
+        }
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -102,27 +91,47 @@ export const fetchTabellaById = createAsyncThunk(
 
 export const saveTabellaThunk = createAsyncThunk(
   "turni/saveTabella",
-  async ({ negozioId, anno, mese, data }, { rejectWithValue }) => {
+  async ({ negozioId, anno, mese, data }, { rejectWithValue, dispatch }) => {
     try {
-      const storageKey = getStorageKey(negozioId, anno, mese);
-
-      // Prepara i dati da salvare
-      const dataToSave = {
-        data,
-        timestamp: new Date().toISOString(),
-        negozioId,
-      };
-
-      // Salva nel localStorage
-      localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-
-      return {
+      // Prepara i dati per il salvataggio
+      const nome = `Tabella ${parseInt(mese) + 1}/${anno}`;
+      
+      const savedTabella = await turniService.saveTabella({
         negozioId,
         anno,
         mese,
-        data: dataToSave,
+        nome,
+        dati: data
+      });
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Tabella turni salvata con successo!',
+        duration: 3000
+      }));
+      
+      // Estrai i dati nel formato atteso dallo stato Redux
+      const datiTabella = savedTabella.dati_turni?.length > 0 ? 
+        savedTabella.dati_turni[0] : null;
+      
+      return {
+        negozioId,
+        anno: savedTabella.anno,
+        mese: savedTabella.mese,
+        data: {
+          data: datiTabella?.dati || {},
+          riepilogo: datiTabella?.riepilogo || {},
+          employeeVariations: datiTabella?.variazioni_orarie || {},
+          timestamp: savedTabella.aggiornato_il
+        }
       };
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore nel salvataggio della tabella: ${error.message}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }
@@ -130,12 +139,24 @@ export const saveTabellaThunk = createAsyncThunk(
 
 export const deleteTabellaThunk = createAsyncThunk(
   "turni/deleteTabella",
-  async (tableId, { rejectWithValue }) => {
+  async (id, { rejectWithValue, dispatch }) => {
     try {
-      localStorage.removeItem(tableId);
-
-      return { tableId };
+      await turniService.deleteTabella(id);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Tabella turni eliminata con successo!',
+        duration: 3000
+      }));
+      
+      return { id };
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore nell'eliminazione della tabella: ${error.message}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }
@@ -202,53 +223,41 @@ const turniSlice = createSlice({
         state.currentTabella = action.payload;
         state.saveMessage = "Tabella salvata con successo!";
 
-        // Aggiorna la lista delle tabelle per questo negozio
+        // Aggiorna la lista delle tabelle per questo negozio se esiste già
         const { negozioId, anno, mese } = action.payload;
-        const mesi = [
-          "Gennaio",
-          "Febbraio",
-          "Marzo",
-          "Aprile",
-          "Maggio",
-          "Giugno",
-          "Luglio",
-          "Agosto",
-          "Settembre",
-          "Ottobre",
-          "Novembre",
-          "Dicembre",
-        ];
+        
+        if (state.byNegozio[negozioId]) {
+          // Formatta per la visualizzazione nella lista
+          const mesi = [
+            "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+            "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+          ];
+          
+          // Verifica se la tabella già esiste nella lista
+          const existingIndex = state.byNegozio[negozioId].findIndex(
+            t => t.year === anno.toString() && t.month === mese.toString()
+          );
 
-        // Verifica che byNegozio[negozioId] esista
-        if (!state.byNegozio[negozioId]) {
-          state.byNegozio[negozioId] = [];
+          const tabellaEntry = {
+            id: action.payload.id || `tabella_${negozioId}_${anno}_${mese}`,
+            year: anno.toString(),
+            month: mese.toString(),
+            monthName: mesi[parseInt(mese)],
+            timestamp: new Date().toISOString(),
+            name: `${mesi[parseInt(mese)]} ${anno}`,
+          };
+
+          if (existingIndex !== -1) {
+            state.byNegozio[negozioId][existingIndex] = tabellaEntry;
+          } else {
+            state.byNegozio[negozioId].push(tabellaEntry);
+          }
+
+          // Riordina per data più recente
+          state.byNegozio[negozioId].sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          );
         }
-
-        // Crea o aggiorna l'entry per questa tabella
-        const storageKey = getStorageKey(negozioId, anno, mese);
-        const existingIndex = state.byNegozio[negozioId].findIndex(
-          (t) => t.id === storageKey
-        );
-
-        const tabellaEntry = {
-          id: storageKey,
-          year: anno,
-          month: mese,
-          monthName: mesi[parseInt(mese)],
-          timestamp: new Date().toISOString(),
-          name: `${mesi[parseInt(mese)]} ${anno}`,
-        };
-
-        if (existingIndex !== -1) {
-          state.byNegozio[negozioId][existingIndex] = tabellaEntry;
-        } else {
-          state.byNegozio[negozioId].push(tabellaEntry);
-        }
-
-        // Riordina per data più recente
-        state.byNegozio[negozioId].sort(
-          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-        );
       })
       .addCase(saveTabellaThunk.rejected, (state, action) => {
         state.loading = false;
@@ -263,19 +272,19 @@ const turniSlice = createSlice({
       })
       .addCase(deleteTabellaThunk.fulfilled, (state, action) => {
         state.loading = false;
-        const { tableId } = action.payload;
+        const { id } = action.payload;
 
         // Rimuovi la tabella da tutti i negozi (dovrebbe essere in uno solo)
         Object.keys(state.byNegozio).forEach((negozioId) => {
           state.byNegozio[negozioId] = state.byNegozio[negozioId].filter(
-            (tabella) => tabella.id !== tableId
+            (tabella) => tabella.id !== id
           );
         });
 
         // Se la tabella corrente è quella eliminata, svuotala
         if (
           state.currentTabella &&
-          tableId.includes(state.currentTabella.negozioId)
+          state.currentTabella.id === id
         ) {
           state.currentTabella = null;
         }

@@ -1,73 +1,74 @@
 // services/particolaritaService.js
-// Servizio per la gestione delle particolarità personalizzate
+import { supabase, handleResponse } from './api/apiClient';
 
-// Simulazione di un database locale per le particolarità
-let particolaritaStore = localStorage.getItem('particolarita') 
-  ? JSON.parse(localStorage.getItem('particolarita')) 
-  : {};
-
-// Funzione per ottenere le particolarità di un negozio specifico
+// Ottieni tutte le particolarità di un negozio
 export const getParticolaritaByNegozio = async (negozioId) => {
-  // In un'app reale, qui ci sarebbe una chiamata API
-  const particolarita = particolaritaStore[negozioId] || [];
+  const particolarita = await handleResponse(
+    supabase
+      .from('particolarita')
+      .select('*')
+      .eq('negozio_id', negozioId)
+      .order('nome')
+  );
+  
   return { negozioId, particolarita };
 };
 
-// Funzione per salvare una particolarità (creazione o aggiornamento)
+// Salva una particolarità (creazione o aggiornamento)
 export const saveParticolarita = async (particolaritaData, negozioId, id = null) => {
-  // Inizializza l'array per il negozio se non esiste
-  if (!particolaritaStore[negozioId]) {
-    particolaritaStore[negozioId] = [];
-  }
-
+  // Se c'è un ID, aggiorna la particolarità esistente
   if (id) {
-    // Aggiornamento
-    const index = particolaritaStore[negozioId].findIndex(particolarita => particolarita.id === id);
+    const data = await handleResponse(
+      supabase
+        .from('particolarita')
+        .update({
+          ...particolaritaData,
+          aggiornato_il: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
     
-    if (index === -1) {
-      throw new Error('Particolarità non trovata');
+    return { particolarita: data, negozioId };
+  } 
+  // Altrimenti, crea una nuova particolarità
+  else {
+    // Verifica che la sigla non sia già in uso per quel negozio
+    const { data: esistente } = await supabase
+      .from('particolarita')
+      .select('id')
+      .eq('sigla', particolaritaData.sigla)
+      .eq('negozio_id', negozioId);
+    
+    if (esistente && esistente.length > 0) {
+      throw new Error(`La sigla "${particolaritaData.sigla}" è già in uso in questo negozio`);
     }
     
-    const updatedParticolarita = {
-      ...particolaritaStore[negozioId][index],
-      ...particolaritaData,
-      id,
-      updatedAt: new Date().toISOString()
-    };
+    const data = await handleResponse(
+      supabase
+        .from('particolarita')
+        .insert({
+          ...particolaritaData,
+          negozio_id: negozioId,
+          creato_il: new Date().toISOString(),
+          aggiornato_il: new Date().toISOString()
+        })
+        .select()
+        .single()
+    );
     
-    particolaritaStore[negozioId][index] = updatedParticolarita;
-    localStorage.setItem('particolarita', JSON.stringify(particolaritaStore));
-    
-    return { particolarita: updatedParticolarita, negozioId };
-  } else {
-    // Creazione
-    const newParticolarita = {
-      ...particolaritaData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    };
-    
-    particolaritaStore[negozioId].push(newParticolarita);
-    localStorage.setItem('particolarita', JSON.stringify(particolaritaStore));
-    
-    return { particolarita: newParticolarita, negozioId };
+    return { particolarita: data, negozioId };
   }
 };
 
-// Funzione per eliminare una particolarità
+// Elimina una particolarità
 export const deleteParticolarita = async (id, negozioId) => {
-  if (!particolaritaStore[negozioId]) {
-    throw new Error('Negozio non trovato');
-  }
-  
-  const index = particolaritaStore[negozioId].findIndex(particolarita => particolarita.id === id);
-  
-  if (index === -1) {
-    throw new Error('Particolarità non trovata');
-  }
-  
-  particolaritaStore[negozioId].splice(index, 1);
-  localStorage.setItem('particolarita', JSON.stringify(particolaritaStore));
-  
-  return true;
+  return handleResponse(
+    supabase
+      .from('particolarita')
+      .delete()
+      .eq('id', id)
+      .eq('negozio_id', negozioId)
+  );
 };

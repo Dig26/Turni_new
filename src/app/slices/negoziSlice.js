@@ -1,13 +1,14 @@
 // src/app/slices/negoziSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as negoziAPI from '../../services/api/negoziAPI';
+import * as negoziService from '../services/negoziService';
+import { addNotification } from './uiSlice';
 
 // Thunks
 export const fetchNegozi = createAsyncThunk(
   'negozi/fetchNegozi',
   async (_, { rejectWithValue }) => {
     try {
-      const negozi = await negoziAPI.getNegozi();
+      const negozi = await negoziService.getNegozi();
       return negozi;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -19,7 +20,7 @@ export const fetchNegozioById = createAsyncThunk(
   'negozi/fetchNegozioById',
   async (id, { rejectWithValue }) => {
     try {
-      const negozio = await negoziAPI.getNegozioById(id);
+      const negozio = await negoziService.getNegozioById(id);
       return negozio;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -29,11 +30,24 @@ export const fetchNegozioById = createAsyncThunk(
 
 export const saveNegozio = createAsyncThunk(
   'negozi/saveNegozio',
-  async ({ negozioData, id }, { rejectWithValue }) => {
+  async ({ negozioData, id }, { rejectWithValue, dispatch }) => {
     try {
-      const savedNegozio = await negoziAPI.saveNegozio(negozioData, id);
+      const savedNegozio = await negoziService.saveNegozio(negozioData, id);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: id ? 'Negozio aggiornato con successo!' : 'Negozio creato con successo!',
+        duration: 3000
+      }));
+      
       return savedNegozio;
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore: ${error.message || "Errore sconosciuto"}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }
@@ -41,11 +55,24 @@ export const saveNegozio = createAsyncThunk(
 
 export const deleteNegozioThunk = createAsyncThunk(
   'negozi/deleteNegozio',
-  async (id, { rejectWithValue }) => {
+  async (id, { rejectWithValue, dispatch }) => {
     try {
-      await negoziAPI.deleteNegozio(id);
+      await negoziService.deleteNegozio(id);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Negozio eliminato con successo!',
+        duration: 3000
+      }));
+      
       return id;
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore: ${error.message || "Errore sconosciuto"}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }

@@ -1,94 +1,96 @@
 // services/authService.js
-// Servizio per la gestione dell'autenticazione degli utenti
+import { supabase, handleResponse } from './api/apiClient';
 
-// Simulazione di un database locale per gli utenti
-let users = localStorage.getItem('users') 
-  ? JSON.parse(localStorage.getItem('users')) 
-  : [];
-
-// Utente corrente
-let currentUser = localStorage.getItem('currentUser') 
-  ? JSON.parse(localStorage.getItem('currentUser')) 
-  : null;
-
-// Lista di funzioni da eseguire quando cambia lo stato di autenticazione
-let authStateListeners = [];
-
-// Funzione per registrare un nuovo utente
-export const register = async (nome, cognome, email, password) => {
-  // Controllo se l'email è già in uso
-  if (users.some(user => user.email === email)) {
-    throw new Error('Email già in uso');
-  }
+// Autenticazione e gestione utenti
+export const getCurrentUser = async () => {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
   
-  // Creo un nuovo utente
-  const newUser = {
-    id: Date.now().toString(),
-    nome,
-    cognome,
-    email,
-    password, // Nota: in un'applicazione reale, la password dovrebbe essere criptata
-    createdAt: new Date().toISOString()
-  };
+  // Ottieni i dettagli completi dell'utente dal database
+  const userDetails = await handleResponse(
+    supabase
+      .from('utenti')
+      .select('*')
+      .eq('id', data.user.id)
+      .single()
+  );
   
-  // Aggiungo l'utente al database
-  users.push(newUser);
-  localStorage.setItem('users', JSON.stringify(users));
-  
-  // Eseguo il login con il nuovo utente
-  await login(email, password);
-  
-  return newUser;
+  return userDetails;
 };
 
-// Funzione per il login
 export const login = async (email, password) => {
-  // Cerco l'utente nel database
-  const user = users.find(user => user.email === email && user.password === password);
+  const response = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
   
-  if (!user) {
-    throw new Error('Credenziali non valide');
+  if (response.error) {
+    throw new Error(response.error.message);
   }
   
-  // Creo una versione dell'utente senza la password
-  const userToStore = { ...user };
-  delete userToStore.password;
+  // Aggiorna l'ultimo accesso
+  await supabase
+    .from('utenti')
+    .update({ ultimo_accesso: new Date().toISOString() })
+    .eq('id', response.data.user.id);
   
-  // Salvo l'utente corrente
-  currentUser = userToStore;
-  localStorage.setItem('currentUser', JSON.stringify(userToStore));
-  
-  // Notifico i listener
-  authStateListeners.forEach(listener => listener(userToStore));
-  
-  return userToStore;
+  // Ottieni i dettagli completi dell'utente
+  return await getCurrentUser();
 };
 
-// Funzione per il logout
-export const logout = () => {
-  currentUser = null;
-  localStorage.removeItem('currentUser');
+export const register = async (nome, cognome, email, password) => {
+  // Registrazione dell'utente in Supabase Auth
+  const authResponse = await supabase.auth.signUp({
+    email,
+    password
+  });
   
-  // Notifico i listener
-  authStateListeners.forEach(listener => listener(null));
+  if (authResponse.error) {
+    throw new Error(authResponse.error.message);
+  }
+  
+  const userId = authResponse.data.user.id;
+  
+  // Inserisci i dettagli dell'utente nella tabella utenti
+  const { data, error } = await supabase
+    .from('utenti')
+    .insert({
+      id: userId,
+      nome,
+      cognome,
+      email,
+      password: '*****', // Non memorizzare mai la password reale
+      role: 'user'
+    })
+    .select();
+  
+  if (error) {
+    // Se c'è un errore, elimina anche l'utente da auth
+    await supabase.auth.admin.deleteUser(userId);
+    throw new Error(error.message);
+  }
+  
+  return data[0];
 };
 
-// Funzione per ottenere l'utente corrente
-export const getCurrentUser = () => {
-  return currentUser;
+export const logout = async () => {
+  await supabase.auth.signOut();
 };
 
-// Funzione per verificare se l'utente è autenticato
-export const isAuthenticated = () => {
-  return !!currentUser;
+export const isAuthenticated = async () => {
+  const { data } = await supabase.auth.getSession();
+  return !!data.session;
 };
 
-// Funzione per registrare un listener per i cambiamenti di autenticazione
+// Funzione per osservare i cambiamenti nello stato di autenticazione
 export const onAuthStateChanged = (callback) => {
-  authStateListeners.push(callback);
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') {
+      getCurrentUser().then(user => callback(user));
+    } else if (event === 'SIGNED_OUT') {
+      callback(null);
+    }
+  });
   
-  // Restituisco una funzione per rimuovere il listener
-  return () => {
-    authStateListeners = authStateListeners.filter(listener => listener !== callback);
-  };
+  return data.subscription.unsubscribe;
 };

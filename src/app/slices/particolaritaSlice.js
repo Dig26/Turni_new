@@ -1,14 +1,15 @@
 // src/app/slices/particolaritaSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as particolaritaAPI from '../../services/particolaritaService';
+import * as particolaritaService from '../services/particolaritaService';
+import { addNotification } from './uiSlice';
 
 // Thunks
 export const fetchParticolaritaByNegozio = createAsyncThunk(
   'particolarita/fetchByNegozio',
   async (negozioId, { rejectWithValue }) => {
     try {
-      const particolarita = await particolaritaAPI.getParticolaritaByNegozio(negozioId);
-      return particolarita;
+      const response = await particolaritaService.getParticolaritaByNegozio(negozioId);
+      return response;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -17,11 +18,24 @@ export const fetchParticolaritaByNegozio = createAsyncThunk(
 
 export const saveParticolarita = createAsyncThunk(
   'particolarita/save',
-  async ({ particolaritaData, negozioId, id = null }, { rejectWithValue }) => {
+  async ({ particolaritaData, negozioId, id = null }, { rejectWithValue, dispatch }) => {
     try {
-      const savedParticolarita = await particolaritaAPI.saveParticolarita(particolaritaData, negozioId, id);
+      const savedParticolarita = await particolaritaService.saveParticolarita(particolaritaData, negozioId, id);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: id ? 'Particolarità aggiornata con successo!' : 'Particolarità creata con successo!',
+        duration: 3000
+      }));
+      
       return savedParticolarita;
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore: ${error.message || "Errore sconosciuto"}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }
@@ -29,11 +43,24 @@ export const saveParticolarita = createAsyncThunk(
 
 export const deleteParticolarita = createAsyncThunk(
   'particolarita/delete',
-  async ({ id, negozioId }, { rejectWithValue }) => {
+  async ({ id, negozioId }, { rejectWithValue, dispatch }) => {
     try {
-      await particolaritaAPI.deleteParticolarita(id, negozioId);
+      await particolaritaService.deleteParticolarita(id, negozioId);
+      
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Particolarità eliminata con successo!',
+        duration: 3000
+      }));
+      
       return { id, negozioId };
     } catch (error) {
+      dispatch(addNotification({
+        type: 'error',
+        message: `Errore: ${error.message || "Errore sconosciuto"}`,
+        duration: 5000
+      }));
+      
       return rejectWithValue(error.message);
     }
   }

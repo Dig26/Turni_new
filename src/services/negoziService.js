@@ -1,88 +1,116 @@
 // services/negoziService.js
-// Servizio per la gestione dei negozi
+import { supabase, handleResponse } from './api/apiClient';
 
-// Simulazione di un database locale per i negozi
-let negozi = localStorage.getItem('negozi') 
-  ? JSON.parse(localStorage.getItem('negozi')) 
-  : [];
-
-// Funzione per ottenere tutti i negozi
+// Ottieni tutti i negozi
 export const getNegozi = async () => {
-  // In un'app reale, qui ci sarebbe una chiamata API
-  return [...negozi];
+  return handleResponse(
+    supabase
+      .from('negozi')
+      .select('*')
+      .order('nome')
+  );
 };
 
-// Funzione per ottenere un negozio tramite ID
+// Ottieni un negozio specifico tramite ID
 export const getNegozioById = async (id) => {
-  const negozio = negozi.find(negozio => negozio.id === id);
+  const data = await handleResponse(
+    supabase
+      .from('negozi')
+      .select('*')
+      .eq('id', id)
+      .single()
+  );
   
-  if (!negozio) {
+  if (!data) {
     throw new Error('Negozio non trovato');
   }
   
-  return { ...negozio };
+  return data;
 };
 
-// Funzione per salvare un negozio (creazione o aggiornamento)
+// Salva un negozio (creazione o aggiornamento)
 export const saveNegozio = async (negozioData, id = null) => {
+  // Se c'è un ID, aggiorna il negozio esistente
   if (id) {
-    // Aggiornamento
-    const index = negozi.findIndex(negozio => negozio.id === id);
+    const data = await handleResponse(
+      supabase
+        .from('negozi')
+        .update({
+          ...negozioData,
+          aggiornato_il: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+    );
     
-    if (index === -1) {
-      throw new Error('Negozio non trovato');
-    }
+    return data;
+  } 
+  // Altrimenti, crea un nuovo negozio
+  else {
+    const data = await handleResponse(
+      supabase
+        .from('negozi')
+        .insert({
+          ...negozioData,
+          creato_il: new Date().toISOString(),
+          aggiornato_il: new Date().toISOString()
+        })
+        .select()
+        .single()
+    );
     
-    const updatedNegozio = {
-      ...negozi[index],
-      ...negozioData,
-      id,
-      updatedAt: new Date().toISOString()
-    };
+    // Dopo la creazione di un nuovo negozio, inserisci le motivazioni assenze predefinite
+    await inserisciMotivazioniPredefinite(data.id);
     
-    negozi[index] = updatedNegozio;
-    localStorage.setItem('negozi', JSON.stringify(negozi));
-    
-    return updatedNegozio;
-  } else {
-    // Creazione
-    const newNegozio = {
-      ...negozioData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    };
-    
-    negozi.push(newNegozio);
-    localStorage.setItem('negozi', JSON.stringify(negozi));
-    
-    return newNegozio;
+    return data;
   }
 };
 
-// Funzione per eliminare un negozio
+// Funzione per inserire le motivazioni assenze predefinite per un nuovo negozio
+const inserisciMotivazioniPredefinite = async (negozioId) => {
+  const motivazioniPredefinite = [
+    {
+      nome: 'Ferie',
+      sigla: 'FE',
+      predefinita: true,
+      calcola_ore: true,
+      ordine: 1,
+      negozio_id: negozioId
+    },
+    {
+      nome: 'ROL',
+      sigla: 'RL',
+      predefinita: true,
+      calcola_ore: true,
+      ordine: 2,
+      negozio_id: negozioId
+    },
+    {
+      nome: 'EX Festività',
+      sigla: 'EX',
+      predefinita: true,
+      calcola_ore: true,
+      ordine: 3,
+      negozio_id: negozioId
+    }
+  ];
+  
+  await handleResponse(
+    supabase
+      .from('motivazioni_assenze')
+      .insert(motivazioniPredefinite)
+  );
+};
+
+// Elimina un negozio
 export const deleteNegozio = async (id) => {
-  const index = negozi.findIndex(negozio => negozio.id === id);
-  
-  if (index === -1) {
-    throw new Error('Negozio non trovato');
-  }
-  
-  // Elimino anche tutti i dipendenti e i turni associati al negozio
-  // Assumendo che i servizi per dipendenti e turni abbiano delle funzioni per eliminare in base al negozioId
-  // In un'app reale, questo sarebbe gestito dal backend
-  
-  try {
-    // Importo dinamicamente il servizio dipendenti per evitare dipendenze circolari
-    const dipendenteModule = await import('./dipendentiService');
-    await dipendenteModule.deleteDipendentiByNegozioId(id);
-    
-    // Elimino il negozio
-    negozi.splice(index, 1);
-    localStorage.setItem('negozi', JSON.stringify(negozi));
-    
-    return true;
-  } catch (error) {
-    console.error('Errore nell\'eliminazione del negozio:', error);
-    throw error;
-  }
+  // Nota: grazie alle clausole ON DELETE CASCADE nelle foreign key,
+  // l'eliminazione di un negozio eliminerà automaticamente tutti i record correlati
+  return handleResponse(
+    supabase
+      .from('negozi')
+      .delete()
+      .eq('id', id)
+  );
 };
