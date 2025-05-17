@@ -1,6 +1,6 @@
 // src/app/slices/turniSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import * as turniService from "../services/turniService";
+import * as turniService from "../../services/turniService";
 import { addNotification } from './uiSlice';
 
 // Thunks

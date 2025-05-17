@@ -1,5 +1,6 @@
+// src/app/slices/authSlice.js
 import { createSlice } from '@reduxjs/toolkit';
-import * as authService from '../services/authService';
+import * as authService from '../../services/authService';
 
 const initialState = {
   user: null,

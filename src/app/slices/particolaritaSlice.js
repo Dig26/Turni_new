@@ -1,6 +1,6 @@
 // src/app/slices/particolaritaSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as particolaritaService from '../services/particolaritaService';
+import * as particolaritaService from '../../services/particolaritaService';
 import { addNotification } from './uiSlice';
 
 // Thunks

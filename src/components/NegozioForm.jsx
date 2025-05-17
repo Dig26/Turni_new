@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { saveNegozio, getNegozioById } from '../services/api/negoziAPI';
+import { useSelector } from 'react-redux'; // Aggiungi questa riga
+import { saveNegozio, getNegozioById } from '../services/negoziService'; // Importante: cambiato da negoziAPI a negoziService
 import '../styles/NegozioForm.css';
 
 function NegozioForm({ negozioId }) {
+    // Aggiungi questa riga per ottenere l'utente corrente dallo stato Redux
+    const user = useSelector(state => state.auth.user);
+    
     const [formData, setFormData] = useState({
         nome: '',
         paese: 'IT',
@@ -13,6 +17,7 @@ function NegozioForm({ negozioId }) {
         orarioChiusura: '18:00',
         giorniLavorativi: 6,
         giorniFissiLiberi: [],
+        user_id: user?.id // Aggiungi questa proprietà per il campo user_id richiesto dal database
     });
 
     const [loading, setLoading] = useState(negozioId ? true : false);
@@ -39,13 +44,30 @@ function NegozioForm({ negozioId }) {
         { value: 'turismo', label: 'Turismo e Ristorazione' },
     ];
 
+    // Aggiungi questo effect per aggiornare user_id quando l'utente cambia
+    useEffect(() => {
+        if (user && user.id) {
+            setFormData(prev => ({
+                ...prev,
+                user_id: user.id
+            }));
+        }
+    }, [user]);
+
     useEffect(() => {
         // Se è una modifica, carica i dati del negozio
         if (negozioId) {
             const fetchNegozio = async () => {
                 try {
                     const negozio = await getNegozioById(negozioId);
-                    setFormData(negozio);
+                    
+                    // Assicurati che user_id sia presente
+                    const negozioConUserID = {
+                        ...negozio,
+                        user_id: negozio.user_id || user?.id
+                    };
+                    
+                    setFormData(negozioConUserID);
                     setShowGiorniFissi(negozio.giorniFissiLiberi && negozio.giorniFissiLiberi.length > 0);
                 } catch (error) {
                     console.error('Errore nel caricamento del negozio:', error);
@@ -57,7 +79,7 @@ function NegozioForm({ negozioId }) {
 
             fetchNegozio();
         }
-    }, [negozioId]);
+    }, [negozioId, user]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -106,12 +128,19 @@ function NegozioForm({ negozioId }) {
             return;
         }
 
+        // Verifica che user_id sia presente
+        if (!formData.user_id) {
+            setError('Errore: Utente non identificato. Effettua il login e riprova.');
+            return;
+        }
+
         try {
+            console.log("Dati inviati:", formData); // Log per debugging
             await saveNegozio(formData, negozioId);
             navigate('/negozi');
         } catch (error) {
             console.error('Errore nel salvataggio del negozio:', error);
-            setError('Errore nel salvataggio del negozio. Riprova.');
+            setError(`Errore nel salvataggio del negozio: ${error.message || 'Riprova.'}`);
         }
     };
 
@@ -271,7 +300,7 @@ function NegozioForm({ negozioId }) {
                                             type="checkbox"
                                             name="giorniFissiLiberi"
                                             value={giorno.value}
-                                            checked={formData.giorniFissiLiberi.includes(
+                                            checked={formData.giorniFissiLiberi && formData.giorniFissiLiberi.includes(
                                                 giorno.value
                                             )}
                                             onChange={handleChange}

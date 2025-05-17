@@ -1,6 +1,6 @@
 // src/app/slices/negoziSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as negoziService from '../services/negoziService';
+import * as negoziService from '../../services/negoziService';
 import { addNotification } from './uiSlice';
 
 // Thunks

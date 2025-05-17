@@ -1,6 +1,6 @@
 // src/app/slices/motivazioniSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as motivazioniService from '../services/motivazioniService';
+import * as motivazioniService from '../../services/motivazioniService';
 import { addNotification } from './uiSlice';
 
 // Thunks

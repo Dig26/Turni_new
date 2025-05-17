@@ -1,6 +1,6 @@
 // src/app/slices/dipendentiSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as dipendentiService from '../services/dipendentiService';
+import * as dipendentiService from '../../services/dipendentiService';
 import { addNotification } from './uiSlice';
 
 // Thunks

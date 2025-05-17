@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from './hooks/useAuth';
@@ -31,19 +31,27 @@ import ThemeToggle from './components/common/Layout/ThemeToggle';
 import './styles/global.css';
 
 function App() {
-  const { user, initialize } = useAuth();
+  const { user, initialize, forceLogout } = useAuth();
   const { theme } = useTheme();
   const dispatch = useDispatch();
+  const [initializing, setInitializing] = useState(true);
 
   // Inizializza l'autenticazione
   useEffect(() => {
-    initialize();
+    const initAuth = async () => {
+      try {
+        await initialize();
+      } catch (error) {
+        console.error('Errore durante l\'inizializzazione dell\'autenticazione:', error);
+      } finally {
+        setInitializing(false);
+      }
+    };
+    
+    initAuth();
   }, [initialize]);
 
   // Applica il tema all'elemento root
-  // Correzione per src/App.jsx - Funzione per applicare correttamente il tema
-  // Sostituisci la funzione useEffect che gestisce il tema
-
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme.mode);
     document.documentElement.setAttribute('data-font-size', theme.fontSize);
@@ -91,10 +99,53 @@ function App() {
     }
   }, [theme]);
 
+  // Handler per il pulsante di cleanup dell'autenticazione
+  const handleForceLogout = () => {
+    forceLogout();
+    window.location.reload(); // Ricarica la pagina per applicare completamente i cambiamenti
+  };
+
+  // Mostra un indicatore di caricamento durante l'inizializzazione dell'autenticazione
+  if (initializing) {
+    return (
+      <div className="loading-spinner center">
+        <i className="fas fa-spinner fa-spin"></i>
+        <p>Caricamento...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       {user && <Navbar />}
-      {!user && <ThemeToggle />}
+      
+      {/* Header con opzioni quando non c'è un utente loggato */}
+      {!user && (
+        <div className="auth-header" style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          padding: '10px 20px',
+          borderBottom: '1px solid var(--border-color)'
+        }}>
+          <ThemeToggle />
+          
+          {/* Pulsante per risolvere problemi di autenticazione */}
+          <button 
+            className="btn-danger"
+            onClick={handleForceLogout}
+            title="Risolve problemi di autenticazione cancellando tutti i dati locali di login"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <i className="fas fa-exclamation-triangle"></i>
+            <span>Risolvi problema login</span>
+          </button>
+        </div>
+      )}
 
       <div className="container">
         <Routes>
@@ -128,7 +179,6 @@ function App() {
               <NegozioFormPage />
             </AuthRequired>
           } />
-          {/* Rotta dipendenti rimossa per utilizzare la nuova interfaccia nell'hub del negozio */}
           <Route path="/negozi/:negozioId/dipendenti/nuovo" element={
             <AuthRequired>
               <DipendenteFormPage />
@@ -144,7 +194,6 @@ function App() {
               <TurniListPage />
             </AuthRequired>
           } />
-          {/* Nuova rotta per visualizzare tutti i turni */}
           <Route path="/negozi/:negozioId/turni/all" element={
             <AuthRequired>
               <TurniAllPage />

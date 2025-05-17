@@ -1,5 +1,6 @@
 // services/negoziService.js
-import { supabase, handleResponse } from './api/apiClient';
+import { supabase, handleResponse, prepareData } from './api/apiClient';
+import * as authService from './authService';
 
 // Ottieni tutti i negozi
 export const getNegozi = async () => {
@@ -30,13 +31,27 @@ export const getNegozioById = async (id) => {
 
 // Salva un negozio (creazione o aggiornamento)
 export const saveNegozio = async (negozioData, id = null) => {
+  // Ottieni l'utente corrente
+  const currentUser = await authService.getCurrentUser();
+  if (!currentUser) {
+    throw new Error('Utente non autenticato. Effettua il login e riprova.');
+  }
+  
+  // Converti i dati da camelCase a snake_case per il database
+  const dbData = prepareData(negozioData);
+  
+  // Assicurati che user_id sia impostato
+  if (!dbData.user_id) {
+    dbData.user_id = currentUser.id;
+  }
+  
   // Se c'è un ID, aggiorna il negozio esistente
   if (id) {
     const data = await handleResponse(
       supabase
         .from('negozi')
         .update({
-          ...negozioData,
+          ...dbData,
           aggiornato_il: new Date().toISOString()
         })
         .eq('id', id)
@@ -52,7 +67,8 @@ export const saveNegozio = async (negozioData, id = null) => {
       supabase
         .from('negozi')
         .insert({
-          ...negozioData,
+          ...dbData,
+          user_id: dbData.user_id || currentUser.id, // Assicurati che user_id sia impostato
           creato_il: new Date().toISOString(),
           aggiornato_il: new Date().toISOString()
         })
