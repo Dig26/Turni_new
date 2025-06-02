@@ -1,111 +1,93 @@
 import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginSuccess, logout, login as loginAction, register as registerAction, logoutUser } from '../app/slices/authSlice';
-import * as authService from '../services/api/authAPI';
+import { 
+  login, 
+  register, 
+  logoutUser, 
+  initializeAuth,
+  setUser,
+  clearAuth
+} from '../app/slices/authSlice';
+import * as authService from '../services/authService';
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const { user, isAuthenticated, error, loading } = useSelector(state => state.auth);
+  const { user, isAuthenticated, error, loading, initialized } = useSelector(state => state.auth);
 
-  // Funzione di inizializzazione migliorata che utilizza solo metodi disponibili
+  // Funzione di inizializzazione
   const initialize = useCallback(async () => {
-    try {
-      const currentUser = authService.getCurrentUser();
-      
-      if (!currentUser) {
-        return;
-      }
-      
-      // Verifichiamo se l'utente è ancora autenticato usando il metodo disponibile
-      const isValid = authService.isAuthenticated();
-      
-      if (isValid) {
-        dispatch(loginSuccess(currentUser));
-      } else {
-        console.warn('Sessione non più valida. Esecuzione logout automatico.');
-        forceLogout();
-      }
-    } catch (error) {
-      console.error('Errore durante l\'inizializzazione dell\'autenticazione:', error);
-      // In caso di errore, è più sicuro fare logout
-      forceLogout();
-    }
+    console.log('🔄 useAuth initialize called');
+    return dispatch(initializeAuth()).unwrap();
   }, [dispatch]);
 
-  const login = useCallback((email, password) => {
-    return dispatch(loginAction(email, password));
+  // Funzioni di autenticazione
+  const loginFn = useCallback((email, password) => {
+    console.log('🔄 useAuth login called for:', email);
+    return dispatch(login({ email, password }));
   }, [dispatch]);
 
-  const register = useCallback((nome, cognome, email, password) => {
-    return dispatch(registerAction(nome, cognome, email, password));
+  const registerFn = useCallback((nome, cognome, email, password) => {
+    console.log('🔄 useAuth register called for:', email);
+    return dispatch(register({ nome, cognome, email, password }));
   }, [dispatch]);
 
-  // Funzione normale di logout tramite Redux
   const logoutFn = useCallback(() => {
-    dispatch(logoutUser());
+    console.log('🔄 useAuth logout called');
+    return dispatch(logoutUser());
   }, [dispatch]);
 
-  // Funzione di logout forzato che rimuove tutti i dati di autenticazione
+  // Logout forzato che pulisce tutto
   const forceLogout = useCallback(() => {
-    // Rimuovi tutti i dati di autenticazione dal localStorage e sessionStorage
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    sessionStorage.removeItem('auth_token');
-    sessionStorage.removeItem('user_data');
+    console.log('🔄 useAuth forceLogout called');
     
-    // Rimuovi qualsiasi altro dato di autenticazione che potresti aver salvato
-    Object.keys(localStorage).forEach(key => {
-      if (key.includes('auth') || key.includes('user') || key.includes('token')) {
-        localStorage.removeItem(key);
-      }
+    // Pulisci storage locale
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Pulisci Redux
+    dispatch(clearAuth());
+    
+    // Prova il logout da Supabase
+    authService.logout().catch(error => {
+      console.warn('⚠️ Errore during force logout from Supabase:', error);
     });
     
-    Object.keys(sessionStorage).forEach(key => {
-      if (key.includes('auth') || key.includes('user') || key.includes('token')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-    
-    // Cancella anche eventuali cookie relativi all'autenticazione
-    document.cookie.split(";").forEach(function(c) {
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-    });
-    
-    // Chiamiamo il logout di Redux
-    dispatch(logoutUser());
+    return Promise.resolve();
   }, [dispatch]);
 
-  // Listener per cambiamenti di autenticazione
+  // Listener per i cambiamenti di autenticazione (solo se non è già inizializzato)
   useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      if (user) {
-        // Quando lo stato dell'autenticazione cambia a loggato, verifichiamo che l'utente sia valido
-        const isValid = authService.isAuthenticated();
-        if (isValid) {
-          dispatch(loginSuccess(user));
-        } else {
-          console.warn('Sessione non più valida. Esecuzione logout automatico.');
-          forceLogout();
-        }
-      } else {
-        dispatch(logout());
-      }
-    });
+    if (initialized) {
+      console.log('✅ Auth già inizializzato, skip listener setup');
+      return;
+    }
+
+    console.log('👂 Setting up auth state listener');
     
+    const unsubscribe = authService.onAuthStateChanged((user) => {
+      console.log('🔄 Auth state changed in useAuth:', !!user);
+      dispatch(setUser(user));
+    });
+
     return () => {
+      console.log('🧹 Cleaning up auth state listener');
       unsubscribe();
     };
-  }, [dispatch, forceLogout]);
+  }, [dispatch, initialized]);
 
   return {
+    // Stato
     user,
     isAuthenticated,
     error,
     loading,
-    login,
-    register,
+    initialized,
+    
+    // Funzioni
+    login: loginFn,
+    register: registerFn,
     logout: logoutFn,
-    forceLogout,  // Esponiamo anche la funzione di logout forzato
+    forceLogout,
     initialize
   };
 };

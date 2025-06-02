@@ -1,86 +1,201 @@
 // src/app/slices/authSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as authService from '../../services/authService';
 
 const initialState = {
   user: null,
   isAuthenticated: false,
   error: null,
-  loading: false
+  loading: false,
+  initialized: false
 };
 
-// Inizializza lo stato con i dati dell'utente corrente se esiste
-const initializeAuth = async (dispatch) => {
-  try {
-    const user = await authService.getCurrentUser();
-    if (user) {
-      dispatch(loginSuccess(user));
+// Thunk per il login
+export const login = createAsyncThunk(
+  'auth/login',
+  async ({ email, password }, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Redux login thunk per:', email);
+      const user = await authService.login(email, password);
+      console.log('✅ Redux login success:', user);
+      return user;
+    } catch (error) {
+      console.error('❌ Redux login error:', error);
+      return rejectWithValue(error.message || 'Errore durante il login');
     }
-  } catch (error) {
-    console.error('Errore nell\'inizializzazione dell\'autenticazione:', error);
   }
-};
+);
+
+// Thunk per la registrazione
+export const register = createAsyncThunk(
+  'auth/register',
+  async ({ nome, cognome, email, password }, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Redux register thunk per:', email);
+      const user = await authService.register(nome, cognome, email, password);
+      console.log('✅ Redux register success:', user);
+      return user;
+    } catch (error) {
+      console.error('❌ Redux register error:', error);
+      return rejectWithValue(error.message || 'Errore durante la registrazione');
+    }
+  }
+);
+
+// Thunk per il logout
+export const logoutUser = createAsyncThunk(
+  'auth/logout',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Redux logout thunk');
+      await authService.logout();
+      console.log('✅ Redux logout success');
+      return true;
+    } catch (error) {
+      console.error('❌ Redux logout error:', error);
+      // Non fare reject per il logout - meglio sempre pulire lo stato
+      return true;
+    }
+  }
+);
+
+// Thunk per l'inizializzazione
+export const initializeAuth = createAsyncThunk(
+  'auth/initialize',
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Redux initialize auth thunk');
+      const user = authService.getCurrentUser();
+      if (user) {
+        console.log('✅ Redux initialize success:', user);
+        return user;
+      } else {
+        console.log('ℹ️ Redux initialize: nessun utente');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Redux initialize error:', error);
+      return rejectWithValue(error.message || 'Errore durante l\'inizializzazione');
+    }
+  }
+);
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    loginStart(state) {
-      state.loading = true;
-      state.error = null;
-    },
-    loginSuccess(state, action) {
+    // Azioni sincrone
+    setUser: (state, action) => {
+      console.log('📝 Redux setUser:', action.payload);
       state.user = action.payload;
-      state.isAuthenticated = true;
-      state.loading = false;
+      state.isAuthenticated = !!action.payload;
       state.error = null;
     },
-    loginFailure(state, action) {
-      state.loading = false;
-      state.error = action.payload;
-    },
-    logout(state) {
+    clearAuth: (state) => {
+      console.log('🧹 Redux clearAuth');
       state.user = null;
       state.isAuthenticated = false;
+      state.error = null;
+      state.loading = false;
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+    setInitialized: (state, action) => {
+      state.initialized = action.payload;
     }
+  },
+  extraReducers: (builder) => {
+    // Login
+    builder
+      .addCase(login.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.error = null;
+        state.initialized = true;
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.initialized = true;
+      });
+
+    // Register
+    builder
+      .addCase(register.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(register.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.error = null;
+        state.initialized = true;
+      })
+      .addCase(register.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.initialized = true;
+      });
+
+    // Logout
+    builder
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = null;
+        state.initialized = true;
+      })
+      .addCase(logoutUser.rejected, (state) => {
+        // Anche se il logout fallisce, pulisci lo stato locale
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.initialized = true;
+      });
+
+    // Initialize
+    builder
+      .addCase(initializeAuth.pending, (state) => {
+        state.loading = true;
+        state.initialized = false;
+      })
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+        } else {
+          state.user = null;
+          state.isAuthenticated = false;
+        }
+        state.loading = false;
+        state.error = null;
+        state.initialized = true;
+      })
+      .addCase(initializeAuth.rejected, (state, action) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = action.payload;
+        state.initialized = true;
+      });
   }
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout } = authSlice.actions;
-
-// Thunks
-export const login = (email, password) => async (dispatch) => {
-  try {
-    dispatch(loginStart());
-    const user = await authService.login(email, password);
-    dispatch(loginSuccess(user));
-    return user;
-  } catch (error) {
-    dispatch(loginFailure(error.message));
-    throw error;
-  }
-};
-
-export const register = (nome, cognome, email, password) => async (dispatch) => {
-  try {
-    dispatch(loginStart());
-    const user = await authService.register(nome, cognome, email, password);
-    dispatch(loginSuccess(user));
-    return user;
-  } catch (error) {
-    dispatch(loginFailure(error.message));
-    throw error;
-  }
-};
-
-export const logoutUser = () => async (dispatch) => {
-  await authService.logout();
-  dispatch(logout());
-};
-
-// Funzione per inizializzare lo stato dell'autenticazione
-export const initAuth = () => (dispatch) => {
-  initializeAuth(dispatch);
-};
+export const { setUser, clearAuth, clearError, setInitialized } = authSlice.actions;
 
 export default authSlice.reducer;

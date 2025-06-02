@@ -1,7 +1,6 @@
 // src/App.jsx
-import React, { useEffect, useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 
@@ -31,25 +30,19 @@ import ThemeToggle from './components/common/Layout/ThemeToggle';
 import './styles/global.css';
 
 function App() {
-  const { user, initialize, forceLogout } = useAuth();
+  const { user, isAuthenticated, loading, initialized, initialize, forceLogout } = useAuth();
   const { theme } = useTheme();
-  const dispatch = useDispatch();
-  const [initializing, setInitializing] = useState(true);
+  const location = useLocation();
 
-  // Inizializza l'autenticazione
+  // Inizializzazione dell'app
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        await initialize();
-      } catch (error) {
-        console.error('Errore durante l\'inizializzazione dell\'autenticazione:', error);
-      } finally {
-        setInitializing(false);
-      }
-    };
-    
-    initAuth();
-  }, [initialize]);
+    if (!initialized) {
+      console.log('🚀 App starting - initializing auth...');
+      initialize().catch(error => {
+        console.error('❌ Auth initialization failed:', error);
+      });
+    }
+  }, [initialized, initialize]);
 
   // Applica il tema all'elemento root
   useEffect(() => {
@@ -99,14 +92,23 @@ function App() {
     }
   }, [theme]);
 
-  // Handler per il pulsante di cleanup dell'autenticazione
-  const handleForceLogout = () => {
-    forceLogout();
-    window.location.reload(); // Ricarica la pagina per applicare completamente i cambiamenti
+  // Handler per il pulsante di reset
+  const handleForceLogout = async () => {
+    console.log('🔄 Force logout requested');
+    try {
+      await forceLogout();
+      window.location.reload(); // Ricarica completa per essere sicuri
+    } catch (error) {
+      console.error('❌ Error during force logout:', error);
+      window.location.reload();
+    }
   };
 
-  // Mostra un indicatore di caricamento durante l'inizializzazione dell'autenticazione
-  if (initializing) {
+  // Verifica se la rotta corrente è pubblica
+  const isPublicRoute = ['/login', '/register'].includes(location.pathname);
+
+  // Mostra loading durante l'inizializzazione
+  if (!initialized || loading) {
     return (
       <div className="loading-spinner center">
         <i className="fas fa-spinner fa-spin"></i>
@@ -115,12 +117,22 @@ function App() {
     );
   }
 
+  // Debug info
+  console.log('🔍 App render state:', { 
+    initialized, 
+    isAuthenticated, 
+    hasUser: !!user, 
+    isPublicRoute, 
+    currentPath: location.pathname 
+  });
+
   return (
     <div className="app">
-      {user && <Navbar />}
+      {/* Navbar solo se l'utente è autenticato */}
+      {isAuthenticated && user && <Navbar />}
       
-      {/* Header con opzioni quando non c'è un utente loggato */}
-      {!user && (
+      {/* Header per rotte pubbliche */}
+      {!isAuthenticated && isPublicRoute && (
         <div className="auth-header" style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -130,11 +142,10 @@ function App() {
         }}>
           <ThemeToggle />
           
-          {/* Pulsante per risolvere problemi di autenticazione */}
           <button 
             className="btn-danger"
             onClick={handleForceLogout}
-            title="Risolve problemi di autenticazione cancellando tutti i dati locali di login"
+            title="Pulisce tutti i dati di autenticazione e ricarica l'app"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -142,7 +153,7 @@ function App() {
             }}
           >
             <i className="fas fa-exclamation-triangle"></i>
-            <span>Risolvi problema login</span>
+            <span>Reset App</span>
           </button>
         </div>
       )}
@@ -150,8 +161,18 @@ function App() {
       <div className="container">
         <Routes>
           {/* Rotte pubbliche */}
-          <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
-          <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+          <Route 
+            path="/login" 
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />
+            } 
+          />
 
           {/* Rotte protette */}
           <Route path="/dashboard" element={
@@ -210,8 +231,15 @@ function App() {
             </AuthRequired>
           } />
 
-          {/* Rotta di default e 404 */}
-          <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
+          {/* Rotta di default */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+            } 
+          />
+          
+          {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </div>
