@@ -65,7 +65,18 @@ export const initializeAuth = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       console.log('🔄 Redux initialize auth thunk');
-      const user = authService.getCurrentUser();
+      
+      // Aggiungi un timeout per evitare blocchi infiniti
+      const initPromise = authService.getCurrentUser();
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          console.log('⚠️ Initialize timeout - returning null');
+          resolve(null);
+        }, 3000); // 3 secondi di timeout
+      });
+      
+      const user = await Promise.race([initPromise, timeoutPromise]);
+      
       if (user) {
         console.log('✅ Redux initialize success:', user);
         return user;
@@ -75,7 +86,8 @@ export const initializeAuth = createAsyncThunk(
       }
     } catch (error) {
       console.error('❌ Redux initialize error:', error);
-      return rejectWithValue(error.message || 'Errore durante l\'inizializzazione');
+      // Non fare reject per l'inizializzazione - meglio completare comunque
+      return null;
     }
   }
 );
@@ -97,6 +109,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       state.loading = false;
+      state.initialized = true; // Importante: settiamo initialized a true anche quando puliamo
     },
     clearError: (state) => {
       state.error = null;
@@ -172,7 +185,7 @@ const authSlice = createSlice({
     builder
       .addCase(initializeAuth.pending, (state) => {
         state.loading = true;
-        state.initialized = false;
+        // Non settiamo initialized a false qui per evitare loop
       })
       .addCase(initializeAuth.fulfilled, (state, action) => {
         if (action.payload) {
@@ -187,10 +200,11 @@ const authSlice = createSlice({
         state.initialized = true;
       })
       .addCase(initializeAuth.rejected, (state, action) => {
+        // Anche se fallisce, settiamo initialized a true
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
-        state.error = action.payload;
+        state.error = null; // Non salvare l'errore per evitare problemi
         state.initialized = true;
       });
   }

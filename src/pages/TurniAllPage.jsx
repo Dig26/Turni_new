@@ -1,274 +1,196 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/TurniEditorPage.jsx - Versione corretta senza loop infinito
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getNegozioById } from '../services/api/negoziAPI';
-import '../styles/TurniList.css';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchNegozioById } from '../app/slices/negoziSlice';
+import { fetchDipendentiByNegozioId } from '../app/slices/dipendentiSlice';
+import { fetchTabellaById, clearSaveMessage } from '../app/slices/turniSlice';
+import { addNotification } from '../app/slices/uiSlice';
+import TurniEditor from '../components/turni/TurniEditor';
+import '../styles/TurniEditor.css';
 
-function TurniAllPage() {
-    const { negozioId } = useParams();
-    const navigate = useNavigate();
-    
-    const [negozio, setNegozio] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [savedTables, setSavedTables] = useState([]);
-    
-    // Nomi dei mesi in italiano
-    const mesi = [
-        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-    ];
-    
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Carica il negozio
-                const negozioData = await getNegozioById(negozioId);
-                setNegozio(negozioData);
-                
-                // Carica l'elenco delle tabelle salvate
-                loadSavedTablesList();
-            } catch (error) {
-                console.error('Errore nel caricamento dei dati:', error);
-                setError('Errore nel caricamento dei dati. Riprova più tardi.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        
-        fetchData();
-    }, [negozioId]);
-    
-    // Funzione per caricare l'elenco delle tabelle salvate
-    const loadSavedTablesList = () => {
-        try {
-            const savedTablesArray = [];
-            
-            // Cerca tutte le chiavi nel localStorage che iniziano con il prefisso
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(`tabella_turni_${negozioId}_`)) {
-                    try {
-                        const savedData = JSON.parse(localStorage.getItem(key));
-                        if (savedData && savedData.timestamp) {
-                            // Estrai anno e mese dalla chiave
-                            const keyParts = key.split('_');
-                            const year = keyParts[3];
-                            const month = keyParts[4];
-                            
-                            // Nome del mese
-                            const monthName = mesi[parseInt(month)];
-                            
-                            savedTablesArray.push({
-                                id: key,
-                                year: year,
-                                month: month,
-                                monthName: monthName,
-                                timestamp: savedData.timestamp,
-                                name: `${monthName} ${year}`
-                            });
-                        }
-                    } catch (e) {
-                        console.error('Errore nella lettura della tabella salvata:', e);
-                    }
-                }
-            }
-            
-            // Ordina per anno (decrescente) e poi per mese (crescente)
-            savedTablesArray.sort((a, b) => {
-                if (a.year !== b.year) {
-                    return parseInt(b.year) - parseInt(a.year); // Prima gli anni più recenti
-                }
-                return parseInt(a.month) - parseInt(b.month); // Poi i mesi in ordine crescente
-            });
-            
-            setSavedTables(savedTablesArray);
-        } catch (error) {
-            console.error('Errore nel caricamento delle tabelle salvate:', error);
+const TurniEditorPage = () => {
+  const { negozioId, anno, mese } = useParams();
+  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const negozio = useSelector(state => state.negozi.currentNegozio);
+  const dipendenti = useSelector(state => 
+    state.dipendenti && state.dipendenti.byNegozio 
+      ? state.dipendenti.byNegozio[negozioId] || [] 
+      : []
+  );
+  const error = useSelector(state => state.turni?.error);
+  
+  const mesi = [
+    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
+  ];
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      // Controlla se stiamo già caricando per evitare chiamate multiple
+      if (!loading) {
+        return;
+      }
+      
+      try {
+        // Carica il negozio solo se non è già caricato o se l'ID è diverso
+        if (!negozio || negozio.id !== parseInt(negozioId)) {
+          await dispatch(fetchNegozioById(negozioId)).unwrap();
         }
+        
+        // Carica i dipendenti
+        await dispatch(fetchDipendentiByNegozioId(negozioId)).unwrap();
+      } catch (error) {
+        console.error("Errore nel caricamento dei dati:", error);
+        dispatch(addNotification({
+          type: 'error',
+          message: `Errore nel caricamento dei dati: ${error.message || 'Errore sconosciuto'}`,
+          duration: 5000
+        }));
+      } finally {
+        setLoading(false);
+      }
     };
     
-    // Gestione apertura tabella esistente
-    const handleOpenTable = (tableId) => {
-        // Estrai anno e mese dall'ID della tabella
-        const parts = tableId.split('_');
-        const year = parseInt(parts[3], 10);
-        const month = parseInt(parts[4], 10);
-        
-        // Naviga alla pagina specifica per questo periodo
-        navigate(`/negozi/${negozioId}/turni/${year}/${month}`);
+    fetchData();
+    
+    // Pulisci il messaggio di salvataggio quando si lascia la pagina
+    return () => {
+      dispatch(clearSaveMessage());
     };
-    
-    // Gestione eliminazione tabella
-    const handleDeleteTable = (tableId, event) => {
-        event.stopPropagation(); // Impedisce di aprire la tabella al click
-        
-        if (window.confirm('Sei sicuro di voler eliminare questa tabella dei turni?')) {
-            try {
-                localStorage.removeItem(tableId);
-                setSavedTables(savedTables.filter(table => table.id !== tableId));
-            } catch (error) {
-                console.error('Errore nell\'eliminazione della tabella:', error);
-                alert('Errore nell\'eliminazione della tabella.');
-            }
-        }
-    };
-    
-    // Formatta la data in modo leggibile
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('it-IT', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-    
-    // Funzione per organizzare le tabelle per anno
-    const organizeTablesByYear = () => {
-        const organizedTables = {};
-        
-        // Raggruppa le tabelle per anno
-        savedTables.forEach(table => {
-            if (!organizedTables[table.year]) {
-                organizedTables[table.year] = [];
-            }
-            organizedTables[table.year].push(table);
-        });
-        
-        // Ordina gli anni in ordine decrescente (più recenti prima)
-        const sortedYears = Object.keys(organizedTables).sort((a, b) => b - a);
-        
-        return { organizedTables, sortedYears };
-    };
-    
-    if (loading) {
-        return (
-            <div className="loading-spinner center">
-                <i className="fas fa-spinner fa-spin"></i>
-                <span>Caricamento dati...</span>
-            </div>
-        );
-    }
-    
-    if (error) {
-        return (
-            <div className="error-message">
-                <i className="fas fa-exclamation-triangle"></i>
-                <span>{error}</span>
-            </div>
-        );
-    }
-    
-    const { organizedTables, sortedYears } = organizeTablesByYear();
-    
+  }, [dispatch, negozioId, anno, mese]); // Rimosso 'negozio' dalle dipendenze
+  
+  const handleReturn = () => {
+    // Ora che la vecchia pagina è stata rimossa, reindirizziamo all'hub
+    navigate(`/negozi/${negozioId}`);
+  };
+  
+  if (loading) {
     return (
-        <div className="turni-list-container">
-            <div className="page-header">
-                <div>
-                    <div className="breadcrumb">
-                        <button
-                            className="btn-link"
-                            onClick={() => navigate('/negozi')}
-                        >
-                            Negozi
-                        </button>
-                        <i className="fas fa-chevron-right"></i>
-                        <button
-                            className="btn-link"
-                            onClick={() => navigate(`/negozi/${negozioId}`)}
-                        >
-                            {negozio?.nome || 'Negozio'}
-                        </button>
-                        <i className="fas fa-chevron-right"></i>
-                        <button
-                            className="btn-link"
-                            onClick={() => navigate(`/negozi/${negozioId}/turni`)}
-                        >
-                            Turni
-                        </button>
-                        <i className="fas fa-chevron-right"></i>
-                        <span>Archivio</span>
-                    </div>
-                    <h1>Archivio Turni</h1>
-                    <p>Visualizza tutti i turni di lavoro per {negozio?.nome || 'il negozio selezionato'}</p>
-                </div>
-                
-                <div className="header-actions">
-                    <button
-                        className="btn-secondary"
-                        onClick={() => navigate(`/negozi/${negozioId}/turni`)}
-                    >
-                        <i className="fas fa-arrow-left"></i> Torna alla Gestione Turni
-                    </button>
-                </div>
-            </div>
-            
-            {/* Elenco delle tabelle salvate organizzate per anno */}
-            <div className="tabelle-salvate-container">
-                <h3>Tutte le tabelle turni</h3>
-                
-                {savedTables.length === 0 ? (
-                    <div className="no-tabelle-message">
-                        <i className="fas fa-info-circle"></i>
-                        <p>Non ci sono ancora tabelle turni salvate.</p>
-                        <button
-                            className="btn-primary"
-                            onClick={() => navigate(`/negozi/${negozioId}/turni`)}
-                        >
-                            <i className="fas fa-plus-circle"></i> Crea Nuova Tabella
-                        </button>
-                    </div>
-                ) : (
-                    sortedYears.map(year => (
-                        <div key={year} className="tabelle-year-section">
-                            <h4 className="tabelle-year-header">{year}</h4>
-                            <div className="tabelle-grid">
-                                {organizedTables[year].map((table) => (
-                                    <div
-                                        key={table.id}
-                                        className="tabella-card"
-                                        onClick={() => handleOpenTable(table.id)}
-                                    >
-                                        <div className="tabella-card-header">
-                                            <h4>{table.monthName}</h4>
-                                            <button
-                                                className="btn-icon btn-delete"
-                                                onClick={(e) => handleDeleteTable(table.id, e)}
-                                                title="Elimina tabella"
-                                            >
-                                                <i className="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                        <div className="tabella-card-body">
-                                            <div className="tabella-info">
-                                                <i className="fas fa-clock"></i>
-                                                <span>Ultimo aggiornamento: {formatDate(table.timestamp)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="tabella-card-footer">
-                                            <span className="view-prompt">Clicca per visualizzare <i className="fas fa-arrow-right"></i></span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-            
-            {/* Link per tornare alla gestione turni */}
-            <div className="back-link-container">
-                <button
-                    className="btn-primary"
-                    onClick={() => navigate(`/negozi/${negozioId}/turni`)}
-                >
-                    <i className="fas fa-arrow-left"></i> Torna alla Gestione Turni
-                </button>
-            </div>
+      <div className="loading-container">
+        <div className="loading-spinner">
+          <i className="fas fa-spinner fa-spin"></i>
+          <span>Caricamento dati...</span>
         </div>
+      </div>
     );
-}
+  }
+  
+  if (dipendenti.length === 0) {
+    return (
+      <div className="tabella-turni-container">
+        <div className="page-header">
+          <div>
+            <div className="breadcrumb">
+              <button 
+                className="btn-link" 
+                onClick={() => navigate('/negozi')}
+              >
+                Negozi
+              </button>
+              <i className="fas fa-chevron-right"></i>
+              <button 
+                className="btn-link" 
+                onClick={handleReturn}
+              >
+                Turni
+              </button>
+              <i className="fas fa-chevron-right"></i>
+              <span>{mesi[parseInt(mese)]} {anno}</span>
+            </div>
+            <h1>Tabella Turni: {mesi[parseInt(mese)]} {anno}</h1>
+            <p>Gestisci i turni di lavoro per {negozio?.nome || 'il negozio selezionato'}</p>
+          </div>
+        </div>
+        
+        <div className="no-dipendenti-warning">
+          <i className="fas fa-exclamation-triangle"></i>
+          <p>Non puoi creare una tabella turni senza prima aggiungere dei dipendenti.</p>
+          <button
+            className="btn-primary"
+            onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
+          >
+            <i className="fas fa-users"></i> Gestisci Dipendenti
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={handleReturn}
+            style={{marginLeft: '10px'}}
+          >
+            <i className="fas fa-arrow-left"></i> Torna alla Lista
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="tabella-turni-container">
+      <div className="page-header">
+        <div>
+          <div className="breadcrumb">
+            <button 
+              className="btn-link" 
+              onClick={() => navigate('/negozi')}
+            >
+              Negozi
+            </button>
+            <i className="fas fa-chevron-right"></i>
+            <button 
+              className="btn-link" 
+              onClick={handleReturn}
+            >
+              Turni
+            </button>
+            <i className="fas fa-chevron-right"></i>
+            <span>{mesi[parseInt(mese)]} {anno}</span>
+          </div>
+          <h1>Tabella Turni: {mesi[parseInt(mese)]} {anno}</h1>
+          <p>Gestisci i turni di lavoro per {negozio?.nome || 'il negozio selezionato'}</p>
+        </div>
 
-export default TurniAllPage;
+        <div className="header-actions">
+          <button
+            className="btn-secondary"
+            onClick={handleReturn}
+          >
+            <i className="fas fa-arrow-left"></i> Torna alla Lista
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
+          >
+            <i className="fas fa-users"></i> Gestisci Dipendenti
+          </button>
+        </div>
+      </div>
+      
+      {/* Componente TurniEditor */}
+      <TurniEditor 
+        negozioId={negozioId}
+        anno={anno}
+        mese={mese}
+        dipendenti={dipendenti}
+      />
+      
+      {/* Istruzioni */}
+      <div className="tabella-istruzioni">
+        <h3>Istruzioni</h3>
+        <div className="istruzioni-content">
+          <ul>
+            <li>Clicca su una cella per inserire o modificare un turno</li>
+            <li>Puoi scegliere tra "Lavora" (inserendo orario) o "A Casa" (specificando il motivo)</li>
+            <li>Usa il pulsante "Salva Tabella" per memorizzare i dati</li>
+            <li>Per uscire e tornare alla lista, usa il pulsante "Torna alla Lista"</li>
+            <li>Le righe di riepilogo (ORE LAVORATE, FERIE, ecc.) si aggiornano automaticamente</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TurniEditorPage;

@@ -1,4 +1,4 @@
-// src/pages/TurniEditorPage.jsx - Versione aggiornata per utilizzare TurniEditor
+// src/pages/TurniEditorPage.jsx - Versione corretta senza loop infinito
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -30,10 +30,14 @@ const TurniEditorPage = () => {
   
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      // Controlla se stiamo già caricando per evitare chiamate multiple
+      if (!loading) {
+        return;
+      }
+      
       try {
-        // Carica il negozio se non è già caricato
-        if (!negozio || negozio.id !== negozioId) {
+        // Carica il negozio solo se non è già caricato o se l'ID è diverso
+        if (!negozio || negozio.id !== parseInt(negozioId)) {
           await dispatch(fetchNegozioById(negozioId)).unwrap();
         }
         
@@ -57,7 +61,7 @@ const TurniEditorPage = () => {
     return () => {
       dispatch(clearSaveMessage());
     };
-  }, [dispatch, negozioId, anno, mese, negozio]);
+  }, [dispatch, negozioId, anno, mese]); // Rimosso 'negozio' dalle dipendenze
   
   const handleReturn = () => {
     // Ora che la vecchia pagina è stata rimossa, reindirizziamo all'hub

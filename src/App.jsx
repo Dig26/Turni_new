@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
@@ -33,16 +33,40 @@ function App() {
   const { user, isAuthenticated, loading, initialized, initialize, forceLogout } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
+  const [initializationFailed, setInitializationFailed] = useState(false);
+  const [initTimeout, setInitTimeout] = useState(false);
 
-  // Inizializzazione dell'app
+  // Inizializzazione dell'app con timeout
   useEffect(() => {
-    if (!initialized) {
-      console.log('🚀 App starting - initializing auth...');
-      initialize().catch(error => {
-        console.error('❌ Auth initialization failed:', error);
-      });
-    }
-  }, [initialized, initialize]);
+    let timeoutId;
+    
+    const initializeApp = async () => {
+      if (!initialized && !initializationFailed) {
+        console.log('🚀 App starting - initializing auth...');
+        
+        // Imposta un timeout di 5 secondi per l'inizializzazione
+        timeoutId = setTimeout(() => {
+          console.error('❌ Initialization timeout - forcing completion');
+          setInitTimeout(true);
+        }, 5000);
+        
+        try {
+          await initialize();
+        } catch (error) {
+          console.error('❌ Auth initialization failed:', error);
+          setInitializationFailed(true);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+    
+    initializeApp();
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [initialized, initialize, initializationFailed]);
 
   // Applica il tema all'elemento root
   useEffect(() => {
@@ -107,15 +131,24 @@ function App() {
   // Verifica se la rotta corrente è pubblica
   const isPublicRoute = ['/login', '/register'].includes(location.pathname);
 
-  // Mostra loading durante l'inizializzazione
-  if (!initialized || loading) {
+  // Determina se mostrare il loading
+  const shouldShowLoading = !initialized && loading && !initTimeout && !initializationFailed;
+
+  // Mostra loading durante l'inizializzazione (ma con timeout)
+  if (shouldShowLoading) {
     return (
       <div className="loading-spinner center">
         <i className="fas fa-spinner fa-spin"></i>
         <p>Caricamento...</p>
+        <div style={{ marginTop: '20px', fontSize: '12px', color: 'var(--text-light)' }}>
+          Se il caricamento dura troppo, prova a ricaricare la pagina
+        </div>
       </div>
     );
   }
+
+  // Se il timeout è scaduto o l'inizializzazione è fallita, procedi comunque
+  const isReady = initialized || initTimeout || initializationFailed;
 
   // Debug info
   console.log('🔍 App render state:', { 
@@ -123,7 +156,10 @@ function App() {
     isAuthenticated, 
     hasUser: !!user, 
     isPublicRoute, 
-    currentPath: location.pathname 
+    currentPath: location.pathname,
+    initTimeout,
+    initializationFailed,
+    isReady
   });
 
   return (

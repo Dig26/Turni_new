@@ -1,39 +1,50 @@
 // services/authService.js
 import { supabase } from './api/apiClient';
 
-// Funzione per ottenere l'utente corrente
+// Funzione per ottenere l'utente corrente con timeout
 export const getCurrentUser = async () => {
   try {
-    // Ottieni l'utente da Supabase Auth
-    const { data: authUser, error: authError } = await supabase.auth.getUser();
+    // Imposta un timeout per evitare attese infinite
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout getting user')), 5000)
+    );
     
-    if (authError || !authUser?.user) {
-      console.log('ℹ️ Nessun utente autenticato');
-      return null;
-    }
-    
-    console.log('👤 Utente Auth trovato:', authUser.user.email);
-    
-    // Cerca l'utente nella tabella utenti tramite email
-    const { data: dbUser, error: dbError } = await supabase
-      .from('utenti')
-      .select('*')
-      .eq('email', authUser.user.email)
-      .single();
-    
-    if (dbError) {
-      console.error('❌ Errore ricerca utente in tabella:', dbError);
+    const getUserPromise = async () => {
+      // Ottieni l'utente da Supabase Auth
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
       
-      // Se l'utente non esiste nella tabella ma è in Auth, è un problema
-      if (dbError.code === 'PGRST116') { // Not found
-        console.error('❌ PROBLEMA: Utente in Auth ma non in tabella utenti!');
-        console.log('🔧 Prova a fare logout e registrarti di nuovo');
+      if (authError || !authUser?.user) {
+        console.log('ℹ️ Nessun utente autenticato');
+        return null;
       }
-      return null;
-    }
+      
+      console.log('👤 Utente Auth trovato:', authUser.user.email);
+      
+      // Cerca l'utente nella tabella utenti tramite email
+      const { data: dbUser, error: dbError } = await supabase
+        .from('utenti')
+        .select('*')
+        .eq('email', authUser.user.email)
+        .single();
+      
+      if (dbError) {
+        console.error('❌ Errore ricerca utente in tabella:', dbError);
+        
+        // Se l'utente non esiste nella tabella ma è in Auth, è un problema
+        if (dbError.code === 'PGRST116') { // Not found
+          console.error('❌ PROBLEMA: Utente in Auth ma non in tabella utenti!');
+          console.log('🔧 Prova a fare logout e registrarti di nuovo');
+        }
+        return null;
+      }
+      
+      console.log('✅ Utente trovato nella tabella:', dbUser);
+      return dbUser;
+    };
     
-    console.log('✅ Utente trovato nella tabella:', dbUser);
-    return dbUser;
+    // Race tra la promise dell'utente e il timeout
+    const result = await Promise.race([getUserPromise(), timeoutPromise]);
+    return result;
     
   } catch (error) {
     console.error('❌ Errore getCurrentUser:', error);
@@ -210,19 +221,30 @@ export const isAuthenticated = async () => {
 export const onAuthStateChanged = (callback) => {
   console.log('👂 Setup listener auth state changes');
   
-  const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log('🔄 Auth state change:', event, !!session);
+  try {
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth state change:', event, !!session);
+      
+      if (session?.user) {
+        // Quando c'è una sessione, ottieni l'utente completo dalla tabella
+        const user = await getCurrentUser();
+        callback(user);
+      } else {
+        callback(null);
+      }
+    });
     
-    if (session?.user) {
-      // Quando c'è una sessione, ottieni l'utente completo dalla tabella
-      const user = await getCurrentUser();
-      callback(user);
-    } else {
-      callback(null);
-    }
-  });
-  
-  return data.subscription.unsubscribe;
+    // Ritorna la funzione di unsubscribe
+    return () => {
+      if (data?.subscription) {
+        data.subscription.unsubscribe();
+      }
+    };
+  } catch (error) {
+    console.error('❌ Errore setup auth listener:', error);
+    // Ritorna una funzione vuota in caso di errore
+    return () => {};
+  }
 };
 
 // Funzione di utilità per sincronizzare utenti esistenti

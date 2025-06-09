@@ -64,15 +64,51 @@ testConnection().then(success => {
 // Funzione di aiuto per gestire risposte ed errori
 const handleResponse = async (promise) => {
   try {
-    const { data, error } = await promise;
+    const { data, error, status, statusText } = await promise;
     
     if (error) {
       console.error('🚫 API Error details:', {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
+        status,
+        statusText
       });
+      
+      // Aggiungi informazioni extra per errori comuni
+      if (status === 400 || error.code === '23514' || error.code === '23502') {
+        console.error('❌ Bad Request (400) - Possibili cause:');
+        console.error('   - Campi obbligatori mancanti');
+        console.error('   - Formato dati non valido');
+        console.error('   - Violazione di vincoli nel database');
+        
+        if (error.message?.includes('duplicate key') || error.code === '23505') {
+          console.error('   - Record duplicato (chiave già esistente)');
+        }
+        if (error.message?.includes('foreign key') || error.code === '23503') {
+          console.error('   - Riferimento a record inesistente (es. negozio_id non valido)');
+        }
+        if (error.message?.includes('null value') || error.code === '23502') {
+          console.error('   - Campo obbligatorio con valore null');
+        }
+        if (error.message?.includes('numeric field overflow')) {
+          console.error('   - Valore numerico troppo grande o formato non valido');
+        }
+      } else if (status === 403) {
+        console.error('❌ Forbidden (403) - Problemi di autorizzazione:');
+        console.error('   - Verifica le policy RLS (Row Level Security)');
+        console.error('   - Assicurati che l\'utente abbia i permessi necessari');
+      } else if (status === 404) {
+        console.error('❌ Not Found (404) - La risorsa richiesta non esiste');
+      }
+      
+      // Log specifico per errori Supabase/PostgreSQL
+      if (error.code) {
+        console.error('📋 Codice errore PostgreSQL:', error.code);
+        console.error('   Vedi: https://www.postgresql.org/docs/current/errcodes-appendix.html');
+      }
+      
       throw error;
     }
     
@@ -92,10 +128,16 @@ const handleResponse = async (promise) => {
 
 // Funzione per preparare i dati prima dell'invio (camelCase -> snake_case)
 const prepareData = (data) => {
+  console.log('📤 Preparing data for API:');
+  console.log('   Original:', data);
+  
+  let prepared = data;
   if (typeof objectKeysToSnake === 'function') {
-    return objectKeysToSnake(data);
+    prepared = objectKeysToSnake(data);
   }
-  return data;
+  
+  console.log('   Prepared:', prepared);
+  return prepared;
 };
 
 // Funzione per testare l'autenticazione
