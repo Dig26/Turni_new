@@ -463,7 +463,7 @@ const NegozioHub = ({ negozioId }) => {
               <div className="section-info">
                 <p>
                   Qui puoi gestire le motivazioni per le assenze dei dipendenti. 
-                  <strong> Le motivazioni predefinite (Ferie, ROL, EX Festività) non possono essere eliminate</strong>, 
+                  <strong> Le motivazioni predefinite (Nessuna, Ferie, ROL, EX Festività) non possono essere eliminate</strong>, 
                   ma puoi personalizzare le loro sigle.
                 </p>
               </div>

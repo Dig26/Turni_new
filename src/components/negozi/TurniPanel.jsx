@@ -1,5 +1,5 @@
 // src/components/negozi/TurniPanel.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchNegozioById } from '../../app/slices/negoziSlice';
@@ -8,13 +8,26 @@ import { fetchTurniSalvati, deleteTabellaThunk } from '../../app/slices/turniSli
 import { openConfirmationDialog, addNotification } from '../../app/slices/uiSlice';
 import '../../styles/TurniList.css';
 
+// Contatore globale per tracciare i render
+let renderCount = 0;
+
 const TurniPanel = ({ negozioId }) => {
+  console.log('🔵 ========== INIZIO RENDER TurniPanel ==========');
+  console.log(`🔵 Render #${++renderCount} - Timestamp: ${new Date().toISOString()}`);
+  console.log('🔵 negozioId prop:', negozioId);
+  
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
+  // Refs per tracciare lo stato e prevenire loop
+  const hasLoadedRef = useRef(false);
+  const currentNegozioIdRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const effectRunCountRef = useRef(0);
   
   // Seleziona lo stato con controllo null/undefined
   const negozio = useSelector(state => state.negozi.currentNegozio);
@@ -29,6 +42,16 @@ const TurniPanel = ({ negozioId }) => {
       : []
   );
   
+  console.log('🔵 Stati attuali:', {
+    loading,
+    hasNegozio: !!negozio,
+    negozioId: negozio?.id,
+    numDipendenti: dipendenti.length,
+    numTabelle: tabelleSalvate.length,
+    hasLoadedRef: hasLoadedRef.current,
+    currentNegozioIdRef: currentNegozioIdRef.current
+  });
+  
   // Nomi dei mesi in italiano
   const mesi = [
     "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
@@ -39,52 +62,147 @@ const TurniPanel = ({ negozioId }) => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
   
+  // UseEffect per mount/unmount
   useEffect(() => {
+    console.log('🟢 MOUNT: TurniPanel montato');
+    isMountedRef.current = true;
+    
+    return () => {
+      console.log('🔴 UNMOUNT: TurniPanel smontato');
+      isMountedRef.current = false;
+      hasLoadedRef.current = false;
+      renderCount = 0; // Reset counter on unmount
+    };
+  }, []);
+  
+  // UseEffect principale per caricamento dati - MODIFICATO
+  useEffect(() => {
+    effectRunCountRef.current++;
+    console.log('🟡 ========== USEEFFECT PRINCIPALE ==========');
+    console.log(`🟡 useEffect run #${effectRunCountRef.current} per negozioId: ${negozioId}`);
+    console.log('🟡 hasLoadedRef.current:', hasLoadedRef.current);
+    console.log('🟡 currentNegozioIdRef.current:', currentNegozioIdRef.current);
+    console.log('🟡 negozio?.id:', negozio?.id);
+    
+    // Previeni caricamenti multipli per lo stesso negozio
+    if (hasLoadedRef.current && currentNegozioIdRef.current === negozioId) {
+      console.log('⏭️ SKIP: Dati già caricati per questo negozio');
+      return;
+    }
+    
+    // Se negozioId non è valido, non fare nulla
+    if (!negozioId) {
+      console.log('⚠️ SKIP: negozioId non valido');
+      setLoading(false);
+      return;
+    }
+    
     const fetchData = async () => {
+      console.log('🚀 ========== INIZIO CARICAMENTO DATI ==========');
+      console.log('🚀 Timestamp:', new Date().toISOString());
+      
+      // Previeni caricamenti multipli simultanei
+      if (hasLoadedRef.current && currentNegozioIdRef.current === negozioId) {
+        console.log('⏭️ SKIP: Caricamento già in corso o completato');
+        return;
+      }
+      
+      // Segna che stiamo caricando per questo negozio
+      console.log('🚀 Imposto currentNegozioIdRef:', negozioId);
+      currentNegozioIdRef.current = negozioId;
+      
+      console.log('🚀 setLoading(true)');
       setLoading(true);
+      
       try {
-        // Carica il negozio se non è già caricato
-        if (!negozio || negozio.id !== negozioId) {
+        // 1. Carica il negozio SOLO se non è già caricato o se l'ID è diverso
+        if (!negozio || negozio.id !== parseInt(negozioId)) {
+          console.log('📦 CHIAMATA API: fetchNegozioById - negozio non presente o ID diverso');
+          const startTime1 = Date.now();
           await dispatch(fetchNegozioById(negozioId)).unwrap();
+          console.log(`📦 API risposta in ${Date.now() - startTime1}ms`);
+        } else {
+          console.log('📦 SKIP: Negozio già caricato con ID corretto');
         }
         
-        // Carica i dipendenti
-        await dispatch(fetchDipendentiByNegozioId(negozioId)).unwrap();
+        if (!isMountedRef.current) {
+          console.log('⚠️ Componente smontato durante caricamento negozio');
+          return;
+        }
         
-        // Carica le tabelle turni salvate
+        // 2. Carica i dipendenti
+        console.log('👥 CHIAMATA API: fetchDipendentiByNegozioId...');
+        const startTime2 = Date.now();
+        await dispatch(fetchDipendentiByNegozioId(negozioId)).unwrap();
+        console.log(`👥 API risposta in ${Date.now() - startTime2}ms`);
+        
+        if (!isMountedRef.current) {
+          console.log('⚠️ Componente smontato durante caricamento dipendenti');
+          return;
+        }
+        
+        // 3. Carica le tabelle turni salvate
+        console.log('📅 CHIAMATA API: fetchTurniSalvati...');
+        const startTime3 = Date.now();
         await dispatch(fetchTurniSalvati(negozioId)).unwrap();
+        console.log(`📅 API risposta in ${Date.now() - startTime3}ms`);
+        
+        if (!isMountedRef.current) {
+          console.log('⚠️ Componente smontato durante caricamento tabelle');
+          return;
+        }
+        
+        // Segna che abbiamo completato il caricamento
+        console.log('✅ Imposto hasLoadedRef = true');
+        hasLoadedRef.current = true;
+        
       } catch (error) {
-        console.error("Errore nel caricamento dei dati:", error);
-        dispatch(addNotification({
-          type: 'error',
-          message: `Errore nel caricamento dei dati: ${error.message || 'Errore sconosciuto'}`,
-          duration: 5000
-        }));
+        console.error('❌ ERRORE nel caricamento:', error);
+        if (isMountedRef.current) {
+          dispatch(addNotification({
+            type: 'error',
+            message: `Errore nel caricamento dei dati: ${error.message || 'Errore sconosciuto'}`,
+            duration: 5000
+          }));
+          // In caso di errore, resetta il flag per permettere retry
+          hasLoadedRef.current = false;
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          console.log('🏁 FINE CARICAMENTO - setLoading(false)');
+          setLoading(false);
+        } else {
+          console.log('⚠️ Componente smontato, non imposto loading=false');
+        }
+        console.log('🏁 ========== FINE CARICAMENTO DATI ==========');
       }
     };
     
     fetchData();
-  }, [dispatch, negozioId, negozio]);
+  }, [dispatch, negozioId]); // RIMOSSO 'negozio' dalle dipendenze per evitare loop!
   
   const handleMonthChange = (e) => {
+    console.log('📅 handleMonthChange:', e.target.value);
     setSelectedMonth(parseInt(e.target.value, 10));
   };
 
   const handleYearChange = (e) => {
+    console.log('📅 handleYearChange:', e.target.value);
     setSelectedYear(parseInt(e.target.value, 10));
   };
   
   const handleCreateTable = () => {
+    console.log('➕ handleCreateTable chiamata');
     navigate(`/negozi/${negozioId}/turni/${selectedYear}/${selectedMonth}`);
   };
   
   const handleOpenTable = (year, month) => {
+    console.log('📂 handleOpenTable:', year, month);
     navigate(`/negozi/${negozioId}/turni/${year}/${month}`);
   };
   
   const handleDeleteTable = (tableId) => {
+    console.log('🗑️ handleDeleteTable:', tableId);
     dispatch(openConfirmationDialog({
       title: 'Conferma eliminazione',
       message: 'Sei sicuro di voler eliminare questa tabella dei turni? L\'azione non può essere annullata.',
@@ -125,7 +243,10 @@ const TurniPanel = ({ negozioId }) => {
     }
   };
   
+  console.log('🔵 ========== INIZIO RENDERING JSX ==========');
+  
   if (loading) {
+    console.log('🔵 Rendering: LOADING STATE');
     return (
       <div className="loading-spinner">
         <i className="fas fa-spinner fa-spin"></i>
@@ -133,6 +254,8 @@ const TurniPanel = ({ negozioId }) => {
       </div>
     );
   }
+  
+  console.log('🔵 Rendering: CONTENT STATE');
   
   return (
     <div className="turni-tab">
@@ -257,6 +380,8 @@ const TurniPanel = ({ negozioId }) => {
           </div>
         </div>
       )}
+      
+      {console.log('🔵 ========== FINE RENDERING JSX ==========')}
     </div>
   );
 };

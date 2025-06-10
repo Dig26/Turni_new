@@ -2,28 +2,42 @@
 import { supabase, handleResponse, prepareData } from './api/apiClient';
 import * as authService from './authService';
 
-// Ottieni tutti i negozi
+// Ottieni tutti i negozi dell'utente corrente
 export const getNegozi = async () => {
+  // Ottieni l'utente corrente
+  const currentUser = await authService.getCurrentUser();
+  if (!currentUser) {
+    throw new Error('Utente non autenticato. Effettua il login e riprova.');
+  }
+  
   return handleResponse(
     supabase
       .from('negozi')
       .select('*')
+      .eq('user_id', currentUser.id) // Filtro per l'utente corrente
       .order('nome')
   );
 };
 
-// Ottieni un negozio specifico tramite ID
+// Ottieni un negozio specifico tramite ID (solo se appartiene all'utente corrente)
 export const getNegozioById = async (id) => {
+  // Ottieni l'utente corrente
+  const currentUser = await authService.getCurrentUser();
+  if (!currentUser) {
+    throw new Error('Utente non autenticato. Effettua il login e riprova.');
+  }
+  
   const data = await handleResponse(
     supabase
       .from('negozi')
       .select('*')
       .eq('id', id)
+      .eq('user_id', currentUser.id) // Verifica che il negozio appartenga all'utente corrente
       .single()
   );
   
   if (!data) {
-    throw new Error('Negozio non trovato');
+    throw new Error('Negozio non trovato o non hai i permessi per accedervi');
   }
   
   return data;
@@ -55,9 +69,14 @@ export const saveNegozio = async (negozioData, id = null) => {
           aggiornato_il: new Date().toISOString()
         })
         .eq('id', id)
+        .eq('user_id', currentUser.id) // Verifica che il negozio appartenga all'utente corrente
         .select()
         .single()
     );
+    
+    if (!data) {
+      throw new Error('Negozio non trovato o non hai i permessi per modificarlo');
+    }
     
     return data;
   } 
@@ -86,6 +105,14 @@ export const saveNegozio = async (negozioData, id = null) => {
 // Funzione per inserire le motivazioni assenze predefinite per un nuovo negozio
 const inserisciMotivazioniPredefinite = async (negozioId) => {
   const motivazioniPredefinite = [
+    {
+      nome: 'Nessuna',
+      sigla: '',
+      predefinita: true,
+      calcola_ore: false,
+      ordine: 0,
+      negozio_id: negozioId
+    },
     {
       nome: 'Ferie',
       sigla: 'FE',
@@ -119,8 +146,14 @@ const inserisciMotivazioniPredefinite = async (negozioId) => {
   );
 };
 
-// Elimina un negozio
+// Elimina un negozio (solo se appartiene all'utente corrente)
 export const deleteNegozio = async (id) => {
+  // Ottieni l'utente corrente
+  const currentUser = await authService.getCurrentUser();
+  if (!currentUser) {
+    throw new Error('Utente non autenticato. Effettua il login e riprova.');
+  }
+  
   // Nota: grazie alle clausole ON DELETE CASCADE nelle foreign key,
   // l'eliminazione di un negozio eliminerà automaticamente tutti i record correlati
   return handleResponse(
@@ -128,5 +161,6 @@ export const deleteNegozio = async (id) => {
       .from('negozi')
       .delete()
       .eq('id', id)
+      .eq('user_id', currentUser.id) // Verifica che il negozio appartenga all'utente corrente
   );
 };

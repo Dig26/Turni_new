@@ -1,13 +1,21 @@
-// src/pages/TurniListPage.jsx - Versione semplificata per test
-import React, { useState, useEffect } from 'react';
+// src/pages/TurniListPage.jsx - Versione con logging dettagliato per debug
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getNegozioById } from '../services/api/negoziAPI';
 import { getDipendentiByNegozioId } from '../services/api/dipendentiAPI';
 import '../styles/TurniList.css';
 
+// Contatore globale per tracciare i render
+let renderCount = 0;
+
 const TurniListPage = () => {
+  console.log('🔵 ========== INIZIO RENDER TurniListPage ==========');
+  console.log(`🔵 Render #${++renderCount} - Timestamp: ${new Date().toISOString()}`);
+  
   const { negozioId } = useParams();
   const navigate = useNavigate();
+  
+  console.log('🔵 negozioId from params:', negozioId);
   
   // Stati locali
   const [loading, setLoading] = useState(true);
@@ -18,7 +26,22 @@ const TurniListPage = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
-  console.log('🔄 Render TurniListPage - loading:', loading);
+  // Refs per tracciare lo stato del componente e prevenire loop
+  const hasLoadedRef = useRef(false);
+  const currentNegozioIdRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const effectRunCountRef = useRef(0);
+  
+  console.log('🔵 Stati attuali:', {
+    loading,
+    hasNegozio: !!negozio,
+    numDipendenti: dipendenti.length,
+    numTabelle: tabelleSalvate.length,
+    hasError: !!error,
+    hasLoadedRef: hasLoadedRef.current,
+    currentNegozioIdRef: currentNegozioIdRef.current,
+    isMountedRef: isMountedRef.current
+  });
   
   // Nomi dei mesi in italiano
   const mesi = [
@@ -30,62 +53,127 @@ const TurniListPage = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
   
-  // Carica i dati all'avvio
+  // UseEffect per mount/unmount
   useEffect(() => {
-    let isMounted = true;
-    console.log('🎯 useEffect chiamato per negozioId:', negozioId);
+    console.log('🟢 MOUNT: TurniListPage montato');
+    isMountedRef.current = true;
+    
+    // Cleanup function
+    return () => {
+      console.log('🔴 UNMOUNT: TurniListPage smontato');
+      isMountedRef.current = false;
+      hasLoadedRef.current = false;
+      renderCount = 0; // Reset counter on unmount
+    };
+  }, []);
+  
+  // UseEffect principale per caricamento dati
+  useEffect(() => {
+    effectRunCountRef.current++;
+    console.log('🟡 ========== USEEFFECT PRINCIPALE ==========');
+    console.log(`🟡 useEffect run #${effectRunCountRef.current} per negozioId: ${negozioId}`);
+    console.log('🟡 hasLoadedRef.current:', hasLoadedRef.current);
+    console.log('🟡 currentNegozioIdRef.current:', currentNegozioIdRef.current);
+    
+    // Previeni caricamenti multipli per lo stesso negozio
+    if (hasLoadedRef.current && currentNegozioIdRef.current === negozioId) {
+      console.log('⏭️ SKIP: Dati già caricati per questo negozio');
+      return;
+    }
+    
+    // Se negozioId non è valido, non fare nulla
+    if (!negozioId) {
+      console.log('⚠️ SKIP: negozioId non valido');
+      setLoading(false);
+      return;
+    }
     
     const loadData = async () => {
-      console.log('🚀 Inizio caricamento dati...');
+      console.log('🚀 ========== INIZIO CARICAMENTO DATI ==========');
+      console.log('🚀 Timestamp:', new Date().toISOString());
+      
+      // Previeni caricamenti multipli simultanei
+      if (hasLoadedRef.current && currentNegozioIdRef.current === negozioId) {
+        console.log('⏭️ SKIP: Caricamento già in corso o completato');
+        return;
+      }
+      
+      // Segna che stiamo caricando per questo negozio
+      console.log('🚀 Imposto currentNegozioIdRef:', negozioId);
+      currentNegozioIdRef.current = negozioId;
+      
+      console.log('🚀 setLoading(true)');
       setLoading(true);
       setError(null);
       
       try {
         // 1. Carica il negozio
-        console.log('📦 Carico negozio...');
+        console.log('📦 CHIAMATA API: getNegozioById...');
+        const startTime1 = Date.now();
         const negozioData = await getNegozioById(negozioId);
-        if (!isMounted) return;
+        console.log(`📦 API risposta in ${Date.now() - startTime1}ms`);
+        
+        if (!isMountedRef.current) {
+          console.log('⚠️ Componente smontato durante caricamento negozio');
+          return;
+        }
+        
+        console.log('📦 setNegozio:', negozioData);
         setNegozio(negozioData);
-        console.log('✅ Negozio caricato:', negozioData);
         
         // 2. Carica i dipendenti
-        console.log('👥 Carico dipendenti...');
+        console.log('👥 CHIAMATA API: getDipendentiByNegozioId...');
+        const startTime2 = Date.now();
         const dipendentiData = await getDipendentiByNegozioId(negozioId);
-        if (!isMounted) return;
+        console.log(`👥 API risposta in ${Date.now() - startTime2}ms`);
+        
+        if (!isMountedRef.current) {
+          console.log('⚠️ Componente smontato durante caricamento dipendenti');
+          return;
+        }
+        
+        console.log('👥 setDipendenti:', dipendentiData?.length || 0, 'elementi');
         setDipendenti(dipendentiData || []);
-        console.log('✅ Dipendenti caricati:', dipendentiData?.length || 0);
         
         // 3. Carica le tabelle salvate dal localStorage
-        console.log('📅 Carico tabelle salvate...');
+        console.log('📅 Carico tabelle da localStorage...');
         const savedTables = loadSavedTablesFromLocalStorage();
-        if (!isMounted) return;
+        
+        if (!isMountedRef.current) {
+          console.log('⚠️ Componente smontato durante caricamento tabelle');
+          return;
+        }
+        
+        console.log('📅 setTabelleSalvate:', savedTables.length, 'tabelle');
         setTabelleSalvate(savedTables);
-        console.log('✅ Tabelle salvate caricate:', savedTables.length);
+        
+        // Segna che abbiamo completato il caricamento
+        console.log('✅ Imposto hasLoadedRef = true');
+        hasLoadedRef.current = true;
         
       } catch (err) {
-        console.error('❌ Errore nel caricamento:', err);
-        if (isMounted) {
+        console.error('❌ ERRORE nel caricamento:', err);
+        if (isMountedRef.current) {
           setError(err.message || 'Errore nel caricamento dei dati');
+          hasLoadedRef.current = false;
         }
       } finally {
-        if (isMounted) {
-          console.log('🏁 Caricamento completato, setLoading(false)');
+        if (isMountedRef.current) {
+          console.log('🏁 FINE CARICAMENTO - setLoading(false)');
           setLoading(false);
+        } else {
+          console.log('⚠️ Componente smontato, non imposto loading=false');
         }
+        console.log('🏁 ========== FINE CARICAMENTO DATI ==========');
       }
     };
     
     loadData();
-    
-    // Cleanup function
-    return () => {
-      console.log('🧹 Cleanup useEffect');
-      isMounted = false;
-    };
   }, [negozioId]); // Solo negozioId come dipendenza
   
   // Funzione per caricare le tabelle dal localStorage
   const loadSavedTablesFromLocalStorage = () => {
+    console.log('💾 loadSavedTablesFromLocalStorage chiamata');
     const tables = [];
     
     try {
@@ -121,31 +209,44 @@ const TurniListPage = () => {
       return parseInt(a.month) - parseInt(b.month);
     });
     
+    console.log('💾 Tabelle trovate:', tables.length);
     return tables;
+  };
+  
+  // Funzione per ricaricare le tabelle salvate (chiamata dopo eliminazione)
+  const reloadSavedTables = () => {
+    console.log('🔄 reloadSavedTables chiamata');
+    const savedTables = loadSavedTablesFromLocalStorage();
+    setTabelleSalvate(savedTables);
   };
   
   // Altri handler...
   const handleMonthChange = (e) => {
+    console.log('📅 handleMonthChange:', e.target.value);
     setSelectedMonth(parseInt(e.target.value, 10));
   };
 
   const handleYearChange = (e) => {
+    console.log('📅 handleYearChange:', e.target.value);
     setSelectedYear(parseInt(e.target.value, 10));
   };
   
   const handleCreateTable = () => {
+    console.log('➕ handleCreateTable chiamata');
     navigate(`/negozi/${negozioId}/turni/${selectedYear}/${selectedMonth}?nuova=true`);
   };
   
   const handleOpenTable = (year, month) => {
+    console.log('📂 handleOpenTable:', year, month);
     navigate(`/negozi/${negozioId}/turni/${year}/${month}`);
   };
   
   const handleDeleteTable = (tableId, event) => {
+    console.log('🗑️ handleDeleteTable:', tableId);
     event.stopPropagation();
     if (window.confirm('Sei sicuro di voler eliminare questa tabella?')) {
       localStorage.removeItem(tableId);
-      setTabelleSalvate(prev => prev.filter(t => t.id !== tableId));
+      reloadSavedTables();
     }
   };
   
@@ -181,8 +282,11 @@ const TurniListPage = () => {
     return { organizedTables, sortedYears };
   };
   
+  console.log('🔵 ========== INIZIO RENDERING JSX ==========');
+  
   // Rendering
   if (loading) {
+    console.log('🔵 Rendering: LOADING STATE');
     return (
       <div className="loading-container">
         <div className="loading-spinner">
@@ -194,17 +298,23 @@ const TurniListPage = () => {
   }
   
   if (error) {
+    console.log('🔵 Rendering: ERROR STATE');
     return (
       <div className="error-container">
         <div className="error-message">
           <i className="fas fa-exclamation-triangle"></i>
           <p>Errore: {error}</p>
-          <button onClick={() => window.location.reload()}>Ricarica</button>
+          <button onClick={() => {
+            console.log('🔄 Ricarica pagina richiesta');
+            hasLoadedRef.current = false;
+            window.location.reload();
+          }}>Ricarica</button>
         </div>
       </div>
     );
   }
   
+  console.log('🔵 Rendering: CONTENT STATE');
   const { organizedTables, sortedYears } = organizeTablesByYear();
   
   return (
@@ -214,7 +324,10 @@ const TurniListPage = () => {
           <div className="breadcrumb">
             <button 
               className="btn-link" 
-              onClick={() => navigate(`/negozi/${negozioId}`)}
+              onClick={() => {
+                console.log('🔙 Navigate to negozio');
+                navigate(`/negozi/${negozioId}`);
+              }}
             >
               {negozio?.nome || 'Negozio'}
             </button>
@@ -228,7 +341,10 @@ const TurniListPage = () => {
         <div className="header-actions">
           <button
             className="btn-secondary"
-            onClick={() => navigate(`/negozi/${negozioId}`)}
+            onClick={() => {
+              console.log('🔙 Navigate to negozio (header button)');
+              navigate(`/negozi/${negozioId}`);
+            }}
           >
             <i className="fas fa-arrow-left"></i> Torna al Negozio
           </button>
@@ -281,7 +397,10 @@ const TurniListPage = () => {
               Non ci sono dipendenti configurati per questo negozio.
               <button
                 className="btn-link"
-                onClick={() => navigate(`/negozi/${negozioId}/dipendenti`)}
+                onClick={() => {
+                  console.log('🔗 Navigate to dipendenti');
+                  navigate(`/negozi/${negozioId}/dipendenti`);
+                }}
               >
                 Aggiungi dipendenti
               </button>
@@ -356,6 +475,8 @@ const TurniListPage = () => {
           </div>
         </div>
       )}
+      
+      {console.log('🔵 ========== FINE RENDERING JSX ==========')}
     </div>
   );
 };

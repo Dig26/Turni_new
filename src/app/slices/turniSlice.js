@@ -96,12 +96,46 @@ export const saveTabellaThunk = createAsyncThunk(
       // Prepara i dati per il salvataggio
       const nome = `Tabella ${parseInt(mese) + 1}/${anno}`;
       
+      console.log('🔵 saveTabellaThunk - Dati ricevuti:', {
+        negozioId,
+        anno,
+        mese,
+        dataKeys: data ? Object.keys(data) : 'null',
+        hasData: data && data.data ? 'SI' : 'NO',
+        hasRiepilogo: data && data.riepilogo ? 'SI' : 'NO',
+        hasVariazioni: data && data.employeeVariations ? 'SI' : 'NO'
+      });
+      
+      // IMPORTANTE: Assicuriamoci che i dati vengano passati correttamente
+      // Se 'data' contiene già la struttura corretta (data, riepilogo, employeeVariations)
+      // passala direttamente. Altrimenti, assumiamo che 'data' sia il contenuto dei dati
+      let datiDaInviare;
+      
+      if (data && (data.data || data.riepilogo || data.employeeVariations)) {
+        // I dati sono già strutturati correttamente
+        datiDaInviare = data;
+      } else {
+        // I dati sono il contenuto grezzo, strutturiamoli
+        datiDaInviare = {
+          data: data || {},
+          riepilogo: {},
+          employeeVariations: {}
+        };
+      }
+      
+      console.log('🔵 saveTabellaThunk - Dati da inviare:', {
+        hasDatiCompleti: !!datiDaInviare.data,
+        numeroGiorni: datiDaInviare.data ? Object.keys(datiDaInviare.data).length : 0,
+        hasRiepilogo: !!datiDaInviare.riepilogo,
+        hasVariazioni: !!datiDaInviare.employeeVariations
+      });
+      
       const savedTabella = await turniService.saveTabella({
         negozioId,
         anno,
         mese,
         nome,
-        dati: data
+        dati: datiDaInviare
       });
       
       dispatch(addNotification({

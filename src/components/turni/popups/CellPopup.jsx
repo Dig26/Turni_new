@@ -7,10 +7,10 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   const [mode, setMode] = useState('lavora');
   const [orarioInizio, setOrarioInizio] = useState('');
   const [orarioFine, setOrarioFine] = useState('');
-  const [motivo, setMotivo] = useState('nessuna');
+  const [motivo, setMotivo] = useState('');
   const [abbr, setAbbr] = useState('');
   const [totalHours, setTotalHours] = useState(0);
-  const [theoreticalHours, setTheoreticalHours] = useState(0);  // Ore teoriche senza pausa
+  const [theoreticalHours, setTheoreticalHours] = useState(0);
   const [pausaIncluded, setPausaIncluded] = useState(false);
   const [showPausaOption, setShowPausaOption] = useState(false);
   const pausaCheckboxRef = useRef(null);
@@ -32,6 +32,46 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     }
   });
 
+  // Inizializza il motivo di default dopo che le motivazioni sono caricate
+  useEffect(() => {
+    if (motivazioni.length > 0 && !motivo) {
+      // Trova la prima motivazione o usa la prima disponibile come default
+      const defaultMotivazione = motivazioni.find(m => 
+        m.nome?.toLowerCase().includes('ferie') || 
+        m.nome?.toLowerCase().includes('assenza')
+      ) || motivazioni[0];
+      
+      if (defaultMotivazione) {
+        setMotivo(defaultMotivazione.id);
+      }
+    }
+  }, [motivazioni, motivo]);
+
+  // Effect per aggiornare automaticamente la sigla quando cambia il motivo
+  useEffect(() => {
+    console.log('Motivo cambiato:', motivo);
+    console.log('Motivazioni disponibili:', motivazioni);
+    
+    if (motivo && motivazioni.length > 0) {
+      const selectedMotivazione = motivazioni.find(m => {
+        // Confronto sia con id che con nome per sicurezza
+        return m.id === motivo || m.nome === motivo;
+      });
+      
+      console.log('Motivazione selezionata:', selectedMotivazione);
+      
+      if (selectedMotivazione && selectedMotivazione.sigla) {
+        console.log('Aggiornamento sigla a:', selectedMotivazione.sigla);
+        setAbbr(selectedMotivazione.sigla);
+      } else {
+        console.log('Nessuna sigla trovata per la motivazione');
+        setAbbr('');
+      }
+    } else {
+      setAbbr('');
+    }
+  }, [motivo, motivazioni]);
+
   useEffect(() => {
     if (selectedCell && hotInstance) {
       // Leggi i valori dalle celle selezionate
@@ -51,8 +91,21 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
         // Estrai motivo e abbreviazione
         if (fineVal && fineVal.indexOf('|') !== -1) {
           const parts = fineVal.split('|');
-          setMotivo(parts[0].trim());
-          setAbbr(parts[1].trim());
+          const motivoFromCell = parts[0].trim();
+          const abbrFromCell = parts[1].trim();
+          
+          // Cerca la motivazione corrispondente
+          const foundMotivazione = motivazioni.find(m => 
+            m.nome === motivoFromCell || m.id === motivoFromCell || m.sigla === abbrFromCell
+          );
+          
+          if (foundMotivazione) {
+            setMotivo(foundMotivazione.id);
+            setAbbr(foundMotivazione.sigla);
+          } else {
+            setMotivo(motivoFromCell);
+            setAbbr(abbrFromCell);
+          }
         }
       } else if (inizioVal && inizioVal.indexOf(' - ') !== -1) {
         // Siamo in modalità "lavora" con orari già definiti
@@ -60,7 +113,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
 
         // Estrai orario inizio e fine
         const parts = inizioVal.split(' - ');
-        const startTime = parts[0].trim().replace(/\s*\([P]\)|\s*\(P\)/g, ''); // Rimuovi l'indicatore di pausa
+        const startTime = parts[0].trim().replace(/\s*\([P]\)|\s*\(P\)/g, '');
         const endTime = parts[1].trim();
 
         setOrarioInizio(startTime);
@@ -74,7 +127,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
         let actualHours = 0;
         if (fineVal) {
           try {
-            // Rimuovi qualsiasi suffisso (come 'P')
             const numericValue = fineVal.replace(/[^0-9,\.]/g, '');
             actualHours = parseFloat(numericValue.replace(',', '.'));
           } catch (e) {
@@ -88,17 +140,9 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
 
           // Calcola la differenza tra ore teoriche e ore effettive
           const difference = calculatedTheoreticalHours - actualHours;
-          console.log("Differenza ore:", difference, "Teoriche:", calculatedTheoreticalHours, "Effettive:", actualHours);
-
-          // Se c'è una differenza tra 0.4 e 0.6, assumiamo che la pausa sia stata applicata
+          
           if (difference >= 0.4 && difference <= 0.6) {
-            console.log("Pausa rilevata! Ore originali (teoriche): " + calculatedTheoreticalHours);
-
-            // IMPORTANTE: Impostiamo deliberatamente la pausa come attiva
             setPausaIncluded(true);
-
-            // IMPORTANTE: Impostiamo il totalHours alle ore teoriche, NON alle ore effettive
-            // Questo permette di visualizzare le ore originali nel popup
             setTotalHours(calculatedTheoreticalHours);
           } else {
             setPausaIncluded(false);
@@ -120,24 +164,16 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
         setMode('lavora');
       }
     }
-  }, [selectedCell, hotInstance]);
+  }, [selectedCell, hotInstance, motivazioni]);
 
   useEffect(() => {
-    // Utilizza un timeout per assicurarsi che il DOM sia già renderizzato
-    // e che lo stato pausaIncluded sia stato aggiornato completamente
     const timeoutId = setTimeout(() => {
-      // Forza direttamente lo stato della checkbox usando l'API DOM
       if (pausaCheckboxRef.current) {
-        // Usa il .checked direttamente per aggirare il controllo React
         pausaCheckboxRef.current.checked = pausaIncluded;
-
-        // Forza un event dispatch per simulare l'interazione utente
         const event = new Event('change', { bubbles: true });
         pausaCheckboxRef.current.dispatchEvent(event);
-
-        console.log("Checkbox forzata a:", pausaIncluded);
       }
-    }, 100); // Un ritardo più lungo per sicurezza
+    }, 100);
 
     return () => clearTimeout(timeoutId);
   }, [pausaIncluded]);
@@ -149,16 +185,13 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     const [startHours, startMinutes] = startTime.split(':').map(Number);
     const [endHours, endMinutes] = endTime.split(':').map(Number);
 
-    // Converti in minuti totali
     const startTotalMinutes = startHours * 60 + startMinutes;
     let endTotalMinutes = endHours * 60 + endMinutes;
 
-    // Gestisci il caso in cui il turno finisca il giorno dopo
     if (endTotalMinutes < startTotalMinutes) {
-      endTotalMinutes += 24 * 60; // Aggiungi un giorno in minuti
+      endTotalMinutes += 24 * 60;
     }
 
-    // Calcola la differenza in ore
     const diffMinutes = endTotalMinutes - startTotalMinutes;
     return parseFloat((diffMinutes / 60).toFixed(2));
   };
@@ -183,7 +216,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     const [endHours, endMinutes] = endTime.split(':').map(Number);
     let totalMinutes = endHours * 60 + endMinutes - hours * 60;
 
-    // Se il risultato è negativo, sottrai da un giorno intero
     if (totalMinutes < 0) {
       totalMinutes += 24 * 60;
     }
@@ -198,16 +230,25 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     setMode(newMode);
   };
 
-  useEffect(() => {
-    // Se il motivo cambia, aggiorna automaticamente la sigla
-    if (motivo !== 'nessuna') {
-      const selectedMotivazione = motivazioni.find(m => m.id === motivo);
-      if (selectedMotivazione && selectedMotivazione.sigla) {
-        setAbbr(selectedMotivazione.sigla);
-      }
-    } else {
-      setAbbr('');
-    }
+  // Gestisce il cambio di motivazione
+  const handleMotivoChange = (newMotivoId) => {
+    console.log('=== CAMBIO MOTIVO ===');
+    console.log('Nuovo motivo selezionato:', newMotivoId);
+    setMotivo(newMotivoId);
+  };
+
+  // Verifica se la motivazione corrente è "nessuna" (controllo per nome o id)
+  const isNessunaMotivazione = React.useMemo(() => {
+    if (!motivo || !motivazioni.length) return true;
+    
+    const currentMotivazione = motivazioni.find(m => String(m.id) === String(motivo));
+    const isNessuna = currentMotivazione && 
+      (currentMotivazione.nome?.toLowerCase().includes('nessuna') || 
+       currentMotivazione.id?.toLowerCase?.().includes('nessuna') ||
+       String(currentMotivazione.id).toLowerCase() === 'nessuna');
+    
+    console.log('Verifica nessuna:', { currentMotivazione, isNessuna });
+    return isNessuna;
   }, [motivo, motivazioni]);
 
   // Quando cambiano le ore totali, verifica se mostrare l'opzione pausa
@@ -239,8 +280,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
       const endMinutes = orarioFine.split(':').map(Number).reduce((acc, val, i) => i === 0 ? val * 60 : acc + val, 0);
 
       if (endMinutes <= startMinutes && endMinutes !== 0) {
-        // Se l'orario di fine è minore di quello di inizio, assumiamo che sia il giorno dopo
-        // Quindi valido solo se la differenza non è di un giorno intero (24 ore)
         if (startMinutes - endMinutes >= 24 * 60) {
           alert('L\'orario di fine deve essere successivo all\'orario di inizio.');
           return;
@@ -253,19 +292,28 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
       // Calcola le ore effettive considerando la pausa
       let effectiveHours = hoursWorked;
 
-      // Se le ore sono >= 6 e la checkbox è spuntata, sottrai 30 minuti per la pausa
       if (pausaIncluded && hoursWorked >= 6) {
         effectiveHours = hoursWorked - 0.5;
       }
 
       onSave({
         mode: 'lavora',
-        orarioInizio: orarioInizio,  // Nessun indicatore visibile esterno
+        orarioInizio: orarioInizio,
         orarioFine: orarioFine,
         effectiveHours: effectiveHours
       });
     } else {
-      // Modalità "a casa"
+      // Modalità "a casa" - validazione
+      if (isNessunaMotivazione) {
+        alert('Seleziona una motivazione valida.');
+        return;
+      }
+
+      if (!abbr) {
+        alert('La sigla è obbligatoria.');
+        return;
+      }
+
       onSave({
         mode: 'aCasa',
         motivo,
@@ -278,13 +326,11 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   const handleStartTimeChange = (value) => {
     setOrarioInizio(value);
 
-    // Se c'è già un orario di fine, calcola le ore
     if (orarioFine) {
       const hours = calculateHoursBetween(value, orarioFine);
       setTotalHours(hours);
       setTheoreticalHours(hours);
 
-      // Verifica se mostrare l'opzione pausa
       if (hours >= 6) {
         setShowPausaOption(true);
       } else {
@@ -299,12 +345,10 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     setOrarioFine(value);
 
     if (orarioInizio) {
-      // Calcola le ore totali
       const hours = calculateHoursBetween(orarioInizio, value);
       setTotalHours(hours);
       setTheoreticalHours(hours);
 
-      // Verifica se mostrare l'opzione pausa
       if (hours >= 6) {
         setShowPausaOption(true);
       } else {
@@ -433,7 +477,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                       </p>
                     </div>
                   )}
-
                 </div>
               )}
             </div>
@@ -457,7 +500,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                     <select
                       id="motivo"
                       value={motivo}
-                      onChange={(e) => setMotivo(e.target.value)}
+                      onChange={(e) => handleMotivoChange(e.target.value)}
                       required
                     >
                       {motivazioni.map(m => (
@@ -471,14 +514,22 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                     <input
                       type="text"
                       id="abbr"
-                      maxLength="2"
+                      maxLength="10"
                       placeholder="Sigla"
                       value={abbr}
                       onChange={(e) => setAbbr(e.target.value)}
-                      disabled={motivo === 'nessuna'}
-                      readOnly={motivo !== 'nessuna'}
+                      disabled={isNessunaMotivazione}
+                      style={{ 
+                        backgroundColor: !isNessunaMotivazione ? '#f8f9fa' : '#fff',
+                        color: !isNessunaMotivazione ? '#6c757d' : '#495057'
+                      }}
                     />
-                    <small className="info-text">La sigla viene impostata automaticamente in base alla motivazione</small>
+                    <small className="info-text">
+                      {!isNessunaMotivazione
+                        ? 'La sigla viene impostata automaticamente. Puoi modificarla se necessario.' 
+                        : 'Seleziona una motivazione per vedere la sigla automatica'
+                      }
+                    </small>
                   </div>
                 </div>
               )}
@@ -497,7 +548,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
           <button
             className="btn-primary"
             onClick={handleSubmit}
-            disabled={mode === 'aCasa' && motivo !== 'nessuna' && !abbr}
+            disabled={mode === 'aCasa' && (isNessunaMotivazione || !abbr)}
           >
             <i className="fas fa-check"></i> Conferma
           </button>

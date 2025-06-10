@@ -53,6 +53,14 @@ export const getTabellaByPeriodo = async (negozioId, anno, mese) => {
 export const saveTabella = async ({ negozioId, anno, mese, nome, dati }) => {
   const timestamp = new Date().toISOString();
   
+  console.log('🔵 saveTabella chiamata con:', {
+    negozioId,
+    anno,
+    mese,
+    nome,
+    datiKeys: dati ? Object.keys(dati) : 'null'
+  });
+  
   try {
     // Verifica se esiste già una tabella per questo periodo
     const { data: tabellaTrovata } = await supabase
@@ -68,21 +76,23 @@ export const saveTabella = async ({ negozioId, anno, mese, nome, dati }) => {
     // Se la tabella esiste, aggiornala
     if (tabellaTrovata) {
       tabellaId = tabellaTrovata.id;
+      console.log('📝 Aggiornamento tabella esistente:', tabellaId);
       
       await supabase
         .from('tabelle_turni')
         .update({
-          nome: nome || `Tabella ${mese+1}/${anno}`,
+          nome: nome || `Tabella ${parseInt(mese)+1}/${anno}`,
           aggiornato_il: timestamp
         })
         .eq('id', tabellaId);
     } 
     // Altrimenti, crea una nuova tabella
     else {
+      console.log('✨ Creazione nuova tabella');
       const { data: nuovaTabella } = await supabase
         .from('tabelle_turni')
         .insert({
-          nome: nome || `Tabella ${mese+1}/${anno}`,
+          nome: nome || `Tabella ${parseInt(mese)+1}/${anno}`,
           anno,
           mese,
           negozio_id: negozioId,
@@ -95,6 +105,40 @@ export const saveTabella = async ({ negozioId, anno, mese, nome, dati }) => {
       tabellaId = nuovaTabella.id;
     }
     
+    // IMPORTANTE: Assicuriamoci che tutti i dati vengano salvati
+    // Il problema era che probabilmente il componente passava i dati in un formato diverso
+    let datiCompleti = {};
+    let riepilogo = {};
+    let variazioniOrarie = {};
+    
+    // Se dati è un oggetto con proprietà data, riepilogo, employeeVariations
+    if (dati && typeof dati === 'object') {
+      if (dati.data) {
+        datiCompleti = dati.data;
+      } else {
+        // Se non c'è la proprietà data, assumiamo che tutto l'oggetto sia i dati
+        datiCompleti = dati;
+      }
+      
+      // Estrai riepilogo e variazioni se presenti
+      if (dati.riepilogo) {
+        riepilogo = dati.riepilogo;
+      }
+      
+      if (dati.employeeVariations) {
+        variazioniOrarie = dati.employeeVariations;
+      } else if (dati.variazioni_orarie) {
+        variazioniOrarie = dati.variazioni_orarie;
+      }
+    }
+    
+    console.log('💾 Dati da salvare:', {
+      datiCompletiKeys: Object.keys(datiCompleti),
+      riepilogoKeys: Object.keys(riepilogo),
+      variazioniOrarieKeys: Object.keys(variazioniOrarie),
+      primoGiorno: datiCompleti['1'] ? Object.keys(datiCompleti['1']).slice(0, 5) : 'nessuno'
+    });
+    
     // Ora gestisci i dati della tabella
     const { data: datiTrovati } = await supabase
       .from('dati_turni')
@@ -104,34 +148,41 @@ export const saveTabella = async ({ negozioId, anno, mese, nome, dati }) => {
     
     // Se esistono già i dati, aggiornali
     if (datiTrovati) {
+      console.log('📝 Aggiornamento dati_turni esistenti:', datiTrovati.id);
+      
       await supabase
         .from('dati_turni')
         .update({
-          dati: dati.data || {},
-          riepilogo: dati.riepilogo || {},
-          variazioni_orarie: dati.employeeVariations || {},
+          dati: datiCompleti,
+          riepilogo: riepilogo,
+          variazioni_orarie: variazioniOrarie,
           aggiornato_il: timestamp
         })
         .eq('id', datiTrovati.id);
     } 
     // Altrimenti, crea nuovi dati
     else {
+      console.log('✨ Creazione nuovi dati_turni');
+      
       await supabase
         .from('dati_turni')
         .insert({
           tabella_id: tabellaId,
-          dati: dati.data || {},
-          riepilogo: dati.riepilogo || {},
-          variazioni_orarie: dati.employeeVariations || {},
+          dati: datiCompleti,
+          riepilogo: riepilogo,
+          variazioni_orarie: variazioniOrarie,
           creato_il: timestamp,
           aggiornato_il: timestamp
         });
     }
     
     // Ritorna la tabella completa
-    return await getTabellaById(tabellaId);
+    const tabellaCompleta = await getTabellaById(tabellaId);
+    console.log('✅ Salvataggio completato');
+    return tabellaCompleta;
+    
   } catch (error) {
-    console.error('Errore nel salvataggio della tabella turni:', error);
+    console.error('❌ Errore nel salvataggio della tabella turni:', error);
     throw error;
   }
 };
