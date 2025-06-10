@@ -1,6 +1,6 @@
 // src/components/turni/TurniTableComponent.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { addNotification } from '../../app/slices/uiSlice';
 import CellPopup from './popups/CellPopup';
 import TimePopup from './popups/TimePopup';
@@ -53,7 +53,19 @@ const TurniTableComponent = ({
         orePagateRowIndex: 0,
         diffCorrenteRowIndex: 0
     });
-
+    const motivazioni = useSelector(state => {
+        try {
+            if (state.motivazioni && state.motivazioni.items && negozioId) {
+                return Array.isArray(state.motivazioni.items[negozioId])
+                    ? state.motivazioni.items[negozioId]
+                    : [];
+            }
+            return [];
+        } catch (error) {
+            console.error("Errore nell'accesso alle motivazioni:", error);
+            return [];
+        }
+    });
     // Array dei mesi con il numero corretto di giorni (considerando anche gli anni bisestili)
     const getDaysInMonth = (month, year) => {
         // Nota: month è 0-based (0-11)
@@ -217,7 +229,60 @@ const TurniTableComponent = ({
             setAllTimes(timesArray);
 
             // Crea la mappatura dei dipendenti
-            const pairToEmpArray = dipendenti.map(d => d.nomeTurno || `${d.nome} ${d.cognome.charAt(0)}.`);
+            const ruoloOrder = {
+                'responsabile': 1,
+                'vice-responsabile': 2, 
+                'vicepresidente': 2,  // Variante del vice-responsabile
+                'vice responsabile': 2, // Variante con spazio
+                'dipendente': 3,
+                'stagista': 4,
+                'altro': 5
+            };
+            
+            // Funzione helper per ottenere la priorità del ruolo
+            const getRuoloPriority = (ruolo) => {
+                if (!ruolo) return 999; // Se non c'è ruolo, metti alla fine
+                
+                const ruoloLower = ruolo.toLowerCase().trim();
+                
+                // Cerca corrispondenza esatta
+                if (ruoloOrder[ruoloLower] !== undefined) {
+                    return ruoloOrder[ruoloLower];
+                }
+                
+                // Cerca corrispondenze parziali per gestire varianti
+                if (ruoloLower.includes('responsabile') && ruoloLower.includes('vice')) {
+                    return 2; // vice-responsabile
+                } else if (ruoloLower.includes('responsabile')) {
+                    return 1; // responsabile
+                } else if (ruoloLower.includes('dipendente')) {
+                    return 3; // dipendente
+                } else if (ruoloLower.includes('stagista')) {
+                    return 4; // stagista
+                }
+                
+                return 5; // altro/default
+            };
+            
+            // Ordina i dipendenti per ruolo prima di creare la mappatura
+            const dipendentiOrdinati = [...dipendenti].sort((a, b) => {
+                const priorityA = getRuoloPriority(a.ruolo);
+                const priorityB = getRuoloPriority(b.ruolo);
+                
+                // Se hanno la stessa priorità, ordina per nome
+                if (priorityA === priorityB) {
+                    const nameA = a.nome || '';
+                    const nameB = b.nome || '';
+                    return nameA.localeCompare(nameB);
+                }
+                
+                return priorityA - priorityB;
+            });
+            
+            console.log('Dipendenti ordinati per ruolo:', dipendentiOrdinati.map(d => `${d.nome} (${d.ruolo})`));
+            
+            // Crea la mappatura dei dipendenti ordinati
+            const pairToEmpArray = dipendentiOrdinati.map(d => d.nomeTurno || `${d.nome} ${d.cognome.charAt(0)}.`);
             setPairToEmployee(pairToEmpArray);
 
             // Crea le ore settimanali per ogni dipendente
@@ -1499,7 +1564,8 @@ const TurniTableComponent = ({
     // Calcola le ore relative ai motivi (ferie, ROL, ex festività)
     const recalculateMotiveHours = () => {
         if (!hotRef.current) return;
-        console.log("Ricalcolo ore motivi");
+        console.log("=== INIZIO RICALCOLO ORE MOTIVI ===");
+        console.log("Motivazioni disponibili:", motivazioni);
 
         // Arrays per i totali dei motivi
         const ferieTotals = Array(pairToEmployee.length).fill(0);
@@ -1508,9 +1574,39 @@ const TurniTableComponent = ({
 
         const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
 
+        // **FUNZIONE HELPER**: Determina il tipo di motivazione in base al nome o ID
+        const getMotivationType = (motivoValue) => {
+            console.log("Analizzando motivo:", motivoValue);
+
+            // Se il valore è un numero, cerca per ID
+            if (!isNaN(motivoValue)) {
+                const motivazione = motivazioni.find(m => String(m.id) === String(motivoValue));
+                if (motivazione) {
+                    console.log("Trovata motivazione per ID:", motivazione);
+                    return motivazione.nome.toLowerCase();
+                }
+            }
+
+            // Altrimenti cerca per nome
+            const motivazione = motivazioni.find(m =>
+                m.nome.toLowerCase() === motivoValue.toLowerCase() ||
+                m.sigla.toLowerCase() === motivoValue.toLowerCase()
+            );
+
+            if (motivazione) {
+                console.log("Trovata motivazione per nome/sigla:", motivazione);
+                return motivazione.nome.toLowerCase();
+            }
+
+            // Se non trova nulla, ritorna il valore originale
+            console.log("Motivazione non trovata, uso valore originale:", motivoValue);
+            return motivoValue.toLowerCase();
+        };
+
         // Per ogni dipendente
         for (let pairIndex = 0; pairIndex < pairToEmployee.length; pairIndex++) {
             const emp = pairToEmployee[pairIndex];
+            console.log(`\n--- Dipendente: ${emp} ---`);
 
             // Per ogni giorno del mese
             for (let day = 1; day <= giorniNelMese; day++) {
@@ -1520,20 +1616,31 @@ const TurniTableComponent = ({
                 // Se c'è una "X" nella cella "inizio" e un valore con "|" nella cella "fine"
                 if (inizio === "X" && fine && fine.indexOf("|") !== -1) {
                     const parts = fine.split("|");
-                    const motive = parts[0].trim().toLowerCase();
+                    const motivoValue = parts[0].trim();
+
+                    console.log(`Giorno ${day}: Trovata assenza con motivo "${motivoValue}"`);
+
+                    // Usa la funzione helper per determinare il tipo
+                    const motiveType = getMotivationType(motivoValue);
+                    console.log(`Tipo motivazione determinato: "${motiveType}"`);
 
                     // Calcola le ore giornaliere per il dipendente
                     const rowDate = new Date(parseInt(anno), parseInt(mese), day);
-                    let oreSettimanali = employees[emp];
+                    let oreSettimanali = employees[emp] || 0;
+
+                    console.log(`Ore settimanali base: ${oreSettimanali}`);
 
                     // Controllo variazioni orarie
-                    if (employeeVariations[emp]) {
+                    if (employeeVariations[emp] && employeeVariations[emp].length > 0) {
+                        console.log("Variazioni orarie trovate:", employeeVariations[emp]);
+
                         for (let i = 0; i < employeeVariations[emp].length; i++) {
                             const entry = employeeVariations[emp][i];
                             const startDate = new Date(entry.start + "T00:00:00");
                             const endDate = new Date(entry.end + "T00:00:00");
 
                             if (rowDate >= startDate && rowDate <= endDate) {
+                                console.log(`Applicata variazione: ${oreSettimanali} -> ${entry.hours}`);
                                 oreSettimanali = entry.hours;
                                 break;
                             }
@@ -1542,21 +1649,29 @@ const TurniTableComponent = ({
 
                     // Calcola ore giornaliere
                     const oreGiornaliere = oreSettimanali / giorniLavorativiSettimanali;
-                    console.log(`Giorno ${day}, Dipendente ${emp}, Motivo ${motive}, Ore ${oreGiornaliere}`);
+                    console.log(`Ore giornaliere calcolate: ${oreGiornaliere} (${oreSettimanali}/${giorniLavorativiSettimanali})`);
 
-                    // Aggiungi al totale corrispondente
-                    if (motive === "ferie") {
+                    // **MATCHING MIGLIORATO**: Aggiungi al totale corrispondente
+                    if (motiveType.includes("ferie")) {
                         ferieTotals[pairIndex] += oreGiornaliere;
-                    } else if (motive === "rol") {
+                        console.log(`✓ Aggiunto a FERIE: +${oreGiornaliere} (totale: ${ferieTotals[pairIndex]})`);
+                    } else if (motiveType.includes("rol")) {
                         rolTotals[pairIndex] += oreGiornaliere;
-                    } else if (motive === "exfestivita") {
+                        console.log(`✓ Aggiunto a ROL: +${oreGiornaliere} (totale: ${rolTotals[pairIndex]})`);
+                    } else if (motiveType.includes("ex") || motiveType.includes("festiv")) {
                         exFestivitaTotals[pairIndex] += oreGiornaliere;
+                        console.log(`✓ Aggiunto a EX FESTIVITÀ: +${oreGiornaliere} (totale: ${exFestivitaTotals[pairIndex]})`);
+                    } else {
+                        console.log(`⚠ Motivo "${motiveType}" non riconosciuto per il calcolo ore`);
                     }
                 }
             }
 
             // Imposta i valori nella tabella
-            console.log(`Dipendente ${emp}: Ferie=${ferieTotals[pairIndex]}, ROL=${rolTotals[pairIndex]}, Ex Festività=${exFestivitaTotals[pairIndex]}`);
+            console.log(`\nRISULTATI FINALI per ${emp}:`);
+            console.log(`- Ferie: ${ferieTotals[pairIndex]}`);
+            console.log(`- ROL: ${rolTotals[pairIndex]}`);
+            console.log(`- Ex Festività: ${exFestivitaTotals[pairIndex]}`);
 
             hotRef.current.hotInstance.setDataAtCell(
                 summaryRows.ferieRowIndex,
@@ -1580,10 +1695,11 @@ const TurniTableComponent = ({
             );
         }
 
+        console.log("=== FINE RICALCOLO ORE MOTIVI ===");
+
         // Forza il rendering della tabella
         hotRef.current.hotInstance.render();
     };
-
     // Funzione per ricalcolare tutti i totali
     const recalculateAllTotals = () => {
         if (!hotRef.current || !hotRef.current.hotInstance) {
@@ -1753,14 +1869,26 @@ const TurniTableComponent = ({
             hotRef.current.hotInstance.setDataAtCell(row, inizioCol, "X");
             hotRef.current.hotInstance.setCellMeta(row, inizioCol, "className", "htCenter");
 
-            const motivo = cellData.motivo || "nessuna";
+            // **FIX CRUCIALE**: Trova la motivazione e usa il NOME invece dell'ID
+            let motivoNome = cellData.motivo || "nessuna";
             const abbr = cellData.abbr || "";
+
+            // Se cellData.motivo è un ID numerico, trova il nome corrispondente
+            if (!isNaN(cellData.motivo) && motivazioni.length > 0) {
+                const motivazione = motivazioni.find(m => String(m.id) === String(cellData.motivo));
+                if (motivazione) {
+                    motivoNome = motivazione.nome;
+                    console.log(`Conversione ID -> Nome: ${cellData.motivo} -> ${motivoNome}`);
+                }
+            }
 
             hotRef.current.hotInstance.setDataAtCell(
                 row,
                 inizioCol + 1,
-                `${motivo}|${abbr}`
+                `${motivoNome}|${abbr}`
             );
+
+            console.log(`Salvato: X + "${motivoNome}|${abbr}"`);
         }
 
         // Chiudi il popup

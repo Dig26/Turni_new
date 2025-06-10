@@ -26,8 +26,7 @@ function DipendenteForm({ negozioId, dipendenteId }) {
   
   const ruoliOptions = [
     { value: 'dipendente', label: 'Dipendente' },
-    { value: 'direttore', label: 'Direttore' },
-    { value: 'vice-direttore', label: 'Vice-Direttore' },
+    { value: 'vice-responsabile', label: 'Vice-Responsabile' },
     { value: 'responsabile', label: 'Responsabile' },
     { value: 'stagista', label: 'Stagista' },
     { value: 'altro', label: 'Altro' }
