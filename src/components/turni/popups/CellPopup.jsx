@@ -35,11 +35,8 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
   // Inizializza il motivo di default dopo che le motivazioni sono caricate
   useEffect(() => {
     if (motivazioni.length > 0 && !motivo) {
-      // Trova la prima motivazione o usa la prima disponibile come default
-      const defaultMotivazione = motivazioni.find(m => 
-        m.nome?.toLowerCase().includes('ferie') || 
-        m.nome?.toLowerCase().includes('assenza')
-      ) || motivazioni[0];
+      // Trova la motivazione con ordine = 0, altrimenti usa la prima disponibile
+      const defaultMotivazione = motivazioni.find(m => m.ordine === 0) || motivazioni[0];
       
       if (defaultMotivazione) {
         setMotivo(defaultMotivazione.id);
@@ -54,17 +51,19 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     
     if (motivo && motivazioni.length > 0) {
       const selectedMotivazione = motivazioni.find(m => {
-        // Confronto sia con id che con nome per sicurezza
-        return m.id === motivo || m.nome === motivo;
+        // Confronto robusto convertendo entrambi i valori in stringa
+        return String(m.id) === String(motivo) || String(m.nome) === String(motivo);
       });
       
       console.log('Motivazione selezionata:', selectedMotivazione);
       
-      if (selectedMotivazione && selectedMotivazione.sigla) {
-        console.log('Aggiornamento sigla a:', selectedMotivazione.sigla);
-        setAbbr(selectedMotivazione.sigla);
+      if (selectedMotivazione) {
+        // Aggiorna la sigla se presente, altrimenti imposta stringa vuota
+        const siglaToSet = selectedMotivazione.sigla || '';
+        console.log('Aggiornamento sigla a:', siglaToSet);
+        setAbbr(siglaToSet);
       } else {
-        console.log('Nessuna sigla trovata per la motivazione');
+        console.log('Nessuna motivazione trovata per il motivo:', motivo);
         setAbbr('');
       }
     } else {
@@ -237,20 +236,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
     setMotivo(newMotivoId);
   };
 
-  // Verifica se la motivazione corrente è "nessuna" (controllo per nome o id)
-  const isNessunaMotivazione = React.useMemo(() => {
-    if (!motivo || !motivazioni.length) return true;
-    
-    const currentMotivazione = motivazioni.find(m => String(m.id) === String(motivo));
-    const isNessuna = currentMotivazione && 
-      (currentMotivazione.nome?.toLowerCase().includes('nessuna') || 
-       currentMotivazione.id?.toLowerCase?.().includes('nessuna') ||
-       String(currentMotivazione.id).toLowerCase() === 'nessuna');
-    
-    console.log('Verifica nessuna:', { currentMotivazione, isNessuna });
-    return isNessuna;
-  }, [motivo, motivazioni]);
-
   // Quando cambiano le ore totali, verifica se mostrare l'opzione pausa
   useEffect(() => {
     if (totalHours >= 6) {
@@ -303,17 +288,7 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
         effectiveHours: effectiveHours
       });
     } else {
-      // Modalità "a casa" - validazione
-      if (isNessunaMotivazione) {
-        alert('Seleziona una motivazione valida.');
-        return;
-      }
-
-      if (!abbr) {
-        alert('La sigla è obbligatoria.');
-        return;
-      }
-
+      // Modalità "a casa" - sempre permessa se c'è una motivazione selezionata
       onSave({
         mode: 'aCasa',
         motivo,
@@ -518,17 +493,13 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
                       placeholder="Sigla"
                       value={abbr}
                       onChange={(e) => setAbbr(e.target.value)}
-                      disabled={isNessunaMotivazione}
                       style={{ 
-                        backgroundColor: !isNessunaMotivazione ? '#f8f9fa' : '#fff',
-                        color: !isNessunaMotivazione ? '#6c757d' : '#495057'
+                        backgroundColor: '#fff',
+                        color: '#495057'
                       }}
                     />
                     <small className="info-text">
-                      {!isNessunaMotivazione
-                        ? 'La sigla viene impostata automaticamente. Puoi modificarla se necessario.' 
-                        : 'Seleziona una motivazione per vedere la sigla automatica'
-                      }
+                      La sigla viene impostata automaticamente quando disponibile. Puoi sempre modificarla manualmente o lasciarla vuota.
                     </small>
                   </div>
                 </div>
@@ -548,7 +519,6 @@ const CellPopup = ({ onClose, onSave, allTimes, selectedCell, hotInstance }) => 
           <button
             className="btn-primary"
             onClick={handleSubmit}
-            disabled={mode === 'aCasa' && (isNessunaMotivazione || !abbr)}
           >
             <i className="fas fa-check"></i> Conferma
           </button>
