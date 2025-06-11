@@ -106,7 +106,7 @@ export const saveNegozio = async (negozioData, id = null) => {
 const inserisciMotivazioniPredefinite = async (negozioId) => {
   const motivazioniPredefinite = [
     {
-      nome: 'Nessuna',
+      nome: 'Riposo',
       sigla: '',
       predefinita: true,
       calcola_ore: false,

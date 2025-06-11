@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { objectKeysToSnake, objectKeysToCamel } from '../../utils/caseConverters';
 
 // Configurazione Supabase con fallback
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'http://127.0.0.1:54321';
-const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://plrooiyopvzpkuyetcvh.supabase.co';
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBscm9vaXlvcHZ6cGt1eWV0Y3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NTIwNjYsImV4cCI6MjA2NTEyODA2Nn0.hfgaIFZB7yY_teUlTB5KjswjvGTG3gEVBigG8lX6ggM';
 
 // Log della configurazione (senza mostrare la chiave completa)
 console.log('🔧 Supabase Config:');
