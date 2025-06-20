@@ -166,24 +166,86 @@ const TurniTableComponent = ({
     }, [negozioId, anno, mese, dipendenti, isNewTable, initialData]);
 
     // Effect specifico per aggiornare le ore pagate all'avvio della tabella
+    // Gestione custom dei click per evitare apertura popup su touchstart
     useEffect(() => {
-        if (!loading && hotRef.current && hotRef.current.hotInstance && data.length > 0) {
-            // Breve timeout per garantire che la tabella sia completamente renderizzata
-            const timeoutId = setTimeout(() => {
-                console.log("Esecuzione calcoli iniziali...");
+        const hotContainer = hotRef.current?.hotInstance?.rootElement;
+        if (!hotContainer) return;
 
-                try {
-                    // Ricalcola tutti i totali una volta che la tabella è caricata
-                    recalculateAllTotals();
-                } catch (error) {
-                    console.error("Errore nell'esecuzione dei calcoli iniziali:", error);
-                }
-            }, 500);
+        let startCoords = null;
+        let startTime = 0;
 
-            return () => clearTimeout(timeoutId);
-        }
-    }, [loading, data]);
+        const handlePointerStart = (e) => {
+            startTime = Date.now();
+            // Memorizza le coordinate di partenza
+            const touch = e.touches ? e.touches[0] : e;
+            startCoords = { x: touch.clientX, y: touch.clientY };
+        };
 
+        const handlePointerEnd = (e) => {
+            if (!startCoords) return;
+
+            const endTime = Date.now();
+            const timeDiff = endTime - startTime;
+
+            // Ignora se è stato un movimento prolungato (probabile scroll)
+            if (timeDiff > 300) {
+                startCoords = null;
+                return;
+            }
+
+            // Calcola la distanza del movimento
+            const touch = e.changedTouches ? e.changedTouches[0] : e;
+            const distanceX = Math.abs(touch.clientX - startCoords.x);
+            const distanceY = Math.abs(touch.clientY - startCoords.y);
+
+            // Se c'è stato troppo movimento, ignora (probabile scroll)
+            if (distanceX > 10 || distanceY > 10) {
+                startCoords = null;
+                return;
+            }
+
+            // Ottieni la cella sotto il punto di rilascio
+            const cellElement = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!cellElement) {
+                startCoords = null;
+                return;
+            }
+
+            // Trova la cella Handsontable più vicina
+            const hotCell = cellElement.closest('td');
+            if (!hotCell || !hotRef.current?.hotInstance) {
+                startCoords = null;
+                return;
+            }
+
+            // Ottieni le coordinate della cella
+            const row = hotCell.parentNode.rowIndex;
+            const col = hotCell.cellIndex;
+
+            // Verifica che le coordinate siano valide
+            if (row >= 0 && col >= 0) {
+                handleCellClick(e, { row, col });
+            }
+
+            startCoords = null;
+        };
+
+        // Aggiungi event listeners
+        hotContainer.addEventListener('mousedown', handlePointerStart);
+        hotContainer.addEventListener('mouseup', handlePointerEnd);
+        hotContainer.addEventListener('touchstart', handlePointerStart, { passive: true });
+        hotContainer.addEventListener('touchend', handlePointerEnd, { passive: true });
+
+        // Cleanup
+        return () => {
+            if (hotContainer) {
+                hotContainer.removeEventListener('mousedown', handlePointerStart);
+                hotContainer.removeEventListener('mouseup', handlePointerEnd);
+                hotContainer.removeEventListener('touchstart', handlePointerStart);
+                hotContainer.removeEventListener('touchend', handlePointerEnd);
+            }
+        };
+    }, [loading, data]); // Re-esegui quando la tabella viene ricaricata
     // Aggiungi questa funzione per forzare immediatamente il ricalcolo dopo che le variazioni sono state aggiornate
     useEffect(() => {
         // Questo effetto si attiva quando employeeVariations cambia
@@ -231,25 +293,25 @@ const TurniTableComponent = ({
             // Crea la mappatura dei dipendenti
             const ruoloOrder = {
                 'responsabile': 1,
-                'vice-responsabile': 2, 
+                'vice-responsabile': 2,
                 'vicepresidente': 2,  // Variante del vice-responsabile
                 'vice responsabile': 2, // Variante con spazio
                 'dipendente': 3,
                 'stagista': 4,
                 'altro': 5
             };
-            
+
             // Funzione helper per ottenere la priorità del ruolo
             const getRuoloPriority = (ruolo) => {
                 if (!ruolo) return 999; // Se non c'è ruolo, metti alla fine
-                
+
                 const ruoloLower = ruolo.toLowerCase().trim();
-                
+
                 // Cerca corrispondenza esatta
                 if (ruoloOrder[ruoloLower] !== undefined) {
                     return ruoloOrder[ruoloLower];
                 }
-                
+
                 // Cerca corrispondenze parziali per gestire varianti
                 if (ruoloLower.includes('responsabile') && ruoloLower.includes('vice')) {
                     return 2; // vice-responsabile
@@ -260,27 +322,27 @@ const TurniTableComponent = ({
                 } else if (ruoloLower.includes('stagista')) {
                     return 4; // stagista
                 }
-                
+
                 return 5; // altro/default
             };
-            
+
             // Ordina i dipendenti per ruolo prima di creare la mappatura
             const dipendentiOrdinati = [...dipendenti].sort((a, b) => {
                 const priorityA = getRuoloPriority(a.ruolo);
                 const priorityB = getRuoloPriority(b.ruolo);
-                
+
                 // Se hanno la stessa priorità, ordina per nome
                 if (priorityA === priorityB) {
                     const nameA = a.nome || '';
                     const nameB = b.nome || '';
                     return nameA.localeCompare(nameB);
                 }
-                
+
                 return priorityA - priorityB;
             });
-            
+
             console.log('Dipendenti ordinati per ruolo:', dipendentiOrdinati.map(d => `${d.nome} (${d.ruolo})`));
-            
+
             // Crea la mappatura dei dipendenti ordinati
             const pairToEmpArray = dipendentiOrdinati.map(d => d.nomeTurno || `${d.nome} ${d.cognome.charAt(0)}.`);
             setPairToEmployee(pairToEmpArray);
@@ -2209,7 +2271,6 @@ const TurniTableComponent = ({
                             rowHeaders={false}
                             height="auto"
                             licenseKey="non-commercial-and-evaluation"
-                            afterOnCellMouseDown={handleCellClick}
                             beforeOnCellDblClick={handleBeforeCellDblClick}
                             afterChange={handleAfterChange}
                             columns={buildColumnsFromUnits()}
