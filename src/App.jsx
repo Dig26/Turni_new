@@ -7,6 +7,8 @@ import { useTheme } from './hooks/useTheme';
 // Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import EmailConfirmationPage from './pages/EmailConfirmationPage';
+import EmailConfirmedPage from './pages/EmailConfirmedPage';
 import DashboardPage from './pages/DashboardPage';
 import NegoziPage from './pages/NegoziPage';
 import NegozioFormPage from './pages/NegozioFormPage';
@@ -129,7 +131,7 @@ function App() {
   };
 
   // Verifica se la rotta corrente è pubblica
-  const isPublicRoute = ['/login', '/register'].includes(location.pathname);
+  const isPublicRoute = ['/login', '/register', '/email-confirmation', '/email-confirmed'].includes(location.pathname);
 
   // Determina se mostrare il loading
   const shouldShowLoading = !initialized && loading && !initTimeout && !initializationFailed;
@@ -209,6 +211,14 @@ function App() {
               isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />
             } 
           />
+          <Route 
+            path="/email-confirmation" 
+            element={<EmailConfirmationPage />} 
+          />
+          <Route 
+            path="/email-confirmed" 
+            element={<EmailConfirmedPage />} 
+          />
 
           {/* Rotte protette */}
           <Route path="/dashboard" element={
@@ -282,7 +292,7 @@ function App() {
 
       {/* Componenti globali */}
       <NotificationsContainer />
-      <ConfirmationDialog />
+      <ConfirmationDialog /> 
     </div>
   );
 }

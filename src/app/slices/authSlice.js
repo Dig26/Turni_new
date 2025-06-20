@@ -1,4 +1,4 @@
-// src/app/slices/authSlice.js
+// src/app/slices/authSlice.js - VERSIONE PRODUCTION-READY
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as authService from '../../services/authService';
 
@@ -17,7 +17,7 @@ export const login = createAsyncThunk(
     try {
       console.log('🔄 Redux login thunk per:', email);
       const user = await authService.login(email, password);
-      console.log('✅ Redux login success:', user);
+      console.log('✅ Redux login success:', user?.email);
       return user;
     } catch (error) {
       console.error('❌ Redux login error:', error);
@@ -33,7 +33,7 @@ export const register = createAsyncThunk(
     try {
       console.log('🔄 Redux register thunk per:', email);
       const user = await authService.register(nome, cognome, email, password);
-      console.log('✅ Redux register success:', user);
+      console.log('✅ Redux register success:', user?.email);
       return user;
     } catch (error) {
       console.error('❌ Redux register error:', error);
@@ -66,19 +66,10 @@ export const initializeAuth = createAsyncThunk(
     try {
       console.log('🔄 Redux initialize auth thunk');
       
-      // Aggiungi un timeout per evitare blocchi infiniti
-      const initPromise = authService.getCurrentUser();
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => {
-          console.log('⚠️ Initialize timeout - returning null');
-          resolve(null);
-        }, 3000); // 3 secondi di timeout
-      });
-      
-      const user = await Promise.race([initPromise, timeoutPromise]);
+      const user = await authService.initializeAuth();
       
       if (user) {
-        console.log('✅ Redux initialize success:', user);
+        console.log('✅ Redux initialize success:', user.email);
         return user;
       } else {
         console.log('ℹ️ Redux initialize: nessun utente');
@@ -98,10 +89,11 @@ const authSlice = createSlice({
   reducers: {
     // Azioni sincrone
     setUser: (state, action) => {
-      console.log('📝 Redux setUser:', action.payload);
+      console.log('📝 Redux setUser:', action.payload?.email || 'null');
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
       state.error = null;
+      state.initialized = true;
     },
     clearAuth: (state) => {
       console.log('🧹 Redux clearAuth');
@@ -109,12 +101,13 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       state.loading = false;
-      state.initialized = true; // Importante: settiamo initialized a true anche quando puliamo
+      state.initialized = true;
     },
     clearError: (state) => {
       state.error = null;
     },
     setInitialized: (state, action) => {
+      console.log('📝 Redux setInitialized:', action.payload);
       state.initialized = action.payload;
     }
   },
@@ -122,10 +115,12 @@ const authSlice = createSlice({
     // Login
     builder
       .addCase(login.pending, (state) => {
+        console.log('🔄 Redux login.pending');
         state.loading = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
+        console.log('✅ Redux login.fulfilled:', action.payload?.email);
         state.user = action.payload;
         state.isAuthenticated = true;
         state.loading = false;
@@ -133,6 +128,7 @@ const authSlice = createSlice({
         state.initialized = true;
       })
       .addCase(login.rejected, (state, action) => {
+        console.log('❌ Redux login.rejected:', action.payload);
         state.loading = false;
         state.error = action.payload;
         state.user = null;
@@ -143,10 +139,12 @@ const authSlice = createSlice({
     // Register
     builder
       .addCase(register.pending, (state) => {
+        console.log('🔄 Redux register.pending');
         state.loading = true;
         state.error = null;
       })
       .addCase(register.fulfilled, (state, action) => {
+        console.log('✅ Redux register.fulfilled:', action.payload?.email);
         state.user = action.payload;
         state.isAuthenticated = true;
         state.loading = false;
@@ -154,6 +152,7 @@ const authSlice = createSlice({
         state.initialized = true;
       })
       .addCase(register.rejected, (state, action) => {
+        console.log('❌ Redux register.rejected:', action.payload);
         state.loading = false;
         state.error = action.payload;
         state.user = null;
@@ -164,9 +163,11 @@ const authSlice = createSlice({
     // Logout
     builder
       .addCase(logoutUser.pending, (state) => {
+        console.log('🔄 Redux logout.pending');
         state.loading = true;
       })
       .addCase(logoutUser.fulfilled, (state) => {
+        console.log('✅ Redux logout.fulfilled');
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
@@ -174,7 +175,7 @@ const authSlice = createSlice({
         state.initialized = true;
       })
       .addCase(logoutUser.rejected, (state) => {
-        // Anche se il logout fallisce, pulisci lo stato locale
+        console.log('⚠️ Redux logout.rejected - pulisco comunque');
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
@@ -184,10 +185,13 @@ const authSlice = createSlice({
     // Initialize
     builder
       .addCase(initializeAuth.pending, (state) => {
-        state.loading = true;
-        // Non settiamo initialized a false qui per evitare loop
+        console.log('🔄 Redux initializeAuth.pending');
+        if (!state.initialized) {
+          state.loading = true;
+        }
       })
       .addCase(initializeAuth.fulfilled, (state, action) => {
+        console.log('✅ Redux initializeAuth.fulfilled:', action.payload?.email || 'null');
         if (action.payload) {
           state.user = action.payload;
           state.isAuthenticated = true;
@@ -200,11 +204,11 @@ const authSlice = createSlice({
         state.initialized = true;
       })
       .addCase(initializeAuth.rejected, (state, action) => {
-        // Anche se fallisce, settiamo initialized a true
+        console.log('⚠️ Redux initializeAuth.rejected - continuo comunque');
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
-        state.error = null; // Non salvare l'errore per evitare problemi
+        state.error = null;
         state.initialized = true;
       });
   }

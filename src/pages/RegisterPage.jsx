@@ -83,7 +83,13 @@ const RegisterPage = () => {
       ).unwrap();
       
       console.log('✅ Registrazione riuscita:', result);
-      navigate('/dashboard');
+      // Reindirizza alla pagina di conferma email invece che alla dashboard
+      navigate('/email-confirmation', { 
+        state: { 
+          email: formData.email,
+          fromRegistration: true 
+        } 
+      });
       
     } catch (error) {
       console.error('❌ Errore di registrazione:', error);

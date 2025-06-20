@@ -1,278 +1,386 @@
-// services/authService.js
+// services/authService.js - VERSIONE PRODUCTION-READY (locale + online)
 import { supabase } from './api/apiClient';
 
-// Funzione per ottenere l'utente corrente con timeout
-export const getCurrentUser = async () => {
+// Cache per evitare chiamate multiple
+let userCache = null;
+let sessionCache = null;
+let cacheTime = 0;
+const CACHE_DURATION = 30000; // 30 secondi
+
+// Helper per timeout
+const withTimeout = (promise, timeoutMs = 5000) => {
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]);
+};
+
+// Helper per attendere che Supabase sia pronto
+const waitForSupabaseReady = async () => {
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const { data } = await withTimeout(supabase.auth.getSession(), 2000);
+      console.log('✅ Supabase ready');
+      return data;
+    } catch (error) {
+      attempts++;
+      console.log(`⏳ Waiting for Supabase (attempt ${attempts}/${maxAttempts})`);
+      if (attempts === maxAttempts) throw error;
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+};
+
+// Funzione per ottenere l'utente dalla sessione (più affidabile di getUser)
+const getUserFromSession = async () => {
   try {
-    // Imposta un timeout per evitare attese infinite
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout getting user')), 5000)
-    );
+    const { data: sessionData, error } = await withTimeout(supabase.auth.getSession(), 3000);
     
-    const getUserPromise = async () => {
-      // Ottieni l'utente da Supabase Auth
-      const { data: authUser, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !authUser?.user) {
-        console.log('ℹ️ Nessun utente autenticato');
-        return null;
-      }
-      
-      console.log('👤 Utente Auth trovato:', authUser.user.email);
-      
-      // Cerca l'utente nella tabella utenti tramite email
-      const { data: dbUser, error: dbError } = await supabase
+    if (error || !sessionData?.session?.user) {
+      console.log('ℹ️ No active session');
+      return null;
+    }
+    
+    const authUser = sessionData.session.user;
+    console.log('✅ Session user found:', authUser.email);
+    
+    // Ora cerca l'utente nella tabella utenti usando l'email
+    const { data: dbUser, error: dbError } = await withTimeout(
+      supabase
         .from('utenti')
         .select('*')
-        .eq('email', authUser.user.email)
-        .single();
-      
-      if (dbError) {
-        console.error('❌ Errore ricerca utente in tabella:', dbError);
-        
-        // Se l'utente non esiste nella tabella ma è in Auth, è un problema
-        if (dbError.code === 'PGRST116') { // Not found
-          console.error('❌ PROBLEMA: Utente in Auth ma non in tabella utenti!');
-          console.log('🔧 Prova a fare logout e registrarti di nuovo');
-        }
-        return null;
-      }
-      
-      console.log('✅ Utente trovato nella tabella:', dbUser);
-      return dbUser;
-    };
+        .eq('email', authUser.email)
+        .single(),
+      3000
+    );
     
-    // Race tra la promise dell'utente e il timeout
-    const result = await Promise.race([getUserPromise(), timeoutPromise]);
-    return result;
+    if (dbError) {
+      console.error('❌ Error getting user from database:', dbError.message);
+      
+      if (dbError.code === 'PGRST116') { // Not found
+        console.warn('⚠️ User exists in auth but not in utenti table');
+        
+        // Tentativo di auto-sincronizzazione
+        console.log('🔄 Attempting to sync user to database...');
+        try {
+          const { data: newUser, error: insertError } = await supabase
+            .from('utenti')
+            .insert({
+              nome: authUser.user_metadata?.nome || authUser.email.split('@')[0],
+              cognome: authUser.user_metadata?.cognome || 'User',
+              email: authUser.email,
+              password: 'managed_by_supabase_auth',
+              role: authUser.user_metadata?.role || 'user'
+            })
+            .select()
+            .single();
+          
+          if (insertError) {
+            console.error('❌ Failed to sync user:', insertError.message);
+            return null;
+          }
+          
+          console.log('✅ User synced successfully:', newUser);
+          return newUser;
+          
+        } catch (syncError) {
+          console.error('❌ Sync attempt failed:', syncError);
+          return null;
+        }
+      }
+      return null;
+    }
+    
+    console.log('✅ Database user found:', { id: dbUser.id, email: dbUser.email });
+    return dbUser;
     
   } catch (error) {
-    console.error('❌ Errore getCurrentUser:', error);
+    console.error('❌ Error in getUserFromSession:', error.message);
     return null;
   }
 };
 
-// Funzione per registrare un nuovo utente
-export const register = async (nome, cognome, email, password) => {
-  console.log('🔄 Inizio registrazione per:', email);
+// Funzione principale per ottenere l'utente corrente
+export const getCurrentUser = async () => {
+  console.log('🔍 getCurrentUser called');
+  
+  // Usa cache se è fresca
+  const now = Date.now();
+  if (userCache && (now - cacheTime) < CACHE_DURATION) {
+    console.log('✅ Using cached user:', userCache?.email);
+    return userCache;
+  }
   
   try {
-    // PASSO 1: Registrazione in Supabase Auth
-    console.log('📝 Passo 1: Registrazione Supabase Auth...');
+    await waitForSupabaseReady();
+    const user = await getUserFromSession();
     
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          nome,
-          cognome,
-          role: 'user'
+    // Aggiorna cache
+    userCache = user;
+    cacheTime = now;
+    
+    if (user) {
+      console.log('✅ getCurrentUser success:', user.email);
+    } else {
+      console.log('ℹ️ getCurrentUser: no user');
+    }
+    
+    return user;
+    
+  } catch (error) {
+    console.error('❌ getCurrentUser error:', error.message);
+    return null;
+  }
+};
+
+// Login
+export const login = async (email, password) => {
+  console.log('🔄 Login start:', email);
+  
+  try {
+    // Clear cache
+    userCache = null;
+    sessionCache = null;
+    
+    await waitForSupabaseReady();
+    
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password }),
+      10000
+    );
+    
+    if (error) {
+      console.error('❌ Auth login error:', error.message);
+      throw new Error(error.message);
+    }
+    
+    console.log('✅ Auth login success:', data.user?.email);
+    
+    // Aspetta un momento per permettere al session state di aggiornarsi
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Ottieni l'utente completo
+    const user = await getCurrentUser();
+    
+    if (!user) {
+      throw new Error('Login riuscito ma impossibile recuperare i dati utente');
+    }
+    
+    console.log('🎉 Login completed:', user.email);
+    return user;
+    
+  } catch (error) {
+    console.error('❌ Login failed:', error.message);
+    throw error;
+  }
+};
+
+// Register
+export const register = async (nome, cognome, email, password) => {
+  console.log('🔄 Register start:', email);
+  
+  try {
+    // Clear cache
+    userCache = null;
+    sessionCache = null;
+    
+    await waitForSupabaseReady();
+    
+    // Registrazione in Supabase Auth
+    const { data: authData, error: authError } = await withTimeout(
+      supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { nome, cognome, role: 'user' }
         }
-      }
-    });
+      }),
+      10000
+    );
     
     if (authError) {
-      console.error('❌ Errore Supabase Auth:', authError);
+      console.error('❌ Auth register error:', authError.message);
       throw new Error(authError.message);
     }
     
     if (!authData.user) {
-      throw new Error('Registrazione fallita - nessun utente creato in Auth');
+      throw new Error('Registrazione fallita - nessun utente creato');
     }
     
-    console.log('✅ Passo 1 completato - Utente Auth creato:', authData.user.email);
+    console.log('✅ Auth register success:', authData.user.email);
     
-    // PASSO 2: Inserimento nella tabella utenti (OBBLIGATORIO)
-    console.log('📝 Passo 2: Inserimento nella tabella utenti...');
-    
-    const { data: dbUser, error: dbError } = await supabase
-      .from('utenti')
-      .insert({
-        nome,
-        cognome,
-        email,
-        password: 'managed_by_supabase_auth', // Placeholder
-        role: 'user'
-      })
-      .select()
-      .single();
+    // Inserimento nella tabella utenti
+    const { data: dbUser, error: dbError } = await withTimeout(
+      supabase
+        .from('utenti')
+        .insert({
+          nome,
+          cognome,
+          email,
+          password: 'managed_by_supabase_auth',
+          role: 'user'
+        })
+        .select()
+        .single(),
+      5000
+    );
     
     if (dbError) {
-      console.error('❌ ERRORE CRITICO: Inserimento in tabella utenti fallito:', dbError);
+      console.error('❌ Database insert error:', dbError.message);
       
-      // Se l'inserimento nella tabella fallisce, elimina anche l'utente da Auth
-      console.log('🔄 Rollback: eliminazione utente da Auth...');
+      // Rollback: elimina utente da Auth
       try {
         await supabase.auth.signOut();
       } catch (rollbackError) {
-        console.error('❌ Errore durante rollback:', rollbackError);
+        console.error('❌ Rollback error:', rollbackError);
       }
       
-      // Rilancia l'errore con messaggio chiaro
-      if (dbError.code === '23505') { // Unique constraint violation
+      if (dbError.code === '23505') {
         throw new Error('Un utente con questa email esiste già');
-      } else if (dbError.message?.includes('permission denied') || dbError.message?.includes('RLS')) {
-        throw new Error('Errore di permessi database. Contatta l\'amministratore.');
       } else {
         throw new Error(`Errore database: ${dbError.message}`);
       }
     }
     
-    console.log('✅ Passo 2 completato - Utente inserito in tabella:', dbUser);
-    console.log('🎉 Registrazione completata con successo!');
-    
+    console.log('🎉 Register completed:', dbUser.email);
     return dbUser;
     
   } catch (error) {
-    console.error('❌ Errore completo registrazione:', error);
+    console.error('❌ Register failed:', error.message);
     throw error;
   }
 };
 
-// Funzione per il login
-export const login = async (email, password) => {
-  console.log('🔄 Tentativo login per:', email);
-  
-  try {
-    // PASSO 1: Login Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (authError) {
-      console.error('❌ Errore login Auth:', authError);
-      throw new Error(authError.message);
-    }
-    
-    console.log('✅ Login Auth riuscito per:', authData.user.email);
-    
-    // PASSO 2: Verifica esistenza nella tabella utenti
-    const dbUser = await getCurrentUser();
-    
-    if (!dbUser) {
-      console.error('❌ PROBLEMA: Utente autenticato ma non trovato nella tabella utenti');
-      
-      // Logout automatico se l'utente non esiste nella tabella
-      await supabase.auth.signOut();
-      throw new Error('Account non trovato nel database. Contatta l\'amministratore.');
-    }
-    
-    // PASSO 3: Aggiorna ultimo accesso
-    try {
-      await supabase
-        .from('utenti')
-        .update({ ultimo_accesso: new Date().toISOString() })
-        .eq('id', dbUser.id);
-      console.log('✅ Ultimo accesso aggiornato');
-    } catch (updateError) {
-      console.warn('⚠️ Errore aggiornamento ultimo accesso:', updateError);
-      // Non bloccare il login per questo
-    }
-    
-    console.log('🎉 Login completato con successo!');
-    return dbUser;
-    
-  } catch (error) {
-    console.error('❌ Errore login:', error);
-    throw error;
-  }
-};
-
-// Funzione per il logout
+// Logout
 export const logout = async () => {
-  console.log('🔄 Logout in corso...');
+  console.log('🔄 Logout start');
   
   try {
-    const { error } = await supabase.auth.signOut();
+    // Clear cache
+    userCache = null;
+    sessionCache = null;
+    
+    const { error } = await withTimeout(supabase.auth.signOut(), 3000);
     
     if (error) {
-      console.error('❌ Errore logout:', error);
-      throw error;
+      console.error('❌ Logout error:', error.message);
+    } else {
+      console.log('✅ Logout success');
     }
     
-    console.log('✅ Logout completato');
   } catch (error) {
-    console.error('❌ Errore nel logout:', error);
-    // Non fare throw per il logout
+    console.error('❌ Logout error:', error.message);
   }
 };
 
-// Funzione per verificare se l'utente è autenticato
-export const isAuthenticated = async () => {
+// Controlla se c'è una sessione valida
+export const hasValidSession = async () => {
   try {
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await withTimeout(supabase.auth.getSession(), 2000);
     
     if (error) {
-      console.error('❌ Errore verifica sessione:', error);
+      console.error('❌ Session check error:', error.message);
       return false;
     }
     
-    const isAuth = !!data.session;
-    return isAuth;
+    const hasSession = !!data?.session?.user;
+    console.log('🔍 Has valid session:', hasSession);
+    return hasSession;
+    
   } catch (error) {
-    console.error('❌ Errore isAuthenticated:', error);
+    console.error('❌ Session check timeout:', error.message);
     return false;
   }
 };
 
-// Funzione per osservare i cambiamenti nello stato di autenticazione
+// isAuthenticated
+export const isAuthenticated = async () => {
+  return await hasValidSession();
+};
+
+// Listener per i cambiamenti di stato
 export const onAuthStateChanged = (callback) => {
-  console.log('👂 Setup listener auth state changes');
+  console.log('👂 Setting up auth state listener');
   
   try {
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state change:', event, !!session);
+      console.log('🔄 Auth state change:', event, !!session?.user);
       
-      if (session?.user) {
-        // Quando c'è una sessione, ottieni l'utente completo dalla tabella
-        const user = await getCurrentUser();
-        callback(user);
-      } else {
+      // Clear cache on auth changes
+      userCache = null;
+      sessionCache = null;
+      
+      if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+        console.log('✅ Positive auth event, getting user...');
+        
+        // Aspetta un momento per permettere allo stato di stabilizzarsi
+        setTimeout(async () => {
+          try {
+            const user = await getCurrentUser();
+            callback(user);
+          } catch (error) {
+            console.error('❌ Error getting user in listener:', error);
+            callback(null);
+          }
+        }, 300);
+        
+      } else if (event === 'SIGNED_OUT') {
+        console.log('✅ User signed out');
         callback(null);
       }
     });
     
-    // Ritorna la funzione di unsubscribe
     return () => {
       if (data?.subscription) {
         data.subscription.unsubscribe();
+        console.log('🧹 Auth listener unsubscribed');
       }
     };
+    
   } catch (error) {
-    console.error('❌ Errore setup auth listener:', error);
-    // Ritorna una funzione vuota in caso di errore
+    console.error('❌ Error setting up auth listener:', error);
     return () => {};
   }
 };
 
-// Funzione di utilità per sincronizzare utenti esistenti
-export const syncExistingUser = async (authUser) => {
-  console.log('🔄 Sincronizzazione utente esistente:', authUser.email);
+// Inizializzazione
+export const initializeAuth = async () => {
+  console.log('🚀 Initialize auth');
   
   try {
-    const { data, error } = await supabase
-      .from('utenti')
-      .insert({
-        nome: authUser.user_metadata?.nome || authUser.email.split('@')[0],
-        cognome: authUser.user_metadata?.cognome || '',
-        email: authUser.email,
-        password: 'managed_by_supabase_auth',
-        role: authUser.user_metadata?.role || 'user'
-      })
-      .select()
-      .single();
+    await waitForSupabaseReady();
     
-    if (error) {
-      console.error('❌ Errore sincronizzazione:', error);
+    const hasSession = await hasValidSession();
+    
+    if (!hasSession) {
+      console.log('ℹ️ No session at startup');
       return null;
     }
     
-    console.log('✅ Utente sincronizzato:', data);
-    return data;
+    console.log('✅ Session exists, getting user...');
+    const user = await getCurrentUser();
+    
+    if (user) {
+      console.log('🎉 Initialize success:', user.email);
+    } else {
+      console.log('ℹ️ Initialize: session exists but no user found');
+    }
+    
+    return user;
+    
   } catch (error) {
-    console.error('❌ Errore sync:', error);
+    console.error('❌ Initialize error:', error.message);
     return null;
   }
+};
+
+// Helper per pulire la cache (utile per debug)
+export const clearAuthCache = () => {
+  userCache = null;
+  sessionCache = null;
+  cacheTime = 0;
+  console.log('🧹 Auth cache cleared');
 };

@@ -1,4 +1,4 @@
-// services/api/apiClient.js
+// services/api/apiClient.js - Versione con debug CORS
 import { createClient } from '@supabase/supabase-js';
 import { objectKeysToSnake, objectKeysToCamel } from '../../utils/caseConverters';
 
@@ -6,17 +6,19 @@ import { objectKeysToSnake, objectKeysToCamel } from '../../utils/caseConverters
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://plrooiyopvzpkuyetcvh.supabase.co';
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBscm9vaXlvcHZ6cGt1eWV0Y3ZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk1NTIwNjYsImV4cCI6MjA2NTEyODA2Nn0.hfgaIFZB7yY_teUlTB5KjswjvGTG3gEVBigG8lX6ggM';
 
-// Log della configurazione (senza mostrare la chiave completa)
-console.log('🔧 Supabase Config:');
+// Debug info
+console.log('🔧 Supabase Config (DEBUG):');
 console.log('📡 URL:', supabaseUrl);
 console.log('🔑 Key:', supabaseKey.substring(0, 20) + '...');
+console.log('🌍 Environment:', process.env.NODE_ENV);
+console.log('📍 Origin:', window.location.origin);
 
 // Verifica configurazione
 if (!supabaseUrl.startsWith('http')) {
   console.error('❌ ERRORE: REACT_APP_SUPABASE_URL non configurato correttamente');
 }
 
-// Inizializzazione del client Supabase
+// Inizializzazione del client Supabase con configurazione CORS migliorata
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true,
@@ -25,28 +27,77 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'react-app'
+      'X-Client-Info': 'react-app',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
     }
   }
 });
 
-// Test di connessione iniziale
+// Test di connessione con debug CORS
 const testConnection = async () => {
   try {
-    console.log('🔍 Testing Supabase connection...');
+    console.log('🔍 Testing Supabase connection (DEBUG)...');
+    console.log('📍 Testing from origin:', window.location.origin);
     
-    // Test semplice per verificare se il server risponde
+    // Test 1: Sessione base
     const { data, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.warn('⚠️ Supabase connection warning:', error.message);
+      console.warn('⚠️ Supabase session warning:', error.message);
+      console.log('💡 Possible CORS issue - check Supabase dashboard');
+      console.log('💡 URL Configuration should include:', window.location.origin);
     } else {
       console.log('✅ Supabase connection OK');
+    }
+    
+    // Test 2: Database access
+    try {
+      const { data: testData, error: testError } = await supabase
+        .from('utenti')
+        .select('count')
+        .limit(1);
+      
+      if (testError) {
+        console.warn('⚠️ Database access warning:', testError.message);
+        
+        if (testError.message.includes('CORS')) {
+          console.log('🚨 CORS ERROR DETECTED!');
+          console.log('🔧 Go to Supabase Dashboard → Authentication → URL Configuration');
+          console.log('🔧 Add:', window.location.origin);
+        }
+        
+        if (testError.message.includes('permission denied') || testError.message.includes('RLS')) {
+          console.log('🚨 RLS POLICY ERROR DETECTED!');
+          console.log('🔧 Go to Supabase Dashboard → Database → Policies');
+          console.log('🔧 Create policies to allow operations on "utenti" table');
+        }
+      } else {
+        console.log('✅ Database access OK');
+      }
+    } catch (dbError) {
+      console.error('❌ Database test failed:', dbError);
     }
     
     return !error;
   } catch (error) {
     console.error('❌ Supabase connection failed:', error.message);
+    
+    if (error.message.includes('Failed to fetch')) {
+      console.log('🚨 NETWORK/CORS ERROR!');
+      console.log('🔧 Solutions:');
+      console.log('   1. Check Supabase dashboard URL configuration');
+      console.log('   2. Add', window.location.origin, 'to allowed origins');
+      console.log('   3. Check your internet connection');
+      console.log('   4. Try disabling browser extensions');
+    }
+    
     return false;
   }
 };
@@ -55,13 +106,16 @@ const testConnection = async () => {
 testConnection().then(success => {
   if (!success) {
     console.error('❌ ATTENZIONE: Problemi di connessione a Supabase');
-    console.log('💡 Verifica:');
-    console.log('   - Che Supabase locale sia avviato (supabase start)');
-    console.log('   - Oppure che le variabili REACT_APP_SUPABASE_* siano configurate');
+    console.log('💡 Soluzioni da provare:');
+    console.log('   1. Vai su Supabase Dashboard → Authentication → URL Configuration');
+    console.log('   2. Aggiungi', window.location.origin, 'agli URL autorizzati');
+    console.log('   3. Aggiungi', window.location.origin, 'alle Redirect URLs');
+    console.log('   4. Vai su Settings → API → CORS origins');
+    console.log('   5. Aggiungi', window.location.origin, 'alle origini CORS');
   }
 });
 
-// Funzione di aiuto per gestire risposte ed errori
+// Funzione di aiuto per gestire risposte ed errori con debug CORS
 const handleResponse = async (promise) => {
   try {
     const { data, error, status, statusText } = await promise;
@@ -76,43 +130,31 @@ const handleResponse = async (promise) => {
         statusText
       });
       
-      // Aggiungi informazioni extra per errori comuni
+      // Debug specifico per errori CORS
+      if (error.message?.includes('CORS') || 
+          error.message?.includes('Access-Control') ||
+          status === 0) {
+        console.error('🚨 CORS ERROR DETECTED!');
+        console.error('🔧 Fix: Go to Supabase Dashboard → Authentication → URL Configuration');
+        console.error('🔧 Add:', window.location.origin);
+      }
+      
+      // Altri debug specifici...
       if (status === 400 || error.code === '23514' || error.code === '23502') {
         console.error('❌ Bad Request (400) - Possibili cause:');
         console.error('   - Campi obbligatori mancanti');
         console.error('   - Formato dati non valido');
         console.error('   - Violazione di vincoli nel database');
-        
-        if (error.message?.includes('duplicate key') || error.code === '23505') {
-          console.error('   - Record duplicato (chiave già esistente)');
-        }
-        if (error.message?.includes('foreign key') || error.code === '23503') {
-          console.error('   - Riferimento a record inesistente (es. negozio_id non valido)');
-        }
-        if (error.message?.includes('null value') || error.code === '23502') {
-          console.error('   - Campo obbligatorio con valore null');
-        }
-        if (error.message?.includes('numeric field overflow')) {
-          console.error('   - Valore numerico troppo grande o formato non valido');
-        }
       } else if (status === 403) {
         console.error('❌ Forbidden (403) - Problemi di autorizzazione:');
         console.error('   - Verifica le policy RLS (Row Level Security)');
         console.error('   - Assicurati che l\'utente abbia i permessi necessari');
-      } else if (status === 404) {
-        console.error('❌ Not Found (404) - La risorsa richiesta non esiste');
-      }
-      
-      // Log specifico per errori Supabase/PostgreSQL
-      if (error.code) {
-        console.error('📋 Codice errore PostgreSQL:', error.code);
-        console.error('   Vedi: https://www.postgresql.org/docs/current/errcodes-appendix.html');
       }
       
       throw error;
     }
     
-    // Converti da snake_case a camelCase per l'interfaccia utente (solo se objectKeysToCamel esiste)
+    // Converti da snake_case a camelCase per l'interfaccia utente
     if (typeof objectKeysToCamel === 'function') {
       return Array.isArray(data) 
         ? data.map(item => objectKeysToCamel(item))
@@ -140,24 +182,4 @@ const prepareData = (data) => {
   return prepared;
 };
 
-// Funzione per testare l'autenticazione
-const testAuth = async () => {
-  try {
-    console.log('🔍 Testing Supabase Auth...');
-    
-    const { data, error } = await supabase.auth.getUser();
-    
-    if (error) {
-      console.log('ℹ️ No authenticated user:', error.message);
-      return null;
-    }
-    
-    console.log('✅ Authenticated user found:', data.user?.email);
-    return data.user;
-  } catch (error) {
-    console.error('❌ Auth test failed:', error);
-    return null;
-  }
-};
-
-export { supabase, handleResponse, prepareData, testConnection, testAuth };
+export { supabase, handleResponse, prepareData, testConnection };
