@@ -15,6 +15,18 @@ import 'handsontable/dist/handsontable.full.min.css';
 import { HotTable } from '@handsontable/react';
 import Handsontable from 'handsontable';
 
+let pinchState = null;
+let initialPinchDistance = null;
+let initialZoomLevel = null;
+let currentZoom = 1;
+
+const getDistance = (touch1, touch2) => {
+    return Math.sqrt(
+        Math.pow(touch1.clientX - touch2.clientX, 2) +
+        Math.pow(touch1.clientY - touch2.clientY, 2)
+    );
+};
+
 const TurniTableComponent = ({
     negozioId,
     anno,
@@ -71,7 +83,7 @@ const TurniTableComponent = ({
         lastRerender: Date.now(),
         tableElementFound: false,
         elementType: 'unknown',
-        scrollInfo: { needsH: false, needsV: false, scaledW: 0, scaledH: 0 }  // NUOVO
+        scrollInfo: { needsH: false, needsV: false, scaledW: 0, scaledH: 0 }
     });
     const motivazioni = useSelector(state => {
         try {
@@ -2287,17 +2299,6 @@ const TurniTableComponent = ({
         if (typeof onReturn === 'function') {
             onReturn();
         }
-    };
-    let pinchState = null;
-    let initialPinchDistance = null;
-    let initialZoomLevel = null;
-    let currentZoom = 1;
-
-    const getDistance = (touch1, touch2) => {
-        return Math.sqrt(
-            Math.pow(touch1.clientX - touch2.clientX, 2) +
-            Math.pow(touch1.clientY - touch2.clientY, 2)
-        );
     };
 
     const updateContainerScroll = (zoom) => {
