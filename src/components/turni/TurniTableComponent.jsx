@@ -53,6 +53,10 @@ const TurniTableComponent = ({
         orePagateRowIndex: 0,
         diffCorrenteRowIndex: 0
     });
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const [minZoom, setMinZoom] = useState(0.3);
+    const [maxZoom, setMaxZoom] = useState(3);
+    const zoomContainerRef = useRef(null);
     const motivazioni = useSelector(state => {
         try {
             if (state.motivazioni && state.motivazioni.items && negozioId) {
@@ -246,6 +250,29 @@ const TurniTableComponent = ({
             }
         };
     }, [loading, data]); // Re-esegui quando la tabella viene ricaricata
+    useEffect(() => {
+        // Solo su mobile
+        if (window.innerWidth > 768) return;
+
+        const container = zoomContainerRef.current;
+        if (!container) return;
+
+        // Debug: conferma che gli event listener sono attaccati
+        console.log('Attaching pinch event listeners to container');
+
+        container.addEventListener('touchstart', handleTouchStart, { passive: false });
+        container.addEventListener('touchmove', handleTouchMove, { passive: false });
+        container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        return () => {
+            if (container) {
+                console.log('Removing pinch event listeners');
+                container.removeEventListener('touchstart', handleTouchStart);
+                container.removeEventListener('touchmove', handleTouchMove);
+                container.removeEventListener('touchend', handleTouchEnd);
+            }
+        };
+    }, [zoomLevel, minZoom, maxZoom]);
     // Aggiungi questa funzione per forzare immediatamente il ricalcolo dopo che le variazioni sono state aggiornate
     useEffect(() => {
         // Questo effetto si attiva quando employeeVariations cambia
@@ -2222,7 +2249,63 @@ const TurniTableComponent = ({
             onReturn();
         }
     };
+    let initialPinchDistance = null;
+    let initialZoomLevel = null;
 
+    const getDistance = (touch1, touch2) => {
+        return Math.sqrt(
+            Math.pow(touch1.clientX - touch2.clientX, 2) +
+            Math.pow(touch1.clientY - touch2.clientY, 2)
+        );
+    };
+
+    const handleTouchStart = (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+
+            initialPinchDistance = getDistance(touch1, touch2);
+            initialZoomLevel = zoomLevel;
+
+            console.log('Pinch started:', { initialPinchDistance, initialZoomLevel });
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        if (e.touches.length === 2 && initialPinchDistance && initialZoomLevel) {
+            e.preventDefault();
+
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = getDistance(touch1, touch2);
+
+            // Calcola il fattore di scala
+            const scale = currentDistance / initialPinchDistance;
+            const newZoom = initialZoomLevel * scale;
+
+            // Applica i limiti
+            const clampedZoom = Math.min(Math.max(newZoom, minZoom), maxZoom);
+
+            console.log('Pinch move:', {
+                currentDistance,
+                scale: scale.toFixed(2),
+                newZoom: newZoom.toFixed(2),
+                clampedZoom: clampedZoom.toFixed(2)
+            });
+
+            setZoomLevel(clampedZoom);
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        if (e.touches.length < 2) {
+            console.log('Pinch ended');
+            initialPinchDistance = null;
+            initialZoomLevel = null;
+        }
+    };
     return (
         <div className="turni-table-container">
             {loading ? (
@@ -2262,7 +2345,32 @@ const TurniTableComponent = ({
                         </button>
                     </div>
 
-                    <div className="hot-container">
+                    {/* Debug zoom - RIMUOVERE dopo il test */}
+                    {window.innerWidth <= 768 && (
+                        <div style={{
+                            position: 'fixed',
+                            top: '80px',
+                            right: '10px',
+                            background: 'rgba(255, 0, 0, 0.8)',
+                            color: 'white',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            zIndex: 9999
+                        }}>
+                            ZOOM: {Math.round(zoomLevel * 100)}%
+                        </div>
+                    )}
+
+                    <div
+                        ref={zoomContainerRef}
+                        className="hot-container"
+                        style={{
+                            transform: window.innerWidth <= 768 ? `scale(${zoomLevel})` : 'none',
+                            border: window.innerWidth <= 768 ? '2px solid red' : 'none' // DEBUG border
+                        }}
+                    >
                         <HotTable
                             ref={hotRef}
                             data={data}
@@ -2281,7 +2389,7 @@ const TurniTableComponent = ({
                         />
                     </div>
 
-                    {/* Popup di modifica cella */}
+                    {/* Tutti i popup rimangono identici */}
                     {showCellPopup && (
                         <CellPopup
                             onClose={() => setShowCellPopup(false)}
@@ -2292,7 +2400,6 @@ const TurniTableComponent = ({
                         />
                     )}
 
-                    {/* Popup inserimento orario manuale */}
                     {showTimePopup && (
                         <TimePopup
                             onClose={() => setShowTimePopup(false)}
@@ -2302,7 +2409,6 @@ const TurniTableComponent = ({
                         />
                     )}
 
-                    {/* Popup variazioni dipendente */}
                     {showVariationPopup && (
                         <VariationPopup
                             onClose={() => setShowVariationPopup(false)}
@@ -2317,7 +2423,6 @@ const TurniTableComponent = ({
                         />
                     )}
 
-                    {/* Popup particolarità */}
                     {showParticolaritaPopup && (
                         <ParticolaritaPopup
                             onClose={() => setShowParticolaritaPopup(false)}
@@ -2328,7 +2433,6 @@ const TurniTableComponent = ({
                         />
                     )}
 
-                    {/* Popup fatturato */}
                     {showFatturatoPopup && (
                         <FatturatoPopup
                             onClose={() => setShowFatturatoPopup(false)}
@@ -2338,7 +2442,6 @@ const TurniTableComponent = ({
                         />
                     )}
 
-                    {/* Popup differenza precedente */}
                     {showDiffPrecedentePopup && (
                         <DifferenzaPrecedentePopup
                             onClose={() => setShowDiffPrecedentePopup(false)}
