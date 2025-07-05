@@ -14,6 +14,8 @@ import '../../styles/TurniTable.css';
 import 'handsontable/dist/handsontable.full.min.css';
 import { HotTable } from '@handsontable/react';
 import Handsontable from 'handsontable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 let pinchState = null;
 let initialPinchDistance = null;
@@ -85,6 +87,7 @@ const TurniTableComponent = ({
         elementType: 'unknown',
         scrollInfo: { needsH: false, needsV: false, scaledW: 0, scaledH: 0 }
     });
+    const [exportingPDF, setExportingPDF] = useState(false);
     const motivazioni = useSelector(state => {
         try {
             if (state.motivazioni && state.motivazioni.items && negozioId) {
@@ -642,7 +645,7 @@ const TurniTableComponent = ({
 
             // Utilizza i numeri per la creazione della data
             const currentDate = new Date(annoNum, meseNum, i);
-            dayRow["giorno"] = currentDate.toLocaleDateString("it-IT", { weekday: "long" });
+            dayRow["giorno"] = currentDate.toLocaleDateString("it-IT", { weekday: "long" }).toUpperCase();
             dayRow["giornoMese"] = currentDate.getDate();
 
             tableData.push(dayRow);
@@ -1246,7 +1249,7 @@ const TurniTableComponent = ({
     const updateOrePagate = () => {
         if (!hotRef.current) return;
 
-        const weekDays = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
+        const weekDays = ["LUNEDÌ", "MARTEDÌ", "MERCOLEDÌ", "GIOVEDÌ", "VENERDÌ", "SABATO", "DOMENICA"];
         const giorniLavorativi = weekDays.slice(0, giorniLavorativiSettimanali);
         const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
 
@@ -2301,6 +2304,217 @@ const TurniTableComponent = ({
         }
     };
 
+    const exportToPDF = async () => {
+        try {
+            setExportingPDF(true);
+
+            // Crea un nuovo documento PDF in orientamento orizzontale
+            const pdf = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Usa direttamente i dati dello stato del componente
+            if (!data || data.length === 0) {
+                throw new Error('Nessun dato disponibile nella tabella');
+            }
+
+            // VARIABILE ZOOM - Modifica questo valore per scalare tutta la tabella
+            const zoomFactor = 1.294; // Cambia questo valore per aumentare/diminuire le dimensioni
+
+            // Calcola il fattore di scala basato sui dati disponibili - SEMPLIFICATO
+            const totalRows = data.length;
+
+            // Font size fisso per evitare problemi di calcolo
+            const optimalFontSize = 6 * zoomFactor;
+            const scaleFactor = 1;
+
+            // Definisci larghezze base e scalale con zoomFactor
+            const baseColumnWidths = {};
+            let colIndex = 0;
+
+            // Colonne fisse - larghezze base
+            baseColumnWidths[colIndex++] = 12 * zoomFactor; // Giorno della settimana
+            baseColumnWidths[colIndex++] = 6 * zoomFactor;  // Numero del giorno
+
+            // Colonne dipendenti - larghezze base
+            columnUnits.forEach(unit => {
+                if (unit.type === "employee") {
+                    baseColumnWidths[colIndex++] = 12 * zoomFactor; // Orario inizio
+                    baseColumnWidths[colIndex++] = 8 * zoomFactor;  // Ore/fine
+                } else if (unit.type === "fatturato") {
+                    baseColumnWidths[colIndex++] = 10 * zoomFactor; // Fatturato
+                } else if (unit.type === "particolarita") {
+                    baseColumnWidths[colIndex++] = 12 * zoomFactor; // Particolarità
+                }
+            });
+
+            // Scala le larghezze delle colonne - SEMPLIFICATO
+            const columnWidths = {};
+            Object.keys(baseColumnWidths).forEach(key => {
+                columnWidths[key] = baseColumnWidths[key]; // Già scalate sopra
+            });
+
+            // Prepara i dati per la tabella PDF con gestione del merge
+            const pdfData = [];
+
+            data.forEach((row, rowIndex) => {
+                const pdfRow = [];
+
+                // Identifica se è una riga di riepilogo
+                const summaryRowIndices = Object.values(summaryRows);
+                const isSummaryRow = summaryRowIndices.includes(rowIndex);
+
+                if (isSummaryRow) {
+                    // Per le righe di riepilogo, merge delle prime due colonne
+                    pdfRow.push({
+                        content: row.giorno || '',
+                        colSpan: 2,
+                        styles: { halign: 'left', fontStyle: 'bold', fontSize: optimalFontSize }
+                    });
+
+                    // Aggiungi celle dei dipendenti (merged)
+                    columnUnits.forEach((unit, unitIndex) => {
+                        if (unit.type === "employee") {
+                            const value1 = row[unit.inizio] || '';
+                            const value2 = row[unit.fine] || '';
+                            const mergedValue = value1 || value2 || '';
+
+                            pdfRow.push({
+                                content: mergedValue,
+                                colSpan: 2,
+                                styles: { halign: 'center', fontStyle: 'bold', fontSize: optimalFontSize }
+                            });
+                        } else if (unit.type === "fatturato" || unit.type === "particolarita") {
+                            // Solo per la prima riga di riepilogo
+                            if (rowIndex === summaryRows.oreLavorateRowIndex) {
+                                const summaryRowCount = summaryRows.diffCorrenteRowIndex - summaryRows.oreLavorateRowIndex + 1;
+                                pdfRow.push({
+                                    content: row[unit.key] || '',
+                                    rowSpan: summaryRowCount,
+                                    styles: { halign: 'center', fontStyle: 'bold', fontSize: optimalFontSize }
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    // Per le righe normali
+                    pdfRow.push(row.giorno || '');
+                    pdfRow.push(row.giornoMese || '');
+
+                    columnUnits.forEach(unit => {
+                        if (unit.type === "employee") {
+                            pdfRow.push(row[unit.inizio] || '');
+                            pdfRow.push(row[unit.fine] || '');
+                        } else if (unit.type === "fatturato") {
+                            pdfRow.push(row[unit.key] || '');
+                        } else if (unit.type === "particolarita") {
+                            pdfRow.push(row[unit.key] || '');
+                        }
+                    });
+                }
+
+                pdfData.push(pdfRow);
+            });
+
+            // Calcola padding scalato con zoom
+            const cellPadding = 0.5 * zoomFactor;
+
+            // Crea la tabella scalata con zoomFactor
+            autoTable(pdf, {
+                body: pdfData,
+                startY: 10 * zoomFactor,
+                styles: {
+                    fontSize: optimalFontSize,
+                    cellPadding: cellPadding,
+                    overflow: 'linebreak',
+                    halign: 'center',
+                    valign: 'middle',
+                    lineColor: [0, 0, 0],
+                    lineWidth: 0.1 * zoomFactor
+                },
+                bodyStyles: {
+                    lineColor: [0, 0, 0],
+                    lineWidth: 0.1 * zoomFactor,
+                    fontSize: optimalFontSize
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 248, 248]
+                },
+                columnStyles: columnWidths,
+                didParseCell: function (data) {
+                    // Righe di riepilogo
+                    const summaryRowIndices = Object.values(summaryRows);
+                    if (summaryRowIndices.includes(data.row.index)) {
+                        data.cell.styles.fillColor = [220, 220, 220];
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fontSize = optimalFontSize;
+                    }
+
+                    // Celle con "X" (assenze)
+                    if (data.cell.text && data.cell.text[0] === 'X') {
+                        data.cell.styles.fillColor = [255, 220, 220];
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+
+                    // Celle giorno della settimana
+                    if (data.column.index === 0 && !summaryRowIndices.includes(data.row.index)) {
+                        data.cell.styles.halign = 'left';
+                        data.cell.styles.fontSize = optimalFontSize;
+                    }
+
+                    // Celle numero giorno
+                    if (data.column.index === 1) {
+                        data.cell.styles.halign = 'center';
+                        data.cell.styles.fontSize = optimalFontSize;
+                    }
+
+                    // Celle con valori monetari
+                    if (data.cell.text && data.cell.text[0] && data.cell.text[0].includes('€')) {
+                        data.cell.styles.fillColor = [220, 255, 220];
+                    }
+                },
+                margin: {
+                    top: 10 * zoomFactor,
+                    right: 10 * zoomFactor,
+                    bottom: 10 * zoomFactor,
+                    left: 10 * zoomFactor
+                },
+                tableLineColor: [0, 0, 0],
+                tableLineWidth: 0.15 * zoomFactor,
+                pageBreak: 'avoid',
+                rowPageBreak: 'avoid',
+                tableWidth: 'wrap'
+            });
+
+            // Salva il PDF
+            const nomeNegozio = negozioId ? `Negozio_${negozioId}` : 'Negozio';
+            const meseName = new Date(parseInt(anno), parseInt(mese), 1).toLocaleDateString('it-IT', {
+                month: 'long',
+                year: 'numeric'
+            });
+            const fileName = `Turni_${nomeNegozio}_${meseName.replace(/\s+/g, '_')}.pdf`;
+            pdf.save(fileName);
+
+            dispatch(addNotification({
+                type: 'success',
+                message: 'Tabella turni esportata in PDF con successo',
+                duration: 3000
+            }));
+
+        } catch (error) {
+            console.error('Errore nell\'esportazione PDF:', error);
+            dispatch(addNotification({
+                type: 'error',
+                message: `Errore nell'esportazione PDF: ${error.message}`,
+                duration: 5000
+            }));
+        } finally {
+            setExportingPDF(false);
+        }
+    };
+
     const updateContainerScroll = (zoom) => {
         if (window.innerWidth <= 768 && hotRef.current?.hotInstance && zoomContainerRef.current) {
             try {
@@ -2445,6 +2659,23 @@ const TurniTableComponent = ({
                                 </>
                             )}
                         </button>
+
+                        <button
+                            className={`btn-success ${exportingPDF ? 'exporting' : ''}`}
+                            onClick={exportToPDF}
+                            disabled={exportingPDF || loading}
+                        >
+                            {exportingPDF ? (
+                                <>
+                                    <i className="fas fa-spinner fa-spin"></i> Esportazione...
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fas fa-file-pdf"></i> Esporta PDF
+                                </>
+                            )}
+                        </button>
+
                         <button
                             className="btn-secondary"
                             onClick={handleReturn}
