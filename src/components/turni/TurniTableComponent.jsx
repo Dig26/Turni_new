@@ -942,6 +942,16 @@ const TurniTableComponent = ({
                     // Applica stile di riepilogo alle celle di intestazione delle righe riepilogative
                     if (Object.values(summaryRows).includes(row)) {
                         td.className += ' summary-cell summary-row-header';
+                    } else {
+                        // Applica stili per i giorni della settimana
+                        if (value && typeof value === 'string') {
+                            const dayValue = value.toLowerCase();
+                            if (dayValue.includes('domenica')) {
+                                td.className += ' giorno-domenica';
+                            } else if (dayValue.includes('sabato')) {
+                                td.className += ' giorno-sabato';
+                            }
+                        }
                     }
                     Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                 }
@@ -2450,18 +2460,38 @@ const TurniTableComponent = ({
                         data.cell.styles.fillColor = [220, 220, 220];
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.fontSize = optimalFontSize;
+                        return; // Esci presto per le righe di riepilogo
+                    }
+
+                    // Stili per giorni della settimana (solo prima colonna e non righe riepilogative)
+                    if (data.column.index === 0) {
+                        // Accedi ai dati originali dalla riga per ottenere il giorno
+                        const originalRowData = pdfData[data.row.index];
+                        const dayText = originalRowData && originalRowData[0] ? String(originalRowData[0]).toLowerCase() : '';
+
+                        if (dayText.includes('domenica')) {
+                            data.cell.styles.fillColor = [70, 70, 70]; // Grigio scuro
+                            data.cell.styles.textColor = [255, 255, 255]; // Testo bianco
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.halign = 'left';
+                            data.cell.styles.fontSize = optimalFontSize;
+                        } else if (dayText.includes('sabato')) {
+                            data.cell.styles.fillColor = [170, 170, 170]; // Grigio medio
+                            data.cell.styles.textColor = [0, 0, 0]; // Testo nero
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.halign = 'left';
+                            data.cell.styles.fontSize = optimalFontSize;
+                        } else {
+                            // Altri giorni - stile normale
+                            data.cell.styles.halign = 'left';
+                            data.cell.styles.fontSize = optimalFontSize;
+                        }
                     }
 
                     // Celle con "X" (assenze)
-                    if (data.cell.text && data.cell.text[0] === 'X') {
+                    if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] === 'X') {
                         data.cell.styles.fillColor = [255, 220, 220];
                         data.cell.styles.fontStyle = 'bold';
-                    }
-
-                    // Celle giorno della settimana
-                    if (data.column.index === 0 && !summaryRowIndices.includes(data.row.index)) {
-                        data.cell.styles.halign = 'left';
-                        data.cell.styles.fontSize = optimalFontSize;
                     }
 
                     // Celle numero giorno
@@ -2471,7 +2501,7 @@ const TurniTableComponent = ({
                     }
 
                     // Celle con valori monetari
-                    if (data.cell.text && data.cell.text[0] && data.cell.text[0].includes('€')) {
+                    if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] && data.cell.text[0].includes('€')) {
                         data.cell.styles.fillColor = [220, 255, 220];
                     }
                 },
