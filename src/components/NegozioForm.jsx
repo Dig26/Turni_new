@@ -1,39 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux'; // Aggiungi questa riga
-import { saveNegozio, getNegozioById } from '../services/negoziService'; // Importante: cambiato da negoziAPI a negoziService
+import { useSelector } from 'react-redux';
+import { saveNegozio, getNegozioById } from '../services/negoziService';
 import '../styles/NegozioForm.css';
 
 function NegozioForm({ negozioId }) {
-    // Aggiungi questa riga per ottenere l'utente corrente dallo stato Redux
     const user = useSelector(state => state.auth.user);
     
     const [formData, setFormData] = useState({
         nome: '',
         paese: 'IT',
         citta: '',
+        indirizzo: '',
         settore: 'commercio',
         orarioApertura: '09:00',
         orarioChiusura: '18:00',
         giorniLavorativi: 6,
-        giorniFissiLiberi: [],
-        user_id: user?.id // Aggiungi questa proprietà per il campo user_id richiesto dal database
+        capoarea: '',
+        user_id: user?.id
     });
 
     const [loading, setLoading] = useState(negozioId ? true : false);
     const [error, setError] = useState('');
-    const [showGiorniFissi, setShowGiorniFissi] = useState(false);
     const navigate = useNavigate();
-
-    const giorniSettimana = [
-        { value: 'lunedi', label: 'Lunedì' },
-        { value: 'martedi', label: 'Martedì' },
-        { value: 'mercoledi', label: 'Mercoledì' },
-        { value: 'giovedi', label: 'Giovedì' },
-        { value: 'venerdi', label: 'Venerdì' },
-        { value: 'sabato', label: 'Sabato' },
-        { value: 'domenica', label: 'Domenica' },
-    ];
 
     // Aggiornati i settori in base ai dati del PDF
     const settoriOptions = [
@@ -44,7 +33,7 @@ function NegozioForm({ negozioId }) {
         { value: 'turismo', label: 'Turismo e Ristorazione' },
     ];
 
-    // Aggiungi questo effect per aggiornare user_id quando l'utente cambia
+    // Effect per aggiornare user_id quando l'utente cambia
     useEffect(() => {
         if (user && user.id) {
             setFormData(prev => ({
@@ -68,7 +57,6 @@ function NegozioForm({ negozioId }) {
                     };
                     
                     setFormData(negozioConUserID);
-                    setShowGiorniFissi(negozio.giorniFissiLiberi && negozio.giorniFissiLiberi.length > 0);
                 } catch (error) {
                     console.error('Errore nel caricamento del negozio:', error);
                     setError('Errore nel caricamento del negozio.');
@@ -82,30 +70,11 @@ function NegozioForm({ negozioId }) {
     }, [negozioId, user]);
 
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-
-        if (type === 'checkbox' && name === 'giorniFissiLiberi') {
-            const giorniLiberi = [...formData.giorniFissiLiberi];
-
-            if (checked) {
-                giorniLiberi.push(value);
-            } else {
-                const index = giorniLiberi.indexOf(value);
-                if (index !== -1) {
-                    giorniLiberi.splice(index, 1);
-                }
-            }
-
-            setFormData(prev => ({
-                ...prev,
-                giorniFissiLiberi: giorniLiberi,
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: value,
-            }));
-        }
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -135,7 +104,7 @@ function NegozioForm({ negozioId }) {
         }
 
         try {
-            console.log("Dati inviati:", formData); // Log per debugging
+            console.log("Dati inviati:", formData);
             await saveNegozio(formData, negozioId);
             navigate('/negozi');
         } catch (error) {
@@ -211,6 +180,18 @@ function NegozioForm({ negozioId }) {
                     </div>
 
                     <div className="form-group">
+                        <label htmlFor="indirizzo">Indirizzo</label>
+                        <input
+                            type="text"
+                            id="indirizzo"
+                            name="indirizzo"
+                            value={formData.indirizzo || ''}
+                            onChange={handleChange}
+                            placeholder="Inserisci l'indirizzo (opzionale)"
+                        />
+                    </div>
+
+                    <div className="form-group">
                         <label htmlFor="settore">Settore *</label>
                         <select
                             id="settore"
@@ -228,6 +209,18 @@ function NegozioForm({ negozioId }) {
                         <small className="helper-text">
                             Tutti i settori prevedono una pausa obbligatoria di 30 minuti se si lavora più di 6 ore.
                         </small>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="capoarea">Capoarea</label>
+                        <input
+                            type="text"
+                            id="capoarea"
+                            name="capoarea"
+                            value={formData.capoarea || ''}
+                            onChange={handleChange}
+                            placeholder="Inserisci il nome del capoarea (opzionale)"
+                        />
                     </div>
                 </div>
 
@@ -274,42 +267,6 @@ function NegozioForm({ negozioId }) {
                                 </option>
                             ))}
                         </select>
-                    </div>
-
-                    <div className="form-group checkbox-group">
-                        <div className="checkbox-header">
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    checked={showGiorniFissi}
-                                    onChange={() => setShowGiorniFissi(!showGiorniFissi)}
-                                />
-                                Giorni fissi liberi
-                            </label>
-                        </div>
-
-                        {showGiorniFissi && (
-                            <div className="giorni-checkbox-container">
-                                <p className="helper-text">
-                                    Seleziona i giorni in cui il negozio è chiuso regolarmente:
-                                </p>
-
-                                {giorniSettimana.map((giorno) => (
-                                    <label key={giorno.value} className="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            name="giorniFissiLiberi"
-                                            value={giorno.value}
-                                            checked={formData.giorniFissiLiberi && formData.giorniFissiLiberi.includes(
-                                                giorno.value
-                                            )}
-                                            onChange={handleChange}
-                                        />
-                                        {giorno.label}
-                                    </label>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
 

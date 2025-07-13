@@ -15,7 +15,11 @@ import '../../styles/NegozioHub.css';
 // Utility functions for formatting
 const settoreLabel = (settore) => {
   const settoriMap = {
-    'commercio': 'Commercio',
+    'sanita': 'Sanità (Pubblica e Privata)',
+    'commercio': 'Commercio e Grande Distribuzione',
+    'metalmeccanico': 'Metalmeccanico',
+    'logistica': 'Logistica e Trasporti',
+    'turismo': 'Turismo e Ristorazione',
     'ristorazione': 'Ristorazione',
     'abbigliamento': 'Abbigliamento',
     'alimentari': 'Alimentari', 
@@ -35,22 +39,6 @@ const paeseLabel = (paese) => {
     'ES': 'Spagna'
   };
   return paesiMap[paese] || paese;
-};
-
-const formattaGiorniLiberi = (giorni) => {
-  if (!giorni || giorni.length === 0) return 'Nessuno';
-  
-  const giorniMap = {
-    'lunedi': 'Lunedì',
-    'martedi': 'Martedì',
-    'mercoledi': 'Mercoledì',
-    'giovedi': 'Giovedì',
-    'venerdi': 'Venerdì',
-    'sabato': 'Sabato',
-    'domenica': 'Domenica'
-  };
-  
-  return giorni.map(g => giorniMap[g] || g).join(', ');
 };
 
 const findResponsabile = (dipendenti) => {
@@ -171,7 +159,8 @@ const NegozioHub = ({ negozioId }) => {
         <div className="negozio-info">
           <h2>{negozio.nome}</h2>
           <p className="negozio-address">
-            <i className="fas fa-map-marker-alt"></i> {negozio.citta}, {negozio.indirizzo}
+            <i className="fas fa-map-marker-alt"></i> 
+            {negozio.indirizzo ? `${negozio.indirizzo}, ${negozio.citta}` : negozio.citta}
           </p>
         </div>
         <div className="hub-actions">
@@ -296,6 +285,12 @@ const NegozioHub = ({ negozioId }) => {
                   </span>
                 </div>
                 <div className="info-item">
+                  <span className="info-label">Capoarea</span>
+                  <span className="info-value">
+                    {negozio.capoarea || 'Non specificato'}
+                  </span>
+                </div>
+                <div className="info-item">
                   <span className="info-label">Settore</span>
                   <span className="info-value">{settoreLabel(negozio.settore) || 'Non specificato'}</span>
                 </div>
@@ -307,6 +302,12 @@ const NegozioHub = ({ negozioId }) => {
                   <span className="info-label">Paese</span>
                   <span className="info-value">{paeseLabel(negozio.paese) || 'Non specificato'}</span>
                 </div>
+                {negozio.indirizzo && (
+                  <div className="info-item">
+                    <span className="info-label">Indirizzo</span>
+                    <span className="info-value">{negozio.indirizzo}</span>
+                  </div>
+                )}
                 <div className="info-item">
                   <span className="info-label">Orario apertura</span>
                   <span className="info-value">{negozio.orarioApertura || 'Non specificato'}</span>
@@ -318,10 +319,6 @@ const NegozioHub = ({ negozioId }) => {
                 <div className="info-item">
                   <span className="info-label">Giorni lavorativi</span>
                   <span className="info-value">{negozio.giorniLavorativi || 'Non specificato'} giorni/settimana</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Giorni fissi liberi</span>
-                  <span className="info-value">{formattaGiorniLiberi(negozio.giorniFissiLiberi) || 'Nessuno'}</span>
                 </div>
               </div>
               {negozio.note && (
