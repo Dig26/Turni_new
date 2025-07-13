@@ -1,6 +1,0 @@
-
-> gestione-turni@0.1.0 build
-> react-scripts build *
-
-Creating an optimized production build...
-Unknown type: 4653
