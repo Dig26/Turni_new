@@ -2414,7 +2414,7 @@ const TurniTableComponent = ({
             }
 
             // VARIABILE ZOOM - Modifica questo valore per scalare tutta la tabella
-            const zoomFactor = 1.294; // Cambia questo valore per aumentare/diminuire le dimensioni
+            const zoomFactor = 1.036; // Cambia questo valore per aumentare/diminuire le dimensioni
 
             // Calcola il fattore di scala basato sui dati disponibili - SEMPLIFICATO
             const totalRows = data.length;
@@ -2461,6 +2461,66 @@ const TurniTableComponent = ({
 
                 return value;
             };
+
+            // ===== NUOVA LOGICA: RACCOLTA PARTICOLARITÀ E VARIAZIONI =====
+
+            // 1. Raccogliere tutte le particolarità utilizzate
+            const particolaritaUsate = new Set();
+            const particolaritaColIndex = getParticolaritaColumnIndex();
+
+            if (particolaritaColIndex !== null) {
+                const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
+
+                for (let i = 1; i <= giorniNelMese; i++) {
+                    const particolaritaVal = data[i] ? data[i][columnUnits.find(u => u.type === "particolarita")?.key] : '';
+                    if (particolaritaVal && particolaritaVal.trim() !== '') {
+                        // Split per "+" per ottenere le singole sigle
+                        const sigle = particolaritaVal.split('+').map(s => s.trim());
+                        sigle.forEach(sigla => {
+                            if (sigla) particolaritaUsate.add(sigla);
+                        });
+                    }
+                }
+            }
+
+            // 2. Raccogliere le variazioni orarie per il mese corrente
+            const variazioniMese = [];
+
+            Object.keys(employeeVariations).forEach(empName => {
+                const variations = employeeVariations[empName] || [];
+                const oreStandard = employees[empName] || 0;
+
+                if (variations.length > 0) {
+                    variations.forEach(variation => {
+                        const startDate = new Date(variation.start);
+                        const endDate = new Date(variation.end);
+                        const startDay = startDate.getDate();
+                        const endDay = endDate.getDate();
+                        const startMonth = startDate.getMonth();
+                        const endMonth = endDate.getMonth();
+                        const currentMonth = parseInt(mese);
+
+                        // Verifica se la variazione è nel mese corrente
+                        if (startMonth === currentMonth || endMonth === currentMonth) {
+                            let periodo = "";
+
+                            // Calcola il periodo
+                            if (startDay === 1 && endDay >= 28) {
+                                periodo = "tutto il mese";
+                            } else {
+                                periodo = `dal ${startDay} al ${endDay}`;
+                            }
+
+                            variazioniMese.push({
+                                dipendente: empName,
+                                ore: variation.hours,
+                                periodo: periodo,
+                                oreStandard: oreStandard
+                            });
+                        }
+                    });
+                }
+            });
 
             // Prepara i dati per la tabella PDF con gestione del merge
             const pdfData = [];
@@ -2586,22 +2646,11 @@ const TurniTableComponent = ({
                         }
                     }
 
-                    // RIMOSSO: Celle con "X" (assenze) - non colorare più di rosso
-                    // if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] === 'X') {
-                    //     data.cell.styles.fillColor = [255, 220, 220];
-                    //     data.cell.styles.fontStyle = 'bold';
-                    // }
-
                     // Celle numero giorno
                     if (data.column.index === 1) {
                         data.cell.styles.halign = 'center';
                         data.cell.styles.fontSize = optimalFontSize;
                     }
-
-                    // RIMOSSO: Celle con valori monetari - non colorare più di verde
-                    // if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] && data.cell.text[0].includes('€')) {
-                    //     data.cell.styles.fillColor = [220, 255, 220];
-                    // }
                 },
                 margin: {
                     top: 10 * zoomFactor,
@@ -2615,6 +2664,107 @@ const TurniTableComponent = ({
                 rowPageBreak: 'avoid',
                 tableWidth: 'wrap'
             });
+
+            // ===== AGGIUNTA DELLE NUOVE SEZIONI =====
+
+            // Ottieni la posizione Y finale della tabella
+            let finalY = pdf.lastAutoTable.finalY || (10 * zoomFactor);
+            const pageHeight = pdf.internal.pageSize.height;
+            const marginBottom = 10 * zoomFactor;
+
+            // Spazio tra tabella e sezioni aggiuntive
+            finalY += 8 * zoomFactor;
+
+            // Verifica se c'è abbastanza spazio, altrimenti aggiungi una nuova pagina
+            if (finalY > pageHeight - marginBottom - 30) {
+                pdf.addPage();
+                finalY = 10 * zoomFactor;
+            }
+
+            // 1. SEZIONE PARTICOLARITÀ
+            if (particolaritaUsate.size > 0) {
+                // Ottieni le particolarità dallo store Redux
+                const particolaritaOptions = useSelector ?
+                    (negozioId && window.reduxStore?.getState()?.particolarita?.items?.[negozioId]) || []
+                    : [];
+
+                // Crea la stringa delle particolarità
+                const particolaritaString = Array.from(particolaritaUsate)
+                    .map(sigla => {
+                        // Cerca il nome corrispondente alla sigla
+                        const particolarita = particolaritaOptions.find(p => p.sigla === sigla);
+                        const nome = particolarita ? particolarita.nome : sigla;
+                        return `${sigla} = ${nome}`;
+                    })
+                    .join(' | ');
+
+                // Aggiungi titolo sezione particolarità
+                pdf.setFontSize(8 * zoomFactor);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('', 10 * zoomFactor, finalY);
+
+                finalY += 5 * zoomFactor;
+
+                // Aggiungi il testo delle particolarità con word wrap
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7 * zoomFactor);
+
+                const particolaritaLines = pdf.splitTextToSize(particolaritaString, 280 * zoomFactor);
+                pdf.text(particolaritaLines, 10 * zoomFactor, finalY);
+                finalY += particolaritaLines.length * 4 * zoomFactor + 4 * zoomFactor;
+            }
+
+            // 2. SEZIONE VARIAZIONI ORARIE
+            if (variazioniMese.length > 0) {
+                // Verifica spazio disponibile
+                if (finalY > pageHeight - marginBottom - 20) {
+                    pdf.addPage();
+                    finalY = 10 * zoomFactor;
+                }
+
+                // Costruisci la frase delle variazioni
+                let variazioniText = "";
+
+                // Raggruppa per ore e periodo simili
+                const gruppiVariazioni = {};
+
+                variazioniMese.forEach(v => {
+                    const key = `${v.ore}_${v.periodo}`;
+                    if (!gruppiVariazioni[key]) {
+                        gruppiVariazioni[key] = {
+                            ore: v.ore,
+                            periodo: v.periodo,
+                            dipendenti: []
+                        };
+                    }
+                    gruppiVariazioni[key].dipendenti.push(v.dipendente);
+                });
+
+                // Costruisci le frasi
+                const frasi = Object.values(gruppiVariazioni).map(gruppo => {
+                    const dipendentiStr = gruppo.dipendenti.length > 1
+                        ? gruppo.dipendenti.slice(0, -1).join(', ') + ' e ' + gruppo.dipendenti.slice(-1)[0]
+                        : gruppo.dipendenti[0];
+
+                    return `${dipendentiStr} ${gruppo.ore} ore ${gruppo.periodo}`;
+                });
+
+                variazioniText += frasi.join(', ');
+
+                // Aggiungi titolo sezione variazioni
+                pdf.setFontSize(8 * zoomFactor);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('', 10 * zoomFactor, finalY);
+
+                finalY += 5 * zoomFactor;
+
+                // Aggiungi il testo delle variazioni con word wrap
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7 * zoomFactor);
+
+                const variazioniLines = pdf.splitTextToSize(variazioniText.replace('', ''), 280 * zoomFactor);
+                pdf.text(variazioniLines, 10 * zoomFactor, finalY);
+            }
 
             // Salva il PDF
             const nomeNegozio = negozioId ? `Negozio_${negozioId}` : 'Negozio';
@@ -2642,7 +2792,7 @@ const TurniTableComponent = ({
             setExportingPDF(false);
         }
     };
-    
+
     const updateContainerScroll = (zoom) => {
         if (window.innerWidth <= 768 && hotRef.current?.hotInstance && zoomContainerRef.current) {
             try {
