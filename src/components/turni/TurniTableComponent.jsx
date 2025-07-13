@@ -953,6 +953,15 @@ const TurniTableComponent = ({
                             }
                         }
                     }
+
+                    // Se è la riga header, applica stile compatto
+                    if (row === 0) {
+                        td.className += ' compact-header-cell';
+                        td.style.height = '40px';
+                        td.style.lineHeight = '40px';
+                        td.style.padding = '4px 8px';
+                    }
+
                     Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                 }
             },
@@ -964,6 +973,15 @@ const TurniTableComponent = ({
                     if (Object.values(summaryRows).includes(row)) {
                         td.className += ' summary-cell summary-row-header';
                     }
+
+                    // Se è la riga header, applica stile compatto
+                    if (row === 0) {
+                        td.className += ' compact-header-cell';
+                        td.style.height = '40px';
+                        td.style.lineHeight = '40px';
+                        td.style.padding = '4px 8px';
+                    }
+
                     Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
                 }
             },
@@ -980,17 +998,21 @@ const TurniTableComponent = ({
                             td.className += ' summary-cell';
                         }
 
-                        // Se è la riga di intestazione, manteniamo lo stile originale ma senza drag handle
+                        // Se è la riga di intestazione, usa un renderer compatto
                         if (row === 0) {
-                            td.innerHTML = `<div style="padding: 4px 8px;">
-                                <span class="employee-name-header" data-col="${col}" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; transition: all 0.2s;">
-                                    <span>${value}</span>
-                                    <span class="settings-icon" style="margin-left: 8px; font-size: 14px; opacity: 0.7;">⚙️</span>
-                                </span>
-                            </div>`;
-                            td.className += ' header-cell';
+                            td.className += ' header-cell compact-header-cell';
+                            td.style.height = '40px';
+                            td.style.padding = '4px 8px';
 
-                            // Manteniamo le proprietà originali
+                            // HTML compatto per l'header
+                            td.innerHTML = `<div style="display: flex; align-items: center; justify-content: space-between; height: 32px; font-size: 13px;">
+                            <span class="employee-name-header" data-col="${col}" style="cursor: pointer; flex: 1; text-align: left;">
+                                ${value}
+                            </span>
+                            <span class="settings-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.7;">⚙️</span>
+                        </div>`;
+
+                            // Mantieni le proprietà originali
                             cellProperties.readOnly = true;
                             cellProperties.editor = false;
                         } else {
@@ -1008,6 +1030,15 @@ const TurniTableComponent = ({
                             td.className += ' summary-cell';
                         }
 
+                        // Se è la riga header, applica stile compatto
+                        if (row === 0) {
+                            td.className += ' header-cell compact-header-cell';
+                            td.style.height = '40px';
+                            td.style.padding = '4px 8px';
+                            td.style.fontSize = '13px';
+                            td.style.lineHeight = '32px';
+                        }
+
                         if (typeof value === "string" && value.indexOf("|") !== -1) {
                             value = value.split("|")[1];
                         }
@@ -1019,12 +1050,17 @@ const TurniTableComponent = ({
                     data: unit.key,
                     readOnly: true,
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
-                        // Per l'header, mostra semplicemente il testo senza drag handle
+                        // Per l'header, usa stile compatto
                         if (row === 0) {
-                            td.innerHTML = `<div style="padding: 4px 8px;">
-                                <span>${value}</span>
-                            </div>`;
-                            td.className += ' header-cell';
+                            td.className += ' header-cell compact-header-cell';
+                            td.style.height = '40px';
+                            td.style.padding = '4px 8px';
+                            td.style.fontSize = '13px';
+                            td.style.lineHeight = '32px';
+
+                            td.innerHTML = `<div style="height: 32px; display: flex; align-items: center;">
+                            <span>${value}</span>
+                        </div>`;
 
                             // Proprietà per evitare editing
                             cellProperties.readOnly = true;
@@ -1039,7 +1075,9 @@ const TurniTableComponent = ({
                             }
                         }
 
-                        Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
+                        if (row !== 0) {
+                            Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
+                        }
                     }
                 });
             } else if (unit.type === "particolarita") {
@@ -1048,12 +1086,17 @@ const TurniTableComponent = ({
                     readOnly: true,
                     className: "particolarita-cell",
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
-                        // Per l'header, mostra semplicemente il testo senza drag handle
+                        // Per l'header, usa stile compatto
                         if (row === 0) {
-                            td.innerHTML = `<div style="padding: 4px 8px;">
-                                <span>${value}</span>
-                            </div>`;
-                            td.className += ' header-cell';
+                            td.className += ' header-cell compact-header-cell';
+                            td.style.height = '40px';
+                            td.style.padding = '4px 8px';
+                            td.style.fontSize = '13px';
+                            td.style.lineHeight = '32px';
+
+                            td.innerHTML = `<div style="height: 32px; display: flex; align-items: center;">
+                            <span>${value}</span>
+                        </div>`;
 
                             // Proprietà per evitare editing
                             cellProperties.readOnly = true;
@@ -1066,7 +1109,9 @@ const TurniTableComponent = ({
                             cellProperties.readOnly = true;
                         }
 
-                        Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
+                        if (row !== 0) {
+                            Handsontable.renderers.TextRenderer(instance, td, row, col, prop, value, cellProperties);
+                        }
                     }
                 });
             }
@@ -1137,6 +1182,44 @@ const TurniTableComponent = ({
         });
 
         return schema;
+    };
+
+    // Funzione per gestire l'inizializzazione della tabella e impostare le altezze delle righe
+    const handleAfterInit = () => {
+        if (!hotRef.current || !hotRef.current.hotInstance) return;
+
+        try {
+            // Imposta l'altezza SOLO della prima riga (header) a 40px
+            hotRef.current.hotInstance.setRowHeight(0, 40);
+
+            // Applica stili personalizzati alle celle header
+            applyHeaderStyles();
+
+            // Forza il rendering
+            hotRef.current.hotInstance.render();
+
+            console.log("Altezza header impostata a 40px, altre righe inalterate");
+        } catch (error) {
+            console.error("Errore nell'impostazione dell'altezza header:", error);
+        }
+    };
+
+    // Funzione per applicare stili specifici alle celle header
+    const applyHeaderStyles = () => {
+        if (!hotRef.current || !hotRef.current.hotInstance) return;
+
+        try {
+            // Imposta stili specifici per tutte le celle della prima riga
+            const colCount = hotRef.current.hotInstance.countCols();
+
+            for (let col = 0; col < colCount; col++) {
+                hotRef.current.hotInstance.setCellMeta(0, col, "className", "compact-header-cell");
+            }
+
+            console.log("Stili header applicati");
+        } catch (error) {
+            console.error("Errore nell'applicazione degli stili header:", error);
+        }
     };
 
     // Versione corretta della funzione updateTotaleOre
@@ -2734,6 +2817,12 @@ const TurniTableComponent = ({
                             manualColumnResize={true}
                             columnSorting={false}
                             disableVisualSelection={true}
+                            rowHeights={function (index) {
+                                if (index === 0) {
+                                    return 40; // Header compatto a 40px
+                                }
+                                return undefined; // Lascia l'altezza automatica per tutte le altre righe
+                            }}
                         />
                     </div>
 

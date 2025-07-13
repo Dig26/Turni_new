@@ -499,3 +499,59 @@ td.giorno-sabato,
 .giorno-sabato td {
   color: #000000 !important;
 }
+/* Stile per le celle header compatte */
+.compact-header-cell {
+  height: 40px !important;
+  max-height: 40px !important;
+  min-height: 40px !important;
+  padding: 4px 8px !important;
+  vertical-align: middle;
+  font-size: 13px !important;
+  line-height: 32px !important;
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Stile specifico per i div all'interno delle celle header */
+.compact-header-cell div {
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  overflow: hidden;
+}
+
+/* Stile per il nome del dipendente nell'header */
+.compact-header-cell .employee-name-header {
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 20px);
+}
+
+/* Stile per l'icona delle impostazioni */
+.compact-header-cell .settings-icon {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  font-size: 12px !important;
+  flex-shrink: 0;
+}
+
+.compact-header-cell .settings-icon:hover {
+  opacity: 1;
+}
+
+/* Assicura che le celle header non si espandano */
+.ht_master .htCore tbody tr:first-child td.compact-header-cell {
+  height: 40px !important;
+  max-height: 40px !important;
+  overflow: hidden;
+}
+
+/* Stile per le celle header quando sono in hover */
+.compact-header-cell:hover {
+  background-color: #e9ecef;
+}
