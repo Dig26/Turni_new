@@ -47,12 +47,15 @@ function DipendenteForm({ negozioId, dipendenteId }) {
             // Assicurati che le date siano in formato YYYY-MM-DD per gli input di tipo date
             dataAssunzione: dipendente.dataAssunzione ? formatDateForInput(dipendente.dataAssunzione) : '',
             dataFineContratto: dipendente.dataFineContratto ? formatDateForInput(dipendente.dataFineContratto) : '',
+            // IMPORTANTE: Preserva sempre il negozioId dal prop, anche se presente nei dati del dipendente
+            negozioId: negozioId
           });
         } else {
           // Imposta la data di assunzione di default a oggi per un nuovo dipendente
           setFormData(prev => ({
             ...prev,
-            dataAssunzione: formatDateForInput(new Date())
+            dataAssunzione: formatDateForInput(new Date()),
+            negozioId: negozioId // Assicurati che sia sempre impostato
           }));
         }
       } catch (error) {
@@ -129,13 +132,23 @@ function DipendenteForm({ negozioId, dipendenteId }) {
       return;
     }
     
+    // Validazione aggiuntiva per il negozioId
+    if (!formData.negozioId) {
+      setError('Errore: ID negozio mancante.');
+      return;
+    }
+    
     try {
-      // Se il nomeTurno è vuoto, usa "Nome Cognome"
-      if (!formData.nomeTurno.trim()) {
-        formData.nomeTurno = `${formData.nome} ${formData.cognome.charAt(0)}.`;
-      }
+      // Prepara i dati per il salvataggio
+      const dataToSave = {
+        ...formData,
+        negozioId: negozioId, // Usa sempre il negozioId dai props
+        nomeTurno: formData.nomeTurno.trim() || `${formData.nome} ${formData.cognome.charAt(0)}.`
+      };
       
-      await saveDipendente(formData, dipendenteId);
+      console.log('📝 Dati che verranno inviati:', dataToSave);
+      
+      await saveDipendente(dataToSave, dipendenteId);
       // Reindirizzamento al NegozioHub con la tab dipendenti attiva
       navigate(`/negozi/${negozioId}`);
     } catch (error) {

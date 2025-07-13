@@ -10,6 +10,7 @@ import { fetchMotivazioniByNegozio } from '../../app/slices/motivazioniSlice';
 import ParticolaritaManager from './ParticolaritaManager';
 import MotivazioniManager from './MotivazioniManager';
 import TurniPanel from './TurniPanel';
+import styles from './Negozi.module.css';
 import '../../styles/NegozioHub.css';
 
 // Utility functions for formatting
@@ -116,14 +117,6 @@ const NegozioHub = ({ negozioId }) => {
   
   // Rimuoviamo l'effect che ricarica le motivazioni quando si cambia tab
   // per evitare di sovrascrivere le motivazioni personalizzate
-  /*
-  useEffect(() => {
-    if (negozioId && activeTab === 'motivazioni') {
-      console.log('Ricarico le motivazioni perché è stata selezionata la tab motivazioni');
-      dispatch(fetchMotivazioniByNegozio(negozioId));
-    }
-  }, [dispatch, negozioId, activeTab]);
-  */
 
   if (loading && !negozio) {
     return (
@@ -339,19 +332,22 @@ const NegozioHub = ({ negozioId }) => {
         {activeTab === 'dipendenti' && (
           <div className="dipendenti-tab">
             <div className="section-header">
-              <h3>Dipendenti</h3>
+              <h3>
+                <i className="fas fa-users"></i> Gestione Dipendenti
+              </h3>
               <div className="header-actions">
                 <div className="search-box">
                   <input
                     type="text"
                     placeholder="Cerca dipendente..."
+                    value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="search-input"
                   />
                   <i className="fas fa-search"></i>
                 </div>
                 <Link to={`/negozi/${negozioId}/dipendenti/nuovo`}>
-                  <button className="btn-primary">
+                  <button className={styles.addButton}>
                     <i className="fas fa-plus"></i> Nuovo Dipendente
                   </button>
                 </Link>
@@ -359,17 +355,19 @@ const NegozioHub = ({ negozioId }) => {
             </div>
 
             {dipendenti.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  <i className="fas fa-users"></i>
-                </div>
-                <h3>Nessun dipendente</h3>
-                <p>Questo negozio non ha ancora dipendenti assegnati.</p>
-                <Link to={`/negozi/${negozioId}/dipendenti/nuovo`}>
-                  <button className="btn-primary">
-                    <i className="fas fa-plus"></i> Aggiungi Primo Dipendente
-                  </button>
-                </Link>
+              <div className={styles.emptyState}>
+                {searchTerm ? (
+                  <p>Nessun dipendente trovato con il termine: "{searchTerm}"</p>
+                ) : (
+                  <div>
+                    <p>Non hai ancora dipendenti assegnati a questo negozio</p>
+                    <Link to={`/negozi/${negozioId}/dipendenti/nuovo`}>
+                      <button className={styles.btnPrimary}>
+                        <i className="fas fa-plus"></i> Aggiungi il primo dipendente
+                      </button>
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="dipendenti-grid">

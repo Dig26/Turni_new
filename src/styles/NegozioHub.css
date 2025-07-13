@@ -451,6 +451,169 @@
   color: var(--text-color);
 }
 
+/* STILI BOTTONI - CORRETTI per combaciare con particolarità */
+.btn-primary {
+  padding: 10px 16px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background-color: #2980b9;
+}
+
+.btn-primary i {
+  font-size: 0.9rem;
+}
+
+.btn-secondary {
+  padding: 10px 16px;
+  background-color: #95a5a6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  background-color: #7f8c8d;
+}
+
+.btn-secondary i {
+  font-size: 0.9rem;
+}
+
+/* Tasto delete specifico per le card dipendenti */
+.delete-button {
+  background: transparent !important;
+  color: #e74c3c !important;
+  border: 1px solid #e74c3c !important;
+}
+
+.delete-button:hover {
+  background-color: #e74c3c !important;
+  color: white !important;
+}
+
+/* MODAL STYLES - AGGIUNTI */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background-color: var(--card-bg, white);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 450px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  padding: 20px 24px 15px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--text-color, #333);
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 20px 24px;
+}
+
+.modal-body p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-color, #333);
+  font-size: 1rem;
+}
+
+.modal-footer {
+  padding: 15px 24px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-footer .btn-secondary,
+.modal-footer .btn-primary {
+  min-width: 90px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+
+/* LOADING SPINNER - MIGLIORATO */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  gap: 15px;
+}
+
+.loading-spinner.center {
+  min-height: 200px;
+}
+
+.loading-spinner i {
+  font-size: 2rem;
+  color: var(--primary-color, #3498db);
+}
+
+.loading-spinner span {
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .negozio-hub-header {
@@ -485,5 +648,19 @@
   
   .dipendente-info-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  
+  .modal-footer .btn-secondary,
+  .modal-footer .btn-primary {
+    width: 100%;
   }
 }
