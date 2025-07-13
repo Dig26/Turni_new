@@ -2449,6 +2449,19 @@ const TurniTableComponent = ({
                 columnWidths[key] = baseColumnWidths[key]; // Già scalate sopra
             });
 
+            // Funzione helper per processare i valori delle celle
+            const processCellValue = (value, unitType, isEmployeeEndColumn = false) => {
+                if (!value) return '';
+
+                // Se è una cella dipendente (colonna "fine") e contiene il formato "motivo|sigla"
+                if (isEmployeeEndColumn && value.includes('|')) {
+                    const parts = value.split('|');
+                    return parts[1] || ''; // Restituisce solo la sigla
+                }
+
+                return value;
+            };
+
             // Prepara i dati per la tabella PDF con gestione del merge
             const pdfData = [];
 
@@ -2498,8 +2511,10 @@ const TurniTableComponent = ({
 
                     columnUnits.forEach(unit => {
                         if (unit.type === "employee") {
-                            pdfRow.push(row[unit.inizio] || '');
-                            pdfRow.push(row[unit.fine] || '');
+                            // Colonna inizio
+                            pdfRow.push(processCellValue(row[unit.inizio], unit.type, false));
+                            // Colonna fine - processa per estrarre solo la sigla se necessario
+                            pdfRow.push(processCellValue(row[unit.fine], unit.type, true));
                         } else if (unit.type === "fatturato") {
                             pdfRow.push(row[unit.key] || '');
                         } else if (unit.type === "particolarita") {
@@ -2571,11 +2586,11 @@ const TurniTableComponent = ({
                         }
                     }
 
-                    // Celle con "X" (assenze)
-                    if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] === 'X') {
-                        data.cell.styles.fillColor = [255, 220, 220];
-                        data.cell.styles.fontStyle = 'bold';
-                    }
+                    // RIMOSSO: Celle con "X" (assenze) - non colorare più di rosso
+                    // if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] === 'X') {
+                    //     data.cell.styles.fillColor = [255, 220, 220];
+                    //     data.cell.styles.fontStyle = 'bold';
+                    // }
 
                     // Celle numero giorno
                     if (data.column.index === 1) {
@@ -2583,10 +2598,10 @@ const TurniTableComponent = ({
                         data.cell.styles.fontSize = optimalFontSize;
                     }
 
-                    // Celle con valori monetari
-                    if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] && data.cell.text[0].includes('€')) {
-                        data.cell.styles.fillColor = [220, 255, 220];
-                    }
+                    // RIMOSSO: Celle con valori monetari - non colorare più di verde
+                    // if (data.cell.text && Array.isArray(data.cell.text) && data.cell.text[0] && data.cell.text[0].includes('€')) {
+                    //     data.cell.styles.fillColor = [220, 255, 220];
+                    // }
                 },
                 margin: {
                     top: 10 * zoomFactor,
@@ -2627,7 +2642,7 @@ const TurniTableComponent = ({
             setExportingPDF(false);
         }
     };
-
+    
     const updateContainerScroll = (zoom) => {
         if (window.innerWidth <= 768 && hotRef.current?.hotInstance && zoomContainerRef.current) {
             try {
