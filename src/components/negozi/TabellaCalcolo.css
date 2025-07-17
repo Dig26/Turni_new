@@ -1,0 +1,301 @@
+/* src/components/negozi/TabellaCalcolo.css */
+
+.tabella-calcolo-container {
+  width: 100%;
+  padding: 20px;
+  background-color: var(--card-bg, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tabella-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.tabella-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-color, #333);
+}
+
+.tabella-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.year-selector {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-help {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--primary-color, #3498db);
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-help:hover {
+  background-color: var(--secondary-bg, #f0f0f0);
+  transform: scale(1.1);
+}
+
+.btn-primary {
+  background-color: var(--primary-color, #3498db);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark, #2980b9);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color, #95a5a6);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-dark, #7f8c8d);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Stili per la tabella Handsontable */
+.tabella-content {
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.tabella-calcolo {
+  width: 100%;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Colonne fisse */
+.fixed-column {
+  background-color: #f8f9fa !important;
+  font-weight: 500;
+}
+
+/* Colonne totali */
+.total-column {
+  background-color: #e8f5e9 !important;
+  font-weight: 600;
+}
+
+.residuo-column {
+  background-color: #fff3e0 !important;
+  font-weight: 600;
+}
+
+/* Stili per righe */
+.riga-contratto {
+  background-color: #e3f2fd !important;
+}
+
+.riga-rol {
+  background-color: #f3e5f5 !important;
+}
+
+.riga-exfest {
+  background-color: #e8f5e9 !important;
+}
+
+.riga-ferie {
+  background-color: #fff9c4 !important;
+}
+
+/* Override stili Handsontable */
+.handsontable td, .handsontable th {
+  border-color: var(--border-color, #e0e0e0);
+}
+
+.handsontable th {
+  background-color: var(--primary-color, #3498db);
+  color: white;
+  font-weight: 600;
+  text-align: center;
+}
+
+.handsontable td.htDimmed {
+  color: #999;
+}
+
+.handsontable .htAutocompleteArrow {
+  display: none;
+}
+
+/* Celle merge */
+.handsontable td.htMergeCell {
+  vertical-align: top !important;
+  padding-top: 10px;
+}
+
+/* Legenda */
+.tabella-legend {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  margin-top: 20px;
+}
+
+.tabella-legend h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: var(--text-color, #333);
+}
+
+.legend-items {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Stati vuoti e loading */
+.loading-spinner, .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted, #666);
+}
+
+.loading-spinner i, .empty-state i {
+  font-size: 48px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.loading-spinner span {
+  display: block;
+  margin-top: 20px;
+  font-size: 16px;
+}
+
+.empty-state p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tabella-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .tabella-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .legend-items {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tabella-calcolo-container {
+    background-color: #1e1e1e;
+  }
+  
+  .year-selector {
+    background-color: #2d2d2d;
+    color: #fff;
+    border-color: #444;
+  }
+  
+  .tabella-legend {
+    background-color: #2d2d2d;
+  }
+  
+  .handsontable td, .handsontable th {
+    border-color: #444;
+  }
+}
+
+/* Animazioni */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tabella-calcolo-container {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar personalizzata */
+.tabella-content::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tabella-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.tabella-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.tabella-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

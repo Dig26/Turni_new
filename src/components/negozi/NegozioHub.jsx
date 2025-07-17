@@ -10,6 +10,7 @@ import { fetchMotivazioniByNegozio } from '../../app/slices/motivazioniSlice';
 import ParticolaritaManager from './ParticolaritaManager';
 import MotivazioniManager from './MotivazioniManager';
 import TurniPanel from './TurniPanel';
+import TabellaCalcolo from './TabellaCalcolo';
 import styles from './Negozi.module.css';
 import '../../styles/NegozioHub.css';
 
@@ -199,6 +200,12 @@ const NegozioHub = ({ negozioId }) => {
         >
           <i className="fas fa-calendar-check"></i> Motivazioni
         </button>
+        <button 
+          className={`nav-button ${activeTab === 'tabella-calcolo' ? 'active-nav-button' : ''}`} 
+          onClick={() => handleTabChange('tabella-calcolo')}
+        >
+          <i className="fas fa-calculator"></i> Tabella di calcolo
+        </button>
       </div>
 
       <div className="hub-content">
@@ -262,6 +269,21 @@ const NegozioHub = ({ negozioId }) => {
                 </div>
                 <button className="stat-action" onClick={() => setActiveTab('motivazioni')}>
                   Gestisci <i className="fas fa-arrow-right"></i>
+                </button>
+              </div>
+              
+              <div className="stat-card">
+                <div className="stat-content">
+                  <div className="stat-icon">
+                    <i className="fas fa-calculator"></i>
+                  </div>
+                  <div className="stat-info">
+                    <h3>Calcolo</h3>
+                    <p>ROL, Ferie, Ex festività</p>
+                  </div>
+                </div>
+                <button className="stat-action" onClick={() => setActiveTab('tabella-calcolo')}>
+                  Visualizza <i className="fas fa-arrow-right"></i>
                 </button>
               </div>
             </div>
@@ -465,6 +487,12 @@ const NegozioHub = ({ negozioId }) => {
             </div>
             
             <MotivazioniManager negozioId={negozioId} />
+          </div>
+        )}
+        
+        {activeTab === 'tabella-calcolo' && (
+          <div className="tabella-calcolo-tab">
+            <TabellaCalcolo negozioId={negozioId} />
           </div>
         )}
       </div>

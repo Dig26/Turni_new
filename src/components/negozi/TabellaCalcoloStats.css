@@ -1,0 +1,244 @@
+/* src/components/negozi/TabellaCalcoloStats.css */
+
+.tabella-calcolo-stats {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: var(--card-bg, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.stats-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-color, #333);
+  font-size: 1.2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background-color: var(--secondary-bg, #f8f9fa);
+  border-radius: 8px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Colori specifici per tipo */
+.stat-rol {
+  border-left: 4px solid #9c27b0;
+}
+
+.stat-rol .stat-icon {
+  color: #9c27b0;
+}
+
+.stat-exfest {
+  border-left: 4px solid #4caf50;
+}
+
+.stat-exfest .stat-icon {
+  color: #4caf50;
+}
+
+.stat-ferie {
+  border-left: 4px solid #ff9800;
+}
+
+.stat-ferie .stat-icon {
+  color: #ff9800;
+}
+
+.stat-summary {
+  border-left: 4px solid #2196f3;
+}
+
+.stat-summary .stat-icon {
+  color: #2196f3;
+}
+
+.stat-icon {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2.5rem;
+  opacity: 0.2;
+}
+
+.stat-content {
+  position: relative;
+  z-index: 1;
+}
+
+.stat-content h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  color: var(--text-color, #333);
+}
+
+.stat-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.stat-label {
+  color: var(--text-muted, #666);
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+.stat-item.residuo {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light, #e0e0e0);
+}
+
+.stat-item.residuo .stat-value {
+  color: var(--primary-color, #3498db);
+  font-size: 1rem;
+}
+
+.stats-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.stats-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.stats-note i {
+  margin-top: 2px;
+  color: var(--info-color, #3498db);
+}
+
+/* Animazioni */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card {
+  animation: slideIn 0.3s ease-out;
+  animation-fill-mode: both;
+}
+
+.stat-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.stat-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.stat-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.stat-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .stat-card {
+    padding: 15px;
+  }
+  
+  .stat-icon {
+    font-size: 2rem;
+    top: 15px;
+    right: 15px;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .tabella-calcolo-stats {
+    background-color: #1e1e1e;
+  }
+  
+  .stat-card {
+    background-color: #2d2d2d;
+  }
+  
+  .stat-item.residuo {
+    border-top-color: #444;
+  }
+  
+  .stats-footer {
+    border-top-color: #444;
+  }
+}
+
+/* Loading state */
+.stats-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  color: var(--text-muted, #666);
+}
+
+.stats-loading i {
+  font-size: 2rem;
+  margin-right: 10px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

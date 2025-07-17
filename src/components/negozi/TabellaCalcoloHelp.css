@@ -1,0 +1,227 @@
+/* src/components/negozi/TabellaCalcoloHelp.css */
+
+.help-modal {
+  width: 800px;
+  max-width: 90vw;
+  max-height: 85vh;
+}
+
+.help-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
+  background-color: var(--secondary-bg, #f8f9fa);
+  padding: 0 20px;
+}
+
+.help-tabs button {
+  background: none;
+  border: none;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-muted, #666);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.help-tabs button:hover {
+  color: var(--text-color, #333);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.help-tabs button.active {
+  color: var(--primary-color, #3498db);
+  background-color: white;
+}
+
+.help-tabs button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--primary-color, #3498db);
+}
+
+.help-content {
+  padding: 20px;
+  max-height: calc(85vh - 200px);
+  overflow-y: auto;
+}
+
+.help-section {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.help-section h4 {
+  color: var(--primary-color, #3498db);
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.help-section h5 {
+  color: var(--text-color, #333);
+  margin: 20px 0 10px 0;
+  font-size: 1rem;
+}
+
+.help-section p {
+  margin: 10px 0;
+  line-height: 1.6;
+  color: var(--text-color, #333);
+}
+
+.help-section ul {
+  margin: 10px 0;
+  padding-left: 25px;
+}
+
+.help-section li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+  color: var(--text-color, #333);
+}
+
+.help-section strong {
+  color: var(--text-color, #333);
+  font-weight: 600;
+}
+
+/* Stili per formule e calcoli */
+.help-section code {
+  background-color: var(--code-bg, #f4f4f4);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  color: var(--code-color, #d14);
+}
+
+/* Box informativi */
+.info-box {
+  background-color: #e3f2fd;
+  border-left: 4px solid var(--primary-color, #3498db);
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 4px;
+}
+
+.warning-box {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 4px;
+}
+
+/* Scrollbar personalizzata */
+.help-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.help-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.help-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.help-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .help-tabs {
+    background-color: #2d2d2d;
+    border-bottom-color: #444;
+  }
+  
+  .help-tabs button {
+    color: #aaa;
+  }
+  
+  .help-tabs button:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .help-tabs button.active {
+    color: var(--primary-color, #3498db);
+    background-color: #1e1e1e;
+  }
+  
+  .help-content {
+    background-color: #1e1e1e;
+  }
+  
+  .help-section h4 {
+    color: #64b5f6;
+  }
+  
+  .help-section h5,
+  .help-section p,
+  .help-section li,
+  .help-section strong {
+    color: #e0e0e0;
+  }
+  
+  .help-section code {
+    background-color: #2d2d2d;
+    color: #ff9800;
+  }
+  
+  .info-box {
+    background-color: #1a237e;
+    border-left-color: #3949ab;
+  }
+  
+  .warning-box {
+    background-color: #5d4037;
+    border-left-color: #ff9800;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .help-modal {
+    width: 100%;
+    margin: 10px;
+  }
+  
+  .help-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .help-tabs button {
+    white-space: nowrap;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+  }
+  
+  .help-content {
+    padding: 15px;
+  }
+}
+
+/* Animazioni */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
