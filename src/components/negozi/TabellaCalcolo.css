@@ -1,9 +1,10 @@
 /* src/components/negozi/TabellaCalcolo.css */
 
+/* TEMA CHIARO - Tutti gli sfondi sono chiari */
 .tabella-calcolo-container {
   width: 100%;
   padding: 20px;
-  background-color: var(--card-bg, #ffffff);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -14,7 +15,7 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .tabella-header h3 {
@@ -22,7 +23,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--text-color, #333);
+  color: #333;
 }
 
 .tabella-actions {
@@ -33,9 +34,10 @@
 
 .year-selector {
   padding: 8px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background-color: white;
+  background-color: #ffffff;
+  color: #333;
   font-size: 14px;
   cursor: pointer;
 }
@@ -60,7 +62,7 @@
   font-size: 16px;
   cursor: pointer;
   background-color: transparent;
-  color: var(--primary-color, #3498db);
+  color: #3498db;
   transition: all 0.2s ease;
   width: 36px;
   height: 36px;
@@ -70,47 +72,137 @@
 }
 
 .btn-help:hover {
-  background-color: var(--secondary-bg, #f0f0f0);
+  background-color: #f0f0f0;
   transform: scale(1.1);
 }
 
 .btn-primary {
-  background-color: var(--primary-color, #3498db);
+  background-color: #3498db;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-dark, #2980b9);
+  background-color: #2980b9;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
-  background-color: var(--secondary-color, #95a5a6);
+  background-color: #95a5a6;
   color: white;
 }
 
 .btn-secondary:hover {
-  background-color: var(--secondary-dark, #7f8c8d);
+  background-color: #7f8c8d;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Stili per la tabella Handsontable */
+/* TABELLA SEMPRE VISIBILE - Nessuno scroll interno */
 .tabella-content {
   margin-bottom: 20px;
-  overflow-x: auto;
-}
-
-.tabella-calcolo {
   width: 100%;
-  border: 1px solid var(--border-color, #e0e0e0);
+  overflow: visible;
 }
 
-/* Colonne fisse */
-.fixed-column {
-  background-color: #f8f9fa !important;
+.tabella-calcolo-table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+.tabella-calcolo-table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px 8px;
+  border: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tabella-calcolo-table td {
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #333;
+}
+
+/* Celle unite verticalmente */
+.merged-cell {
+  vertical-align: middle;
+  text-align: center;
+  background-color: #f8f9fa;
   font-weight: 500;
+}
+
+/* Celle unite orizzontalmente */
+.merged-cell-horizontal {
+  text-align: center;
+  background-color: #e3f2fd;
+  font-weight: 600;
+}
+
+/* Celle editabili - evidenziate con hover */
+.editable-cell {
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.editable-cell:hover {
+  background-color: #e3f2fd;
+}
+
+.editable-cell::after {
+  content: '✏️';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.editable-cell:hover::after {
+  opacity: 0.7;
+}
+
+/* Colori chiari per tipo di riga */
+.riga-contratto {
+  background-color: #f0f8ff !important;
+}
+
+.riga-contratto td {
+  background-color: #f0f8ff;
+}
+
+.riga-rol {
+  background-color: #f5f0ff !important;
+}
+
+.riga-rol td {
+  background-color: #f5f0ff;
+}
+
+.riga-exfest {
+  background-color: #f0fff4 !important;
+}
+
+.riga-exfest td {
+  background-color: #f0fff4;
+}
+
+.riga-ferie {
+  background-color: #fffef0 !important;
+}
+
+.riga-ferie td {
+  background-color: #fffef0;
 }
 
 /* Colonne totali */
@@ -124,94 +216,138 @@
   font-weight: 600;
 }
 
-/* Stili per righe */
-.riga-contratto {
-  background-color: #e3f2fd !important;
+/* Modal per editing */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
 }
 
-.riga-rol {
-  background-color: #f3e5f5 !important;
+.edit-modal {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 400px;
+  max-width: 90%;
+  animation: slideIn 0.3s ease-out;
 }
 
-.riga-exfest {
-  background-color: #e8f5e9 !important;
+.edit-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
 }
 
-.riga-ferie {
-  background-color: #fff9c4 !important;
+.edit-modal-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
 }
 
-/* Override stili Handsontable */
-.handsontable td, .handsontable th {
-  border-color: var(--border-color, #e0e0e0);
+.close-button {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-.handsontable th {
-  background-color: var(--primary-color, #3498db);
-  color: white;
-  font-weight: 600;
+.close-button:hover {
+  background-color: #e0e0e0;
+}
+
+.edit-modal-body {
+  padding: 30px 20px;
+}
+
+.edit-modal-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 16px;
   text-align: center;
+  transition: border-color 0.2s;
+  background-color: #ffffff;
+  color: #333;
 }
 
-.handsontable td.htDimmed {
-  color: #999;
+.edit-modal-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
-.handsontable .htAutocompleteArrow {
-  display: none;
-}
-
-/* Celle merge */
-.handsontable td.htMergeCell {
-  vertical-align: top !important;
-  padding-top: 10px;
-}
-
-/* Legenda */
-.tabella-legend {
+.edit-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
   background-color: #f8f9fa;
-  padding: 15px;
+}
+
+/* Legenda e info */
+.tabella-info {
+  background-color: #f8f9fa;
+  padding: 20px;
   border-radius: 4px;
   margin-top: 20px;
 }
 
-.tabella-legend h4 {
+.tabella-info h4 {
   margin: 0 0 10px 0;
   font-size: 14px;
-  color: var(--text-color, #333);
+  color: #333;
 }
 
-.legend-items {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+.info-section {
+  margin: 0;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.info-section ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #333;
+}
+
+.info-section li {
+  margin-bottom: 5px;
   font-size: 13px;
-}
-
-.legend-color {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color, #e0e0e0);
 }
 
 /* Stati vuoti e loading */
 .loading-spinner, .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: var(--text-muted, #666);
+  color: #666;
+  background-color: #ffffff;
 }
 
 .loading-spinner i, .empty-state i {
   font-size: 48px;
   margin-bottom: 20px;
   display: block;
+  color: #3498db;
 }
 
 .loading-spinner span {
@@ -238,30 +374,14 @@
     flex-wrap: wrap;
   }
   
-  .legend-items {
-    flex-direction: column;
-    gap: 10px;
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .tabella-calcolo-container {
-    background-color: #1e1e1e;
+  .tabella-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
-  .year-selector {
-    background-color: #2d2d2d;
-    color: #fff;
-    border-color: #444;
-  }
-  
-  .tabella-legend {
-    background-color: #2d2d2d;
-  }
-  
-  .handsontable td, .handsontable th {
-    border-color: #444;
+  .edit-modal {
+    width: calc(100% - 40px);
+    margin: 20px;
   }
 }
 
@@ -269,33 +389,52 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-.tabella-calcolo-container {
-  animation: fadeIn 0.3s ease-out;
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-/* Scrollbar personalizzata */
-.tabella-content::-webkit-scrollbar {
-  height: 8px;
+/* Scrollbar personalizzata per la pagina intera se necessario */
+html::-webkit-scrollbar {
+  width: 12px;
 }
 
-.tabella-content::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 4px;
 }
 
-.tabella-content::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb {
   background: #888;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-.tabella-content::-webkit-scrollbar-thumb:hover {
+html::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Allineamento testo */
+.text-center {
+  text-align: center;
+}
+
+/* Rimuovi elementi non necessari */
+.tabella-warning {
+  display: none;
+}
+
+/* Input nelle celle - NON PIÙ USATI */
+.cell-input {
+  display: none;
 }

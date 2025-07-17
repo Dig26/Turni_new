@@ -8,6 +8,52 @@ import TabellaCalcoloHelp from './TabellaCalcoloHelp';
 import { exportTabellaCalcoloToExcel } from '../../utils/excelExportUtils';
 import './TabellaCalcolo.css';
 
+// Componente Modal per modificare i valori
+const EditValueModal = ({ isOpen, onClose, value, onSave, label }) => {
+  const [inputValue, setInputValue] = useState(value || '');
+  
+  useEffect(() => {
+    setInputValue(value || '');
+  }, [value]);
+  
+  const handleSave = () => {
+    onSave(inputValue);
+    onClose();
+  };
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="edit-modal" onClick={e => e.stopPropagation()}>
+        <div className="edit-modal-header">
+          <h4>Modifica {label}</h4>
+          <button className="close-button" onClick={onClose}>
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+        <div className="edit-modal-body">
+          <input
+            type="number"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            autoFocus
+            className="edit-modal-input"
+          />
+        </div>
+        <div className="edit-modal-footer">
+          <button className="btn-secondary" onClick={onClose}>
+            Annulla
+          </button>
+          <button className="btn-primary" onClick={handleSave}>
+            Conferma
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TabellaCalcolo = ({ negozioId }) => {
   const dispatch = useDispatch();
   
@@ -18,6 +64,15 @@ const TabellaCalcolo = ({ negozioId }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Stato per il modal di editing
+  const [editModal, setEditModal] = useState({
+    isOpen: false,
+    rowIndex: null,
+    field: null,
+    value: '',
+    label: ''
+  });
   
   // Selettori Redux
   const dipendenti = useSelector(state => 
@@ -83,8 +138,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           case 1: // Modifica contratto al mese
             riga.descrizioneRatio = 'Modifica contratto al mese';
             riga.tipoRatio = '';
-            riga.residuoCol1 = '';
-            riga.residuoCol2 = '';
+            riga.residuoAnnoPrecedente = '';
             mesi.forEach(mese => {
               riga[mese] = oreSettimanali;
             });
@@ -95,8 +149,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           case 2: // ROL
             riga.descrizioneRatio = 'ROL';
             riga.tipoRatio = 'Ore';
-            riga.residuoCol1 = '';
-            riga.residuoCol2 = 0;
+            riga.residuoAnnoPrecedente = 0;
             let totaleROL = 0;
             mesi.forEach((mese) => {
               const rol = calcolaROL(oreMese, anniServizio);
@@ -108,10 +161,9 @@ const TabellaCalcolo = ({ negozioId }) => {
             break;
             
           case 3: // ROL goduti
-            riga.descrizioneRatio = '';
+            riga.descrizioneRatio = 'ROL goduti';
             riga.tipoRatio = 'Ore';
-            riga.residuoCol1 = 'ROL goduti';
-            riga.residuoCol2 = '';
+            riga.residuoAnnoPrecedente = '';
             mesi.forEach((mese) => {
               riga[mese] = '';
             });
@@ -122,8 +174,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           case 4: // Ex festività
             riga.descrizioneRatio = 'Ex festività';
             riga.tipoRatio = 'Ore';
-            riga.residuoCol1 = '';
-            riga.residuoCol2 = 0;
+            riga.residuoAnnoPrecedente = 0;
             let totaleExFest = 0;
             mesi.forEach((mese) => {
               const exFest = calcolaExFestivita(oreMese);
@@ -135,10 +186,9 @@ const TabellaCalcolo = ({ negozioId }) => {
             break;
             
           case 5: // Ex festività godute
-            riga.descrizioneRatio = '';
+            riga.descrizioneRatio = 'Ex festività godute';
             riga.tipoRatio = 'Ore';
-            riga.residuoCol1 = 'Ex festività godute';
-            riga.residuoCol2 = '';
+            riga.residuoAnnoPrecedente = '';
             mesi.forEach((mese) => {
               riga[mese] = '';
             });
@@ -149,8 +199,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           case 6: // Ferie
             riga.descrizioneRatio = 'Ferie';
             riga.tipoRatio = 'Giorni';
-            riga.residuoCol1 = '';
-            riga.residuoCol2 = 0;
+            riga.residuoAnnoPrecedente = 0;
             mesi.forEach((mese) => {
               riga[mese] = '';
             });
@@ -177,12 +226,39 @@ const TabellaCalcolo = ({ negozioId }) => {
     }
   }, [dipendenti, generateTableData]);
   
-  // Gestisce i cambiamenti nei valori
-  const handleCellChange = (rowIndex, field, value) => {
-    const newData = [...tableData];
-    newData[rowIndex][field] = value;
-    setTableData(newData);
-    setHasUnsavedChanges(true);
+  // Gestisce l'apertura del modal per modificare un valore
+  const handleCellClick = (rowIndex, field) => {
+    const rowData = tableData[rowIndex];
+    if (!rowData || !isCellEditable(rowIndex, field)) return;
+    
+    let label = '';
+    if (field === 'residuoAnnoPrecedente') {
+      label = `Residuo Anno Precedente - ${rowData.descrizioneRatio}`;
+    } else if (mesi.includes(field)) {
+      if (rowData.rigaTipo === 1) {
+        label = `Ore settimanali - ${field}`;
+      } else {
+        label = `${rowData.descrizioneRatio} - ${field}`;
+      }
+    }
+    
+    setEditModal({
+      isOpen: true,
+      rowIndex,
+      field,
+      value: rowData[field],
+      label
+    });
+  };
+  
+  // Gestisce il salvataggio del valore modificato
+  const handleValueSave = (value) => {
+    if (editModal.rowIndex !== null && editModal.field) {
+      const newData = [...tableData];
+      newData[editModal.rowIndex][editModal.field] = value;
+      setTableData(newData);
+      setHasUnsavedChanges(true);
+    }
   };
   
   // Esporta in Excel
@@ -249,8 +325,8 @@ const TabellaCalcolo = ({ negozioId }) => {
     const rowData = tableData[row];
     if (!rowData) return false;
     
-    // residuoCol2 è editabile solo per righe 2, 4, 6
-    if (field === 'residuoCol2') {
+    // residuoAnnoPrecedente è editabile solo per righe 2, 4, 6
+    if (field === 'residuoAnnoPrecedente') {
       return [2, 4, 6].includes(rowData.rigaTipo);
     }
     
@@ -273,6 +349,83 @@ const TabellaCalcolo = ({ negozioId }) => {
       case 6: return 'riga-ferie';
       default: return '';
     }
+  };
+  
+  // Render delle celle con supporto per rowspan
+  const renderTableBody = () => {
+    const rows = [];
+    let currentDipendente = null;
+    let rowspanCount = 0;
+    
+    tableData.forEach((row, rowIndex) => {
+      const cells = [];
+      
+      // Se cambia dipendente, aggiungi le celle con rowspan
+      if (row.dipendenteId !== currentDipendente) {
+        currentDipendente = row.dipendenteId;
+        rowspanCount = 6;
+        
+        cells.push(
+          <td key="nome" rowSpan={6} className="merged-cell">
+            {row.cognomeNome}
+          </td>,
+          <td key="assunzione" rowSpan={6} className="merged-cell">
+            {row.dataAssunzione}
+          </td>,
+          <td key="cessazione" rowSpan={6} className="merged-cell">
+            {row.dataCessazione}
+          </td>
+        );
+      }
+      
+      // Riga 1: unisci le prime 3 colonne di descrizione
+      if (row.rigaTipo === 1) {
+        cells.push(
+          <td key="desc" colSpan={3} className="merged-cell-horizontal">
+            {row.descrizioneRatio}
+          </td>
+        );
+      } else {
+        cells.push(
+          <td key="desc">{row.descrizioneRatio}</td>,
+          <td key="tipo" className="text-center">{row.tipoRatio}</td>,
+          <td 
+            key="residuo" 
+            className={`text-center ${isCellEditable(rowIndex, 'residuoAnnoPrecedente') ? 'editable-cell' : ''}`}
+            onClick={() => handleCellClick(rowIndex, 'residuoAnnoPrecedente')}
+          >
+            {row.residuoAnnoPrecedente}
+          </td>
+        );
+      }
+      
+      // Mesi
+      mesi.forEach(mese => {
+        cells.push(
+          <td 
+            key={mese} 
+            className={`text-center ${isCellEditable(rowIndex, mese) ? 'editable-cell' : ''}`}
+            onClick={() => handleCellClick(rowIndex, mese)}
+          >
+            {row[mese]}
+          </td>
+        );
+      });
+      
+      // Totali
+      cells.push(
+        <td key="totale" className="text-center total-column">{row.totaleAnnuo}</td>,
+        <td key="residuo-finale" className="text-center residuo-column">{row.residuo}</td>
+      );
+      
+      rows.push(
+        <tr key={rowIndex} className={getRowClass(row.rigaTipo)}>
+          {cells}
+        </tr>
+      );
+    });
+    
+    return rows;
   };
   
   // Render
@@ -334,72 +487,27 @@ const TabellaCalcolo = ({ negozioId }) => {
         </div>
       </div>
       
-      <div className="tabella-warning">
-        <i className="fas fa-info-circle"></i>
-        <span>Nota: La versione con Handsontable è temporaneamente disabilitata. Usa questa versione semplificata.</span>
-      </div>
-      
       <div className="tabella-content">
-        <div className="table-responsive">
-          <table className="tabella-calcolo-table">
-            <thead>
-              <tr>
-                <th>Cognome e Nome</th>
-                <th>Data Assunzione</th>
-                <th>Data Cessazione</th>
-                <th>Descrizione Ratio</th>
-                <th>Tipo Ratio</th>
-                <th>Residuo Anno Prec. 1</th>
-                <th>Residuo Anno Prec. 2</th>
-                {mesi.map(mese => (
-                  <th key={mese}>{mese}</th>
-                ))}
-                <th>Totale Annuo</th>
-                <th>Residuo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableData.map((row, rowIndex) => (
-                <tr key={rowIndex} className={getRowClass(row.rigaTipo)}>
-                  <td className="fixed-column">{row.cognomeNome}</td>
-                  <td className="fixed-column">{row.dataAssunzione}</td>
-                  <td className="fixed-column">{row.dataCessazione}</td>
-                  <td>{row.descrizioneRatio}</td>
-                  <td className="text-center">{row.tipoRatio}</td>
-                  <td>{row.residuoCol1}</td>
-                  <td className="text-center">
-                    {isCellEditable(rowIndex, 'residuoCol2') ? (
-                      <input
-                        type="number"
-                        value={row.residuoCol2}
-                        onChange={(e) => handleCellChange(rowIndex, 'residuoCol2', e.target.value)}
-                        className="cell-input"
-                      />
-                    ) : (
-                      row.residuoCol2
-                    )}
-                  </td>
-                  {mesi.map(mese => (
-                    <td key={mese} className="text-center">
-                      {isCellEditable(rowIndex, mese) ? (
-                        <input
-                          type="number"
-                          value={row[mese]}
-                          onChange={(e) => handleCellChange(rowIndex, mese, e.target.value)}
-                          className="cell-input"
-                        />
-                      ) : (
-                        row[mese]
-                      )}
-                    </td>
-                  ))}
-                  <td className="text-center total-column">{row.totaleAnnuo}</td>
-                  <td className="text-center residuo-column">{row.residuo}</td>
-                </tr>
+        <table className="tabella-calcolo-table">
+          <thead>
+            <tr>
+              <th>Cognome e Nome</th>
+              <th>Data Assunzione</th>
+              <th>Data Cessazione</th>
+              <th>Descrizione Ratio</th>
+              <th>Tipo Ratio</th>
+              <th>Residuo Anno Precedente</th>
+              {mesi.map(mese => (
+                <th key={mese}>{mese}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <th>Totale Annuo</th>
+              <th>Residuo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {renderTableBody()}
+          </tbody>
+        </table>
       </div>
       
       <TabellaCalcoloStats tableData={tableData} anno={selectedYear} />
@@ -408,12 +516,21 @@ const TabellaCalcolo = ({ negozioId }) => {
         <div className="info-section">
           <h4>Note importanti:</h4>
           <ul>
-            <li>I valori in <strong>Residuo Anno Prec. 2</strong> sono modificabili per ROL, Ex festività e Ferie</li>
+            <li>Clicca sulle celle evidenziate per modificare i valori</li>
+            <li>I valori in <strong>Residuo Anno Precedente</strong> sono modificabili per ROL, Ex festività e Ferie</li>
             <li>Le ore settimanali nella prima riga possono essere modificate per riflettere variazioni contrattuali</li>
             <li>I giorni di ferie annuali sono sempre 26 per tutti i dipendenti</li>
           </ul>
         </div>
       </div>
+      
+      <EditValueModal
+        isOpen={editModal.isOpen}
+        onClose={() => setEditModal({ ...editModal, isOpen: false })}
+        value={editModal.value}
+        onSave={handleValueSave}
+        label={editModal.label}
+      />
       
       <ImportExcelModal
         isOpen={showImportModal}
@@ -429,5 +546,197 @@ const TabellaCalcolo = ({ negozioId }) => {
     </div>
   );
 };
+
+// CSS aggiornato da includere in TabellaCalcolo.css
+const cssUpdates = `
+/* TEMA CHIARO - Rimuovere tutti gli sfondi scuri */
+.tabella-calcolo-container {
+  width: 100%;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Rimuovi scroll e fai in modo che la tabella sia sempre visibile */
+.tabella-content {
+  margin-bottom: 20px;
+  width: 100%;
+  overflow: visible;
+}
+
+.tabella-calcolo-table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+}
+
+.tabella-calcolo-table th {
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.tabella-calcolo-table td {
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #333;
+}
+
+/* Celle unite */
+.merged-cell {
+  vertical-align: middle;
+  text-align: center;
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.merged-cell-horizontal {
+  text-align: center;
+  background-color: #e3f2fd;
+  font-weight: 600;
+}
+
+/* Celle editabili - evidenziate con hover */
+.editable-cell {
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.editable-cell:hover {
+  background-color: #e3f2fd;
+}
+
+.editable-cell::after {
+  content: '✏️';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.editable-cell:hover::after {
+  opacity: 0.7;
+}
+
+/* Colori chiari per le righe */
+.riga-contratto {
+  background-color: #f0f8ff;
+}
+
+.riga-rol {
+  background-color: #f5f0ff;
+}
+
+.riga-exfest {
+  background-color: #f0fff4;
+}
+
+.riga-ferie {
+  background-color: #fffef0;
+}
+
+/* Modal per edit */
+.edit-modal {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 400px;
+  max-width: 90%;
+  animation: slideIn 0.3s ease-out;
+}
+
+.edit-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+}
+
+.edit-modal-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.edit-modal-body {
+  padding: 30px 20px;
+}
+
+.edit-modal-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 16px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.edit-modal-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.edit-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+/* Rimuovi warning temporaneo */
+.tabella-warning {
+  display: none;
+}
+
+/* Assicurati che non ci siano sfondi scuri */
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.year-selector {
+  background-color: #ffffff;
+  color: #333;
+}
+
+.btn-primary, .btn-secondary, .btn-help {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-secondary {
+  background-color: #95a5a6;
+}
+
+.btn-help {
+  background-color: transparent;
+  color: #3498db;
+}
+
+/* Colonne totali */
+.total-column {
+  background-color: #e8f5e9;
+  font-weight: 600;
+}
+
+.residuo-column {
+  background-color: #fff3e0;
+  font-weight: 600;
+}
+`;
 
 export default TabellaCalcolo;
