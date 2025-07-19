@@ -11,18 +11,18 @@ import './TabellaCalcolo.css';
 // Componente Modal per modificare i valori
 const EditValueModal = ({ isOpen, onClose, value, onSave, label }) => {
   const [inputValue, setInputValue] = useState(value || '');
-  
+
   useEffect(() => {
     setInputValue(value || '');
   }, [value]);
-  
+
   const handleSave = () => {
     onSave(inputValue);
     onClose();
   };
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="edit-modal" onClick={e => e.stopPropagation()}>
@@ -56,7 +56,7 @@ const EditValueModal = ({ isOpen, onClose, value, onSave, label }) => {
 
 const TabellaCalcolo = ({ negozioId }) => {
   const dispatch = useDispatch();
-  
+
   // Stato locale
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -64,7 +64,7 @@ const TabellaCalcolo = ({ negozioId }) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Stato per il modal di editing
   const [editModal, setEditModal] = useState({
     isOpen: false,
@@ -73,18 +73,18 @@ const TabellaCalcolo = ({ negozioId }) => {
     value: '',
     label: ''
   });
-  
+
   // Selettori Redux
-  const dipendenti = useSelector(state => 
-    state.dipendenti && state.dipendenti.byNegozio 
-      ? state.dipendenti.byNegozio[negozioId] || [] 
+  const dipendenti = useSelector(state =>
+    state.dipendenti && state.dipendenti.byNegozio
+      ? state.dipendenti.byNegozio[negozioId] || []
       : []
   );
-  
+
   const negozio = useSelector(state => state.negozi.currentNegozio);
-  
+
   const mesi = ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'];
-  
+
   // Funzioni di calcolo
   const calcolaAnniServizio = (dataAssunzione) => {
     if (!dataAssunzione) return 0;
@@ -92,74 +92,88 @@ const TabellaCalcolo = ({ negozioId }) => {
     const dataRiferimento = new Date(selectedYear, 0, 1);
     const anni = dataRiferimento.getFullYear() - assunzione.getFullYear();
     const mese = dataRiferimento.getMonth() - assunzione.getMonth();
-    
+
     if (mese < 0 || (mese === 0 && dataRiferimento.getDate() < assunzione.getDate())) {
       return Math.max(0, anni - 1);
     }
     return Math.max(0, anni);
   };
-  
+
   const calcolaOreMese = (oreSettimanali) => {
     return Math.round((oreSettimanali * 52) / 12);
   };
-  
-  const calcolaROL = (oreMese, anniServizio) => {
+
+  const calcolaROL = (oreSettimanali, anniServizio) => {
     if (anniServizio < 2) return 0;
-    if (anniServizio >= 2 && anniServizio < 4) return (0.15 * oreMese) / 2;
-    return 0.15 * oreMese;
+    if (anniServizio >= 2 && anniServizio < 4)
+      return (0.15 * oreSettimanali) / 2;
+    return 0.15 * oreSettimanali;
   };
-  
-  const calcolaExFestivita = (oreMese) => {
-    return 0.06675 * oreMese;
+
+  const calcolaExFestivita = (oreSettimanali) => {
+    return (1 / 15) * oreSettimanali;
   };
-  
+
+  // Genera i dati della tabella
   // Genera i dati della tabella
   const generateTableData = useCallback(() => {
     const data = [];
-    
+
     dipendenti.forEach((dipendente) => {
       const anniServizio = calcolaAnniServizio(dipendente.dataAssunzione);
-      const oreSettimanali = dipendente.oreSettimanali || 40;
-      const oreMese = calcolaOreMese(oreSettimanali);
-      
+
+      // ✅ USA LE ORE DEL DIPENDENTE, NON 40 DI DEFAULT
+      const oreSettimanaliBase = dipendente.oreSettimanali; // RIMUOVE || 40
+
+      if (!oreSettimanaliBase) {
+        console.warn(`Dipendente ${dipendente.nome} ${dipendente.cognome} non ha ore settimanali definite`);
+        return; // Salta questo dipendente se non ha ore definite
+      }
+
       // Crea 6 righe per ogni dipendente
       for (let rigaNum = 1; rigaNum <= 6; rigaNum++) {
         const riga = {
           dipendenteId: dipendente.id,
           rigaTipo: rigaNum,
           cognomeNome: `${dipendente.cognome} ${dipendente.nome}`,
-          contratto: `Contratto: ${oreSettimanali} ore settimanali`,
+          contratto: `Contratto: ${oreSettimanaliBase} ore settimanali`,
           dataAssunzione: dipendente.dataAssunzione ? new Date(dipendente.dataAssunzione).toLocaleDateString('it-IT') : '',
           dataCessazione: dipendente.dataFineContratto ? new Date(dipendente.dataFineContratto).toLocaleDateString('it-IT') : '',
         };
-        
+
         // Configura i dati specifici per ogni riga
         switch (rigaNum) {
           case 1: // Modifica contratto al mese
             riga.descrizioneRatio = 'Modifica contratto al mese';
             riga.tipoRatio = '';
             riga.residuoAnnoPrecedente = '';
+            // ✅ INIZIALIZZA CON LE ORE DEL DIPENDENTE
             mesi.forEach(mese => {
-              riga[mese] = oreSettimanali;
+              riga[mese] = oreSettimanaliBase;
             });
             riga.totaleAnnuo = '';
             riga.residuo = '';
             break;
-            
+
           case 2: // ROL
             riga.descrizioneRatio = 'ROL';
             riga.tipoRatio = 'Ore';
             riga.residuoAnnoPrecedente = 0;
             let totaleROL = 0;
             mesi.forEach((mese) => {
-              const rol = calcolaROL(oreMese, anniServizio);
+              // ✅ LEGGE LE ORE SETTIMANALI DALLA RIGA CONTRATTO (non ancora creata, usa base)
+              // Questo sarà aggiornato quando l'utente modifica le celle
+              const oreSettimanaliMese = oreSettimanaliBase;
+
+              // ✅ CALCOLO CORRETTO: DIRETTAMENTE SU ORE SETTIMANALI
+              const rol = calcolaROL(oreSettimanaliMese, anniServizio);
               riga[mese] = rol.toFixed(2);
               totaleROL += rol;
             });
             riga.totaleAnnuo = totaleROL.toFixed(2);
             riga.residuo = totaleROL.toFixed(2);
             break;
-            
+
           case 3: // ROL goduti
             riga.descrizioneRatio = 'ROL goduti';
             riga.tipoRatio = 'Ore';
@@ -170,21 +184,25 @@ const TabellaCalcolo = ({ negozioId }) => {
             riga.totaleAnnuo = '';
             riga.residuo = '';
             break;
-            
+
           case 4: // Ex festività
             riga.descrizioneRatio = 'Ex festività';
             riga.tipoRatio = 'Ore';
             riga.residuoAnnoPrecedente = 0;
             let totaleExFest = 0;
             mesi.forEach((mese) => {
-              const exFest = calcolaExFestivita(oreMese);
+              // ✅ LEGGE LE ORE SETTIMANALI DALLA RIGA CONTRATTO
+              const oreSettimanaliMese = oreSettimanaliBase;
+
+              // ✅ CALCOLO CORRETTO: DIRETTAMENTE SU ORE SETTIMANALI
+              const exFest = calcolaExFestivita(oreSettimanaliMese);
               riga[mese] = exFest.toFixed(2);
               totaleExFest += exFest;
             });
             riga.totaleAnnuo = totaleExFest.toFixed(2);
             riga.residuo = totaleExFest.toFixed(2);
             break;
-            
+
           case 5: // Ex festività godute
             riga.descrizioneRatio = 'Ex festività godute';
             riga.tipoRatio = 'Ore';
@@ -195,7 +213,7 @@ const TabellaCalcolo = ({ negozioId }) => {
             riga.totaleAnnuo = '';
             riga.residuo = '';
             break;
-            
+
           case 6: // Ferie
             riga.descrizioneRatio = 'Ferie';
             riga.tipoRatio = 'Giorni';
@@ -207,14 +225,14 @@ const TabellaCalcolo = ({ negozioId }) => {
             riga.residuo = 26;
             break;
         }
-        
+
         data.push(riga);
       }
     });
-    
+
     return data;
   }, [dipendenti, selectedYear]);
-  
+
   // Inizializza i dati
   useEffect(() => {
     if (dipendenti.length > 0) {
@@ -225,12 +243,12 @@ const TabellaCalcolo = ({ negozioId }) => {
       setIsLoading(false);
     }
   }, [dipendenti, generateTableData]);
-  
+
   // Gestisce l'apertura del modal per modificare un valore
   const handleCellClick = (rowIndex, field) => {
     const rowData = tableData[rowIndex];
     if (!rowData || !isCellEditable(rowIndex, field)) return;
-    
+
     let label = '';
     if (field === 'residuoAnnoPrecedente') {
       label = `Residuo Anno Precedente - ${rowData.descrizioneRatio}`;
@@ -241,7 +259,7 @@ const TabellaCalcolo = ({ negozioId }) => {
         label = `${rowData.descrizioneRatio} - ${field}`;
       }
     }
-    
+
     setEditModal({
       isOpen: true,
       rowIndex,
@@ -250,7 +268,7 @@ const TabellaCalcolo = ({ negozioId }) => {
       label
     });
   };
-  
+
   // Gestisce il salvataggio del valore modificato
   const handleValueSave = (value) => {
     if (editModal.rowIndex !== null && editModal.field) {
@@ -260,7 +278,7 @@ const TabellaCalcolo = ({ negozioId }) => {
       setHasUnsavedChanges(true);
     }
   };
-  
+
   // Esporta in Excel
   const handleExport = () => {
     try {
@@ -269,9 +287,9 @@ const TabellaCalcolo = ({ negozioId }) => {
         negozioId: negozioId,
         anno: selectedYear
       };
-      
+
       exportTabellaCalcoloToExcel(tableData, metadata);
-      
+
       dispatch(addNotification({
         type: 'success',
         message: 'Tabella esportata con successo',
@@ -285,7 +303,7 @@ const TabellaCalcolo = ({ negozioId }) => {
       }));
     }
   };
-  
+
   // Salva i dati
   const handleSave = () => {
     dispatch(addNotification({
@@ -295,21 +313,21 @@ const TabellaCalcolo = ({ negozioId }) => {
     }));
     setHasUnsavedChanges(false);
   };
-  
+
   // Gestione cambio anno
   const handleYearChange = (e) => {
     const newYear = parseInt(e.target.value);
-    
+
     if (hasUnsavedChanges) {
       if (!window.confirm('Hai modifiche non salvate. Vuoi continuare?')) {
         return;
       }
     }
-    
+
     setSelectedYear(newYear);
     setHasUnsavedChanges(false);
   };
-  
+
   // Gestione import
   const handleImportData = (importedData) => {
     setShowImportModal(false);
@@ -319,25 +337,25 @@ const TabellaCalcolo = ({ negozioId }) => {
       duration: 3000
     }));
   };
-  
+
   // Determina se una cella è editabile
   const isCellEditable = (row, field) => {
     const rowData = tableData[row];
     if (!rowData) return false;
-    
+
     // residuoAnnoPrecedente è editabile solo per righe 2, 4, 6
     if (field === 'residuoAnnoPrecedente') {
       return [2, 4, 6].includes(rowData.rigaTipo);
     }
-    
+
     // I mesi sono editabili solo per righe 1, 3, 5, 6
     if (mesi.includes(field)) {
       return [1, 3, 5, 6].includes(rowData.rigaTipo);
     }
-    
+
     return false;
   };
-  
+
   // Determina la classe CSS per la riga
   const getRowClass = (rigaTipo) => {
     switch (rigaTipo) {
@@ -350,21 +368,21 @@ const TabellaCalcolo = ({ negozioId }) => {
       default: return '';
     }
   };
-  
+
   // Render delle celle con supporto per rowspan
   const renderTableBody = () => {
     const rows = [];
     let currentDipendente = null;
     let rowspanCount = 0;
-    
+
     tableData.forEach((row, rowIndex) => {
       const cells = [];
-      
+
       // Se cambia dipendente, aggiungi le celle con rowspan
       if (row.dipendenteId !== currentDipendente) {
         currentDipendente = row.dipendenteId;
         rowspanCount = 6;
-        
+
         cells.push(
           <td key="nome" rowSpan={6} className="merged-cell">
             {row.cognomeNome}
@@ -377,7 +395,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           </td>
         );
       }
-      
+
       // Riga 1: unisci le prime 3 colonne di descrizione
       if (row.rigaTipo === 1) {
         cells.push(
@@ -389,8 +407,8 @@ const TabellaCalcolo = ({ negozioId }) => {
         cells.push(
           <td key="desc">{row.descrizioneRatio}</td>,
           <td key="tipo" className="text-center">{row.tipoRatio}</td>,
-          <td 
-            key="residuo" 
+          <td
+            key="residuo"
             className={`text-center ${isCellEditable(rowIndex, 'residuoAnnoPrecedente') ? 'editable-cell' : ''}`}
             onClick={() => handleCellClick(rowIndex, 'residuoAnnoPrecedente')}
           >
@@ -398,12 +416,12 @@ const TabellaCalcolo = ({ negozioId }) => {
           </td>
         );
       }
-      
+
       // Mesi
       mesi.forEach(mese => {
         cells.push(
-          <td 
-            key={mese} 
+          <td
+            key={mese}
             className={`text-center ${isCellEditable(rowIndex, mese) ? 'editable-cell' : ''}`}
             onClick={() => handleCellClick(rowIndex, mese)}
           >
@@ -411,23 +429,23 @@ const TabellaCalcolo = ({ negozioId }) => {
           </td>
         );
       });
-      
+
       // Totali
       cells.push(
         <td key="totale" className="text-center total-column">{row.totaleAnnuo}</td>,
         <td key="residuo-finale" className="text-center residuo-column">{row.residuo}</td>
       );
-      
+
       rows.push(
         <tr key={rowIndex} className={getRowClass(row.rigaTipo)}>
           {cells}
         </tr>
       );
     });
-    
+
     return rows;
   };
-  
+
   // Render
   if (isLoading) {
     return (
@@ -437,7 +455,7 @@ const TabellaCalcolo = ({ negozioId }) => {
       </div>
     );
   }
-  
+
   if (dipendenti.length === 0) {
     return (
       <div className="empty-state">
@@ -447,7 +465,7 @@ const TabellaCalcolo = ({ negozioId }) => {
       </div>
     );
   }
-  
+
   return (
     <div className="tabella-calcolo-container">
       <div className="tabella-header">
@@ -455,8 +473,8 @@ const TabellaCalcolo = ({ negozioId }) => {
           <i className="fas fa-calculator"></i> Tabella di Calcolo {selectedYear}
         </h3>
         <div className="tabella-actions">
-          <select 
-            value={selectedYear} 
+          <select
+            value={selectedYear}
             onChange={handleYearChange}
             className="year-selector"
           >
@@ -464,8 +482,8 @@ const TabellaCalcolo = ({ negozioId }) => {
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
-          <button 
-            onClick={() => setShowImportModal(true)} 
+          <button
+            onClick={() => setShowImportModal(true)}
             className="btn-secondary"
           >
             <i className="fas fa-file-import"></i> Importa
@@ -477,8 +495,8 @@ const TabellaCalcolo = ({ negozioId }) => {
             <i className="fas fa-save"></i> Salva
             {hasUnsavedChanges && ' *'}
           </button>
-          <button 
-            onClick={() => setShowHelpModal(true)} 
+          <button
+            onClick={() => setShowHelpModal(true)}
             className="btn-help"
             title="Guida"
           >
@@ -486,7 +504,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           </button>
         </div>
       </div>
-      
+
       <div className="tabella-content">
         <table className="tabella-calcolo-table">
           <thead>
@@ -509,9 +527,9 @@ const TabellaCalcolo = ({ negozioId }) => {
           </tbody>
         </table>
       </div>
-      
+
       <TabellaCalcoloStats tableData={tableData} anno={selectedYear} />
-      
+
       <div className="tabella-info">
         <div className="info-section">
           <h4>Note importanti:</h4>
@@ -523,7 +541,7 @@ const TabellaCalcolo = ({ negozioId }) => {
           </ul>
         </div>
       </div>
-      
+
       <EditValueModal
         isOpen={editModal.isOpen}
         onClose={() => setEditModal({ ...editModal, isOpen: false })}
@@ -531,14 +549,14 @@ const TabellaCalcolo = ({ negozioId }) => {
         onSave={handleValueSave}
         label={editModal.label}
       />
-      
+
       <ImportExcelModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImport={handleImportData}
         anno={selectedYear}
       />
-      
+
       <TabellaCalcoloHelp
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
