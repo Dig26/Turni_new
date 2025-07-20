@@ -7,6 +7,7 @@
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .tabella-header {
@@ -98,19 +99,66 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* TABELLA SEMPRE VISIBILE - Nessuno scroll interno */
-.tabella-content {
-  margin-bottom: 20px;
+/* CONTENITORE TABELLA - Con riduzione proporzionale */
+.tabella-content-wrapper {
   width: 100%;
-  overflow: visible;
+  overflow: hidden;
+  position: relative;
 }
 
-.tabella-calcolo-table {
+.tabella-content {
   width: 100%;
-  min-width: max-content;
+  transform-origin: top left;
+  transition: transform 0.3s ease;
+}
+
+/* TABELLA SEMPRE VISIBILE - Nessuno scroll interno */
+.tabella-calcolo-table {
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   border: 1px solid #e0e0e0;
   background-color: #ffffff;
+}
+
+/* Applica transform per adattare la tabella se è troppo larga */
+@media screen and (max-width: 1600px) {
+  .tabella-content {
+    transform: scale(0.9);
+    width: 111.11%;
+  }
+  
+  .tabella-content-wrapper {
+    height: auto;
+  }
+}
+
+@media screen and (max-width: 1400px) {
+  .tabella-content {
+    transform: scale(0.8);
+    width: 125%;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .tabella-content {
+    transform: scale(0.7);
+    width: 142.86%;
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .tabella-content {
+    transform: scale(0.6);
+    width: 166.67%;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  .tabella-content {
+    transform: scale(0.5);
+    width: 200%;
+  }
 }
 
 .tabella-calcolo-table th {
@@ -123,6 +171,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  white-space: nowrap;
 }
 
 .tabella-calcolo-table td {
@@ -130,6 +179,7 @@
   border: 1px solid #e0e0e0;
   background-color: #ffffff;
   color: #333;
+  white-space: nowrap;
 }
 
 /* Celle unite verticalmente */
@@ -361,6 +411,23 @@
   font-size: 16px;
 }
 
+/* Indicatore di salvataggio */
+.saving-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #333;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .tabella-header {
@@ -372,11 +439,6 @@
   .tabella-actions {
     width: 100%;
     flex-wrap: wrap;
-  }
-  
-  .tabella-content {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
   
   .edit-modal {
@@ -406,35 +468,72 @@
   }
 }
 
-/* Scrollbar personalizzata per la pagina intera se necessario */
-html::-webkit-scrollbar {
-  width: 12px;
-}
-
-html::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-html::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 6px;
-}
-
-html::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
 /* Allineamento testo */
 .text-center {
   text-align: center;
 }
 
-/* Rimuovi elementi non necessari */
-.tabella-warning {
-  display: none;
-}
-
-/* Input nelle celle - NON PIÙ USATI */
-.cell-input {
-  display: none;
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .tabella-calcolo-container {
+    background-color: #1e1e1e;
+  }
+  
+  .tabella-calcolo-table {
+    background-color: #2d2d2d;
+  }
+  
+  .tabella-calcolo-table th {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+  }
+  
+  .tabella-calcolo-table td {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #444;
+  }
+  
+  .year-selector {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #444;
+  }
+  
+  .edit-modal {
+    background-color: #1e1e1e;
+  }
+  
+  .edit-modal-header {
+    background-color: #2d2d2d;
+    border-bottom-color: #444;
+  }
+  
+  .edit-modal-header h4 {
+    color: #e0e0e0;
+  }
+  
+  .edit-modal-input {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #444;
+  }
+  
+  .edit-modal-footer {
+    background-color: #2d2d2d;
+    border-top-color: #444;
+  }
+  
+  .tabella-info {
+    background-color: #2d2d2d;
+  }
+  
+  .tabella-info h4,
+  .info-section ul {
+    color: #e0e0e0;
+  }
+  
+  .saving-indicator {
+    background-color: #2d2d2d;
+  }
 }

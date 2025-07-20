@@ -22,7 +22,7 @@ export const saveTabellaCalcoloData = createAsyncThunk(
       anno,
       data
     );
-    return { negozioId, anno, data: response };
+    return { negozioId, anno, data };
   }
 );
 
@@ -104,7 +104,8 @@ const tabellaCalcoloSlice = createSlice({
         if (!state.data[negozioId]) {
           state.data[negozioId] = {};
         }
-        state.data[negozioId][anno] = data;
+        // Assicurati che data sia sempre un array
+        state.data[negozioId][anno] = Array.isArray(data) ? data : [];
         state.loading = false;
         state.lastUpdate = new Date().toISOString();
       })
@@ -123,7 +124,8 @@ const tabellaCalcoloSlice = createSlice({
         if (!state.data[negozioId]) {
           state.data[negozioId] = {};
         }
-        state.data[negozioId][anno] = data;
+        // Salva i dati dell'array direttamente
+        state.data[negozioId][anno] = Array.isArray(data) ? data : [];
         state.saving = false;
         state.lastUpdate = new Date().toISOString();
       })

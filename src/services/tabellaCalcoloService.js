@@ -7,23 +7,28 @@ const tabellaCalcoloService = {
     try {
       console.log(`📊 Fetching tabella calcolo data for negozio ${negozioId}, anno ${anno}`);
       
-      const promise = supabase
+      const { data, error } = await supabase
         .from('tabelle_calcolo')
         .select('*')
         .eq('negozio_id', negozioId)
         .eq('anno', anno)
         .single();
       
-      const data = await handleResponse(promise);
-      return data ? data.dati : null;
-    } catch (error) {
-      // Se non trova dati, ritorna null invece di lanciare errore
-      if (error.code === 'PGRST116') {
-        console.log('📊 Nessuna tabella salvata trovata');
-        return null;
+      if (error) {
+        // Se non trova dati (errore PGRST116), ritorna array vuoto invece di lanciare errore
+        if (error.code === 'PGRST116') {
+          console.log('📊 Nessuna tabella salvata trovata, ritorno array vuoto');
+          return [];
+        }
+        throw error;
       }
+      
+      // Se data.dati è null o undefined, ritorna array vuoto
+      return data?.dati || [];
+    } catch (error) {
       console.error('Errore nel recupero dati tabella calcolo:', error);
-      throw error;
+      // In caso di errore, ritorna array vuoto invece di propagare l'errore
+      return [];
     }
   },
 
@@ -32,39 +37,47 @@ const tabellaCalcoloService = {
     try {
       console.log(`💾 Saving tabella calcolo data for negozio ${negozioId}, anno ${anno}`);
       
-      // Verifica se esiste già
-      const { data: existing } = await supabase
+      // Verifica se esiste già un record
+      const { data: existing, error: checkError } = await supabase
         .from('tabelle_calcolo')
         .select('id')
         .eq('negozio_id', negozioId)
         .eq('anno', anno)
         .single();
       
-      const payload = prepareData({
-        negozioId,
-        anno,
+      const payload = {
+        negozio_id: negozioId,
+        anno: anno,
         dati: data,
-        aggiornatoIl: new Date().toISOString()
-      });
+        aggiornato_il: new Date().toISOString()
+      };
       
-      let promise;
-      if (existing) {
-        // Update
-        promise = supabase
+      let result;
+      if (existing && !checkError) {
+        // Update esistente
+        const { data: updateData, error: updateError } = await supabase
           .from('tabelle_calcolo')
           .update(payload)
           .eq('negozio_id', negozioId)
           .eq('anno', anno)
-          .select();
+          .select()
+          .single();
+          
+        if (updateError) throw updateError;
+        result = updateData;
       } else {
-        // Insert
-        promise = supabase
+        // Insert nuovo
+        const { data: insertData, error: insertError } = await supabase
           .from('tabelle_calcolo')
           .insert(payload)
-          .select();
+          .select()
+          .single();
+          
+        if (insertError) throw insertError;
+        result = insertData;
       }
       
-      return await handleResponse(promise);
+      return result;
     } catch (error) {
       console.error('Errore nel salvataggio dati tabella calcolo:', error);
       throw error;
@@ -76,43 +89,48 @@ const tabellaCalcoloService = {
     try {
       console.log(`📅 Fetching storico turni for negozio ${negozioId}, anno ${anno}`);
       
-      const promise = supabase
-        .from('storico_assenze')
-        .select(`
-          dipendente_id,
-          mese,
-          tipo_assenza,
-          valore
-        `)
-        .in('dipendente_id', 
-          supabase
-            .from('dipendenti')
-            .select('id')
-            .eq('negozio_id', negozioId)
-        )
-        .eq('anno', anno);
+      // Prima ottieni gli ID dei dipendenti del negozio
+      const { data: dipendenti, error: dipError } = await supabase
+        .from('dipendenti')
+        .select('id')
+        .eq('negozio_id', negozioId);
+        
+      if (dipError) throw dipError;
       
-      const data = await handleResponse(promise);
+      if (!dipendenti || dipendenti.length === 0) {
+        return {};
+      }
+      
+      const dipendentiIds = dipendenti.map(d => d.id);
+      
+      // Poi cerca le assenze
+      const { data, error } = await supabase
+        .from('storico_assenze')
+        .select('dipendente_id, mese, tipo_assenza, valore')
+        .in('dipendente_id', dipendentiIds)
+        .eq('anno', anno);
+        
+      if (error) throw error;
       
       // Riorganizza i dati per dipendente/mese
       const organized = {};
-      data?.forEach(record => {
-        if (!organized[record.dipendenteId]) {
-          organized[record.dipendenteId] = {};
+      (data || []).forEach(record => {
+        if (!organized[record.dipendente_id]) {
+          organized[record.dipendente_id] = {};
         }
-        if (!organized[record.dipendenteId][record.mese]) {
-          organized[record.dipendenteId][record.mese] = {};
+        if (!organized[record.dipendente_id][record.mese]) {
+          organized[record.dipendente_id][record.mese] = {};
         }
         
-        switch (record.tipoAssenza) {
+        switch (record.tipo_assenza) {
           case 'ROL':
-            organized[record.dipendenteId][record.mese].rolGoduti = record.valore;
+            organized[record.dipendente_id][record.mese].rolGoduti = record.valore;
             break;
           case 'EX_FEST':
-            organized[record.dipendenteId][record.mese].exFestGodute = record.valore;
+            organized[record.dipendente_id][record.mese].exFestGodute = record.valore;
             break;
           case 'FERIE':
-            organized[record.dipendenteId][record.mese].ferieGodute = record.valore;
+            organized[record.dipendente_id][record.mese].ferieGodute = record.valore;
             break;
         }
       });
@@ -130,7 +148,7 @@ const tabellaCalcoloService = {
       // Recupera i dati
       const data = await this.fetchTabellaCalcoloData(negozioId, anno);
       
-      if (!data) {
+      if (!data || data.length === 0) {
         throw new Error('Nessun dato da esportare');
       }
       
@@ -148,50 +166,46 @@ const tabellaCalcoloService = {
     try {
       console.log(`🧮 Calculating values from turni for ${negozioId}/${anno}/${mese}`);
       
-      // Chiama la stored procedure per sincronizzare i dati
-      const { data, error } = await supabase
-        .rpc('sync_storico_assenze_da_turni', {
-          p_negozio_id: negozioId,
-          p_anno: anno
-        });
+      // Prima ottieni gli ID dei dipendenti del negozio
+      const { data: dipendenti, error: dipError } = await supabase
+        .from('dipendenti')
+        .select('id')
+        .eq('negozio_id', negozioId);
+        
+      if (dipError) throw dipError;
       
-      if (error) throw error;
+      if (!dipendenti || dipendenti.length === 0) {
+        return {};
+      }
+      
+      const dipendentiIds = dipendenti.map(d => d.id);
       
       // Recupera i valori calcolati per il mese specifico
-      const promise = supabase
+      const { data: risultati, error } = await supabase
         .from('storico_assenze')
-        .select(`
-          dipendente_id,
-          tipo_assenza,
-          valore
-        `)
-        .in('dipendente_id', 
-          supabase
-            .from('dipendenti')
-            .select('id')
-            .eq('negozio_id', negozioId)
-        )
+        .select('dipendente_id, tipo_assenza, valore')
+        .in('dipendente_id', dipendentiIds)
         .eq('anno', anno)
         .eq('mese', mese);
-      
-      const risultati = await handleResponse(promise);
+        
+      if (error) throw error;
       
       // Riorganizza per dipendente
       const calcolati = {};
-      risultati?.forEach(record => {
-        if (!calcolati[record.dipendenteId]) {
-          calcolati[record.dipendenteId] = {};
+      (risultati || []).forEach(record => {
+        if (!calcolati[record.dipendente_id]) {
+          calcolati[record.dipendente_id] = {};
         }
         
-        switch (record.tipoAssenza) {
+        switch (record.tipo_assenza) {
           case 'ROL':
-            calcolati[record.dipendenteId].rolGoduti = record.valore;
+            calcolati[record.dipendente_id].rolGoduti = record.valore;
             break;
           case 'EX_FEST':
-            calcolati[record.dipendenteId].exFestGodute = record.valore;
+            calcolati[record.dipendente_id].exFestGodute = record.valore;
             break;
           case 'FERIE':
-            calcolati[record.dipendenteId].ferieGodute = record.valore;
+            calcolati[record.dipendente_id].ferieGodute = record.valore;
             break;
         }
       });
@@ -206,14 +220,16 @@ const tabellaCalcoloService = {
   // Recupera le variazioni orarie per un dipendente
   async fetchVariazioniOrarie(dipendenteId, anno) {
     try {
-      const promise = supabase
+      const { data, error } = await supabase
         .from('variazioni_orarie')
         .select('*')
         .eq('dipendente_id', dipendenteId)
         .eq('anno', anno)
         .order('mese_inizio', { ascending: true });
+        
+      if (error) throw error;
       
-      return await handleResponse(promise);
+      return data || [];
     } catch (error) {
       console.error('Errore nel recupero variazioni orarie:', error);
       return [];
