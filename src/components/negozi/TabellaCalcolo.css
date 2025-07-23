@@ -1,13 +1,14 @@
 /* src/components/negozi/TabellaCalcolo.css */
 
-/* TEMA CHIARO - Tutti gli sfondi sono chiari */
+/* TEMA CHIARO FORZATO - Tutti gli sfondi sono sempre chiari */
 .tabella-calcolo-container {
   width: 100%;
   padding: 20px;
-  background-color: #ffffff;
+  background-color: #ffffff !important;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  color: #333 !important;
 }
 
 .tabella-header {
@@ -24,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #333;
+  color: #333 !important;
 }
 
 .tabella-actions {
@@ -37,8 +38,8 @@
   padding: 8px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background-color: #ffffff;
-  color: #333;
+  background-color: #ffffff !important;
+  color: #333 !important;
   font-size: 14px;
   cursor: pointer;
 }
@@ -79,7 +80,7 @@
 
 .btn-primary {
   background-color: #3498db;
-  color: white;
+  color: white !important;
 }
 
 .btn-primary:hover {
@@ -90,7 +91,7 @@
 
 .btn-secondary {
   background-color: #95a5a6;
-  color: white;
+  color: white !important;
 }
 
 .btn-secondary:hover {
@@ -99,102 +100,118 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* CONTENITORE TABELLA - Con riduzione proporzionale */
+/* CONTENITORE TABELLA - Nessuno scroll, sempre contenuta al 100% */
 .tabella-content-wrapper {
   width: 100%;
-  overflow: hidden;
+  overflow: hidden; /* Nessuno scroll - la tabella deve sempre rientrare */
   position: relative;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #ffffff !important;
 }
 
 .tabella-content {
   width: 100%;
   transform-origin: top left;
   transition: transform 0.3s ease;
+  /* Scaling molto aggressivo per garantire che rientri sempre nel contenitore */
+  transform: scale(0.5); /* Scala al 50% di default per adattarsi a qualsiasi schermo */
 }
 
-/* TABELLA SEMPRE VISIBILE - Nessuno scroll interno */
+/* TABELLA - Dimensioni ultra compatte per massima ottimizzazione */
 .tabella-calcolo-table {
-  width: max-content;
-  min-width: 100%;
+  width: max-content; /* Usa solo la larghezza necessaria */
   border-collapse: collapse;
-  border: 1px solid #e0e0e0;
-  background-color: #ffffff;
+  background-color: #ffffff !important;
+  font-size: 8px; /* Font molto piccola per contenere più colonne */
 }
 
-/* Applica transform per adattare la tabella se è troppo larga */
+/* Scaling responsivo ultra aggressivo */
+@media screen and (min-width: 1800px) {
+  .tabella-content {
+    transform: scale(0.7); /* Su schermi molto grandi, un po' più grande */
+  }
+}
+
 @media screen and (max-width: 1600px) {
   .tabella-content {
-    transform: scale(0.9);
-    width: 111.11%;
-  }
-  
-  .tabella-content-wrapper {
-    height: auto;
+    transform: scale(0.5);
   }
 }
 
 @media screen and (max-width: 1400px) {
   .tabella-content {
-    transform: scale(0.8);
-    width: 125%;
+    transform: scale(0.45);
   }
 }
 
 @media screen and (max-width: 1200px) {
   .tabella-content {
-    transform: scale(0.7);
-    width: 142.86%;
+    transform: scale(0.4);
   }
 }
 
 @media screen and (max-width: 1000px) {
   .tabella-content {
-    transform: scale(0.6);
-    width: 166.67%;
+    transform: scale(0.35);
   }
 }
 
 @media screen and (max-width: 800px) {
   .tabella-content {
-    transform: scale(0.5);
-    width: 200%;
+    transform: scale(0.3);
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .tabella-content {
+    transform: scale(0.25);
   }
 }
 
 .tabella-calcolo-table th {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: #f8f9fa !important;
+  color: #333 !important;
   font-weight: 600;
   text-align: center;
-  padding: 12px 8px;
+  padding: 4px 2px; /* Padding molto ridotto */
   border: 1px solid #e0e0e0;
   position: sticky;
   top: 0;
   z-index: 10;
   white-space: nowrap;
+  font-size: 7px; /* Font molto piccola per headers */
+  min-width: 30px; /* Larghezza minima per evitare celle troppo strette */
+  max-width: 80px; /* Larghezza massima */
 }
 
 .tabella-calcolo-table td {
-  padding: 8px;
+  padding: 2px 1px; /* Padding ultra ridotto */
   border: 1px solid #e0e0e0;
-  background-color: #ffffff;
-  color: #333;
+  background-color: #ffffff !important;
+  color: #333 !important;
   white-space: nowrap;
+  text-align: center;
+  font-size: 7px; /* Font molto piccola */
+  min-width: 25px; /* Larghezza minima */
+  max-width: 70px; /* Larghezza massima */
 }
 
 /* Celle unite verticalmente */
 .merged-cell {
   vertical-align: middle;
   text-align: center;
-  background-color: #f8f9fa;
+  background-color: #f8f9fa !important;
   font-weight: 500;
+  color: #333 !important;
 }
 
 /* Celle unite orizzontalmente */
 .merged-cell-horizontal {
   text-align: center;
-  background-color: #e3f2fd;
+  background-color: #e3f2fd !important;
   font-weight: 600;
+  color: #1976d2 !important;
 }
 
 /* Celle editabili - evidenziate con hover */
@@ -202,18 +219,20 @@
   cursor: pointer;
   position: relative;
   transition: background-color 0.2s;
+  background-color: #ffffff !important;
 }
 
 .editable-cell:hover {
-  background-color: #e3f2fd;
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
 }
 
 .editable-cell::after {
   content: '✏️';
   position: absolute;
-  top: 2px;
-  right: 2px;
-  font-size: 10px;
+  top: 0px;
+  right: 0px;
+  font-size: 6px; /* Ridotto per adattarsi alle celle piccole */
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -222,13 +241,14 @@
   opacity: 0.7;
 }
 
-/* Colori chiari per tipo di riga */
+/* Colori chiari per tipo di riga - FORZATI */
 .riga-contratto {
   background-color: #f0f8ff !important;
 }
 
 .riga-contratto td {
-  background-color: #f0f8ff;
+  background-color: #f0f8ff !important;
+  color: #333 !important;
 }
 
 .riga-rol {
@@ -236,7 +256,8 @@
 }
 
 .riga-rol td {
-  background-color: #f5f0ff;
+  background-color: #f5f0ff !important;
+  color: #333 !important;
 }
 
 .riga-exfest {
@@ -244,7 +265,8 @@
 }
 
 .riga-exfest td {
-  background-color: #f0fff4;
+  background-color: #f0fff4 !important;
+  color: #333 !important;
 }
 
 .riga-ferie {
@@ -252,18 +274,21 @@
 }
 
 .riga-ferie td {
-  background-color: #fffef0;
+  background-color: #fffef0 !important;
+  color: #333 !important;
 }
 
 /* Colonne totali */
 .total-column {
   background-color: #e8f5e9 !important;
   font-weight: 600;
+  color: #2e7d32 !important;
 }
 
 .residuo-column {
   background-color: #fff3e0 !important;
   font-weight: 600;
+  color: #f57c00 !important;
 }
 
 /* Modal per editing */
@@ -282,7 +307,7 @@
 }
 
 .edit-modal {
-  background-color: #ffffff;
+  background-color: #ffffff !important;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 400px;
@@ -296,19 +321,19 @@
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #e0e0e0;
-  background-color: #f5f5f5;
+  background-color: #f5f5f5 !important;
 }
 
 .edit-modal-header h4 {
   margin: 0;
-  color: #333;
+  color: #333 !important;
   font-size: 1.1rem;
 }
 
 .close-button {
   background: none;
   border: none;
-  color: #666;
+  color: #666 !important;
   font-size: 1.5rem;
   cursor: pointer;
   padding: 5px;
@@ -322,11 +347,12 @@
 }
 
 .close-button:hover {
-  background-color: #e0e0e0;
+  background-color: #e0e0e0 !important;
 }
 
 .edit-modal-body {
   padding: 30px 20px;
+  background-color: #ffffff !important;
 }
 
 .edit-modal-input {
@@ -337,8 +363,8 @@
   font-size: 16px;
   text-align: center;
   transition: border-color 0.2s;
-  background-color: #ffffff;
-  color: #333;
+  background-color: #ffffff !important;
+  color: #333 !important;
 }
 
 .edit-modal-input:focus {
@@ -353,12 +379,12 @@
   gap: 10px;
   padding: 20px;
   border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  background-color: #f8f9fa !important;
 }
 
 /* Legenda e info */
 .tabella-info {
-  background-color: #f8f9fa;
+  background-color: #f8f9fa !important;
   padding: 20px;
   border-radius: 4px;
   margin-top: 20px;
@@ -367,7 +393,7 @@
 .tabella-info h4 {
   margin: 0 0 10px 0;
   font-size: 14px;
-  color: #333;
+  color: #333 !important;
 }
 
 .info-section {
@@ -377,38 +403,41 @@
 .info-section ul {
   margin: 0;
   padding-left: 20px;
-  color: #333;
+  color: #333 !important;
 }
 
 .info-section li {
   margin-bottom: 5px;
   font-size: 13px;
+  color: #333 !important;
 }
 
 /* Stati vuoti e loading */
 .loading-spinner, .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
-  background-color: #ffffff;
+  color: #666 !important;
+  background-color: #ffffff !important;
 }
 
 .loading-spinner i, .empty-state i {
   font-size: 48px;
   margin-bottom: 20px;
   display: block;
-  color: #3498db;
+  color: #3498db !important;
 }
 
 .loading-spinner span {
   display: block;
   margin-top: 20px;
   font-size: 16px;
+  color: #666 !important;
 }
 
 .empty-state p {
   margin: 10px 0;
   font-size: 16px;
+  color: #666 !important;
 }
 
 /* Indicatore di salvataggio */
@@ -416,8 +445,8 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background-color: #333;
-  color: white;
+  background-color: #333 !important;
+  color: white !important;
   padding: 12px 20px;
   border-radius: 4px;
   display: flex;
@@ -428,7 +457,7 @@
   animation: slideIn 0.3s ease-out;
 }
 
-/* Responsive */
+/* Responsive per schermi piccoli */
 @media (max-width: 768px) {
   .tabella-header {
     flex-direction: column;
@@ -444,6 +473,10 @@
   .edit-modal {
     width: calc(100% - 40px);
     margin: 20px;
+  }
+  
+  .tabella-content {
+    transform: scale(0.25) !important; /* Ultra piccola su mobile */
   }
 }
 
@@ -473,67 +506,62 @@
   text-align: center;
 }
 
-/* Dark mode */
+/* RIMOZIONE COMPLETA DEL DARK MODE - Solo tema chiaro */
 @media (prefers-color-scheme: dark) {
-  .tabella-calcolo-container {
-    background-color: #1e1e1e;
-  }
-  
-  .tabella-calcolo-table {
-    background-color: #2d2d2d;
+  .tabella-calcolo-container,
+  .tabella-calcolo-table,
+  .tabella-calcolo-table th,
+  .tabella-calcolo-table td,
+  .year-selector,
+  .edit-modal,
+  .edit-modal-header,
+  .edit-modal-input,
+  .edit-modal-footer,
+  .tabella-info,
+  .saving-indicator {
+    /* Forza tema chiaro anche in dark mode */
+    background-color: #ffffff !important;
+    color: #333 !important;
+    border-color: #e0e0e0 !important;
   }
   
   .tabella-calcolo-table th {
-    background-color: #3d3d3d;
-    color: #e0e0e0;
+    background-color: #f8f9fa !important;
+    font-size: 7px !important; /* Mantieni font piccola anche in dark mode */
   }
   
   .tabella-calcolo-table td {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border-color: #444;
-  }
-  
-  .year-selector {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border-color: #444;
-  }
-  
-  .edit-modal {
-    background-color: #1e1e1e;
+    font-size: 7px !important; /* Mantieni font piccola anche in dark mode */
   }
   
   .edit-modal-header {
-    background-color: #2d2d2d;
-    border-bottom-color: #444;
+    background-color: #f5f5f5 !important;
   }
   
-  .edit-modal-header h4 {
-    color: #e0e0e0;
-  }
-  
-  .edit-modal-input {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border-color: #444;
-  }
-  
-  .edit-modal-footer {
-    background-color: #2d2d2d;
-    border-top-color: #444;
-  }
-  
+  .edit-modal-footer,
   .tabella-info {
-    background-color: #2d2d2d;
-  }
-  
-  .tabella-info h4,
-  .info-section ul {
-    color: #e0e0e0;
+    background-color: #f8f9fa !important;
   }
   
   .saving-indicator {
-    background-color: #2d2d2d;
+    background-color: #333 !important;
+    color: white !important;
+  }
+  
+  /* Mantieni i colori delle righe anche in dark mode */
+  .riga-contratto td {
+    background-color: #f0f8ff !important;
+  }
+  
+  .riga-rol td {
+    background-color: #f5f0ff !important;
+  }
+  
+  .riga-exfest td {
+    background-color: #f0fff4 !important;
+  }
+  
+  .riga-ferie td {
+    background-color: #fffef0 !important;
   }
 }
