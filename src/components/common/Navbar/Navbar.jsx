@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
-import ThemeToggle from '../Layout/ThemeToggle';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -56,8 +55,6 @@ const Navbar = () => {
         </ul>
         
         <div className={`navbar-user ${isMenuOpen ? 'active' : ''}`}>
-          <ThemeToggle />
-          
           <div className="profile-menu-container">
             <button 
               className="profile-button" 

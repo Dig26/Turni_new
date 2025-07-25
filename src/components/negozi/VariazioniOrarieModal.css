@@ -15,7 +15,7 @@
 }
 
 .modal-content {
-  background-color: var(--card-bg, #ffffff);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   max-width: 90%;
@@ -35,8 +35,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  background-color: var(--primary-color, #3498db);
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #3498db;
   color: white;
 }
 
@@ -92,8 +92,8 @@
 }
 
 .variazione-item {
-  background-color: var(--secondary-bg, #f8f9fa);
-  border: 1px solid var(--border-color, #e0e0e0);
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
   padding: 15px;
   margin-bottom: 15px;
@@ -120,24 +120,24 @@
 .form-group label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-color, #333);
+  color: #333;
 }
 
 .form-group input,
 .form-group select {
   padding: 8px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
   font-size: 14px;
   background-color: white;
-  color: var(--text-color, #333);
+  color: #333;
   transition: border-color 0.2s;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: var(--primary-color, #3498db);
+  border-color: #3498db;
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -146,7 +146,7 @@
 }
 
 .btn-delete {
-  background-color: var(--danger-color, #e74c3c);
+  background-color: #e74c3c;
   color: white;
   border: none;
   border-radius: 4px;
@@ -158,11 +158,11 @@
 }
 
 .btn-delete:hover {
-  background-color: var(--danger-dark, #c0392b);
+  background-color: #c0392b;
 }
 
 .btn-add {
-  background-color: var(--success-color, #2ecc71);
+  background-color: #2ecc71;
   color: white;
   border: none;
   border-radius: 4px;
@@ -177,7 +177,7 @@
 }
 
 .btn-add:hover {
-  background-color: var(--success-dark, #27ae60);
+  background-color: #27ae60;
 }
 
 .modal-footer {
@@ -185,8 +185,8 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 20px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  background-color: var(--secondary-bg, #f8f9fa);
+  border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
 }
 
 .btn-primary,
@@ -204,23 +204,23 @@
 }
 
 .btn-primary {
-  background-color: var(--primary-color, #3498db);
+  background-color: #3498db;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-dark, #2980b9);
+  background-color: #2980b9;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary {
-  background-color: var(--secondary-color, #95a5a6);
+  background-color: #95a5a6;
   color: white;
 }
 
 .btn-secondary:hover {
-  background-color: var(--secondary-dark, #7f8c8d);
+  background-color: #7f8c8d;
 }
 
 .btn-primary:disabled {
@@ -231,13 +231,13 @@
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: var(--text-muted, #666);
+  color: #666;
 }
 
 .loading-spinner {
   text-align: center;
   padding: 40px;
-  color: var(--text-muted, #666);
+  color: #666;
 }
 
 .loading-spinner i {
@@ -285,33 +285,5 @@
   
   .btn-delete {
     align-self: stretch;
-  }
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .modal-content {
-    background-color: #1e1e1e;
-  }
-  
-  .info-box {
-    background-color: #2d3436;
-    border-color: #34495e;
-  }
-  
-  .variazione-item {
-    background-color: #2d2d2d;
-    border-color: #444;
-  }
-  
-  .form-group input,
-  .form-group select {
-    background-color: #2d2d2d;
-    color: #fff;
-    border-color: #444;
-  }
-  
-  .modal-footer {
-    background-color: #2d2d2d;
   }
 }

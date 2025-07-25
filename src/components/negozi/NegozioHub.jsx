@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchNegozioById } from '../../app/slices/negoziSlice';
-import { fetchDipendentiByNegozioId } from '../../app/slices/dipendentiSlice';
+import { fetchDipendentiByNegozioId, deleteDipendenteThunk } from '../../app/slices/dipendentiSlice';
 import { fetchParticolaritaByNegozio } from '../../app/slices/particolaritaSlice';
 import { fetchMotivazioniByNegozio } from '../../app/slices/motivazioniSlice';
-// import { addNotification } from '../../app/slices/uiSlice';
+import { addNotification } from '../../app/slices/uiSlice';
 import ParticolaritaManager from './ParticolaritaManager';
 import MotivazioniManager from './MotivazioniManager';
 import TurniPanel from './TurniPanel';
@@ -90,6 +90,8 @@ const NegozioHub = ({ negozioId }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [searchTerm, setSearchTerm] = useState('');
   const [lastActiveTab, setLastActiveTab] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [dipendenteToDelete, setDipendenteToDelete] = useState(null);
   
   // Gestore per il cambio di tab - MODIFICATO
   const handleTabChange = (tabName) => {
@@ -147,6 +149,45 @@ const NegozioHub = ({ negozioId }) => {
   const navigateToDipendenti = () => navigate(`/negozi/${negozioId}/dipendenti`);
   const navigateToEdit = () => navigate(`/negozi/${negozioId}/edit`);
 
+  // Funzione per eliminare un dipendente
+  const handleDeleteDipendente = (dipendenteId, nome, cognome) => {
+    setDipendenteToDelete({
+      id: dipendenteId,
+      nome: nome,
+      cognome: cognome
+    });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteDipendente = async () => {
+    if (dipendenteToDelete) {
+      try {
+        await dispatch(deleteDipendenteThunk(dipendenteToDelete.id)).unwrap();
+        
+        dispatch(addNotification({
+          type: 'success',
+          message: `Dipendente ${dipendenteToDelete.nome} ${dipendenteToDelete.cognome} eliminato con successo!`,
+          duration: 3000
+        }));
+        
+      } catch (error) {
+        dispatch(addNotification({
+          type: 'error',
+          message: `Errore nell'eliminazione del dipendente: ${error}`,
+          duration: 5000
+        }));
+      }
+    }
+    
+    setShowDeleteModal(false);
+    setDipendenteToDelete(null);
+  };
+
+  const cancelDeleteDipendente = () => {
+    setShowDeleteModal(false);
+    setDipendenteToDelete(null);
+  };
+
   return (
     <div className="negozio-hub-container">
       <div className="negozio-hub-header">
@@ -199,12 +240,6 @@ const NegozioHub = ({ negozioId }) => {
           onClick={() => handleTabChange('motivazioni')}
         >
           <i className="fas fa-calendar-check"></i> Motivazioni
-        </button>
-        <button 
-          className={`nav-button ${activeTab === 'tabella-calcolo' ? 'active-nav-button' : ''}`} 
-          onClick={() => handleTabChange('tabella-calcolo')}
-        >
-          <i className="fas fa-calculator"></i> Tabella di calcolo
         </button>
       </div>
 
@@ -269,21 +304,6 @@ const NegozioHub = ({ negozioId }) => {
                 </div>
                 <button className="stat-action" onClick={() => setActiveTab('motivazioni')}>
                   Gestisci <i className="fas fa-arrow-right"></i>
-                </button>
-              </div>
-              
-              <div className="stat-card">
-                <div className="stat-content">
-                  <div className="stat-icon">
-                    <i className="fas fa-calculator"></i>
-                  </div>
-                  <div className="stat-info">
-                    <h3>Calcolo</h3>
-                    <p>ROL, Ferie, Ex festività</p>
-                  </div>
-                </div>
-                <button className="stat-action" onClick={() => setActiveTab('tabella-calcolo')}>
-                  Visualizza <i className="fas fa-arrow-right"></i>
                 </button>
               </div>
             </div>
@@ -407,10 +427,17 @@ const NegozioHub = ({ negozioId }) => {
                       <h4>{dipendente.nome} {dipendente.cognome}</h4>
                       <div className="dipendente-actions">
                         <Link to={`/negozi/${negozioId}/dipendenti/${dipendente.id}`}>
-                          <button className="icon-button">
+                          <button className="icon-button" title="Modifica dipendente">
                             <i className="fas fa-edit"></i>
                           </button>
                         </Link>
+                        <button 
+                          className="icon-button delete-button" 
+                          title="Elimina dipendente"
+                          onClick={() => handleDeleteDipendente(dipendente.id, dipendente.nome, dipendente.cognome)}
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
                       </div>
                     </div>
                     <div className="dipendente-info">
@@ -489,13 +516,50 @@ const NegozioHub = ({ negozioId }) => {
             <MotivazioniManager negozioId={negozioId} />
           </div>
         )}
-        
-        {activeTab === 'tabella-calcolo' && (
-          <div className="tabella-calcolo-tab">
-            <TabellaCalcolo negozioId={negozioId} />
-          </div>
-        )}
       </div>
+
+      {/* Modal di conferma eliminazione */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>
+                <i className="fas fa-exclamation-triangle"></i>
+                Conferma Eliminazione
+              </h3>
+              <button 
+                className="modal-close"
+                onClick={cancelDeleteDipendente}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Sei sicuro di voler eliminare il dipendente <strong>{dipendenteToDelete?.nome} {dipendenteToDelete?.cognome}</strong>?
+              </p>
+              <p className="warning-text">
+                <i className="fas fa-warning"></i>
+                Questa azione non può essere annullata e eliminerà tutti i dati associati al dipendente.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary"
+                onClick={cancelDeleteDipendente}
+              >
+                <i className="fas fa-times"></i> Annulla
+              </button>
+              <button 
+                className="btn-danger"
+                onClick={confirmDeleteDipendente}
+              >
+                <i className="fas fa-trash"></i> Elimina
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

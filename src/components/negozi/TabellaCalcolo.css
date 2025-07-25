@@ -1,14 +1,14 @@
 /* src/components/negozi/TabellaCalcolo.css */
 
-/* TEMA CHIARO FORZATO - Tutti gli sfondi sono sempre chiari */
+/* TEMA CHIARO - Tutti gli sfondi sono sempre chiari */
 .tabella-calcolo-container {
   width: 100%;
   padding: 20px;
-  background-color: #ffffff !important;
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  color: #333 !important;
+  color: #333;
 }
 
 .tabella-header {
@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #333 !important;
+  color: #333;
 }
 
 .tabella-actions {
@@ -38,8 +38,8 @@
   padding: 8px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background-color: #ffffff !important;
-  color: #333 !important;
+  background-color: #ffffff;
+  color: #333;
   font-size: 14px;
   cursor: pointer;
 }
@@ -80,7 +80,7 @@
 
 .btn-primary {
   background-color: #3498db;
-  color: white !important;
+  color: white;
 }
 
 .btn-primary:hover {
@@ -91,7 +91,7 @@
 
 .btn-secondary {
   background-color: #95a5a6;
-  color: white !important;
+  color: white;
 }
 
 .btn-secondary:hover {
@@ -107,7 +107,7 @@
   position: relative;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background-color: #ffffff !important;
+  background-color: #ffffff;
 }
 
 .tabella-content {
@@ -122,7 +122,7 @@
 .tabella-calcolo-table {
   width: max-content; /* Usa solo la larghezza necessaria */
   border-collapse: collapse;
-  background-color: #ffffff !important;
+  background-color: #ffffff;
   font-size: 8px; /* Font molto piccola per contenere più colonne */
 }
 
@@ -170,8 +170,8 @@
 }
 
 .tabella-calcolo-table th {
-  background-color: #f8f9fa !important;
-  color: #333 !important;
+  background-color: #f8f9fa;
+  color: #333;
   font-weight: 600;
   text-align: center;
   padding: 4px 2px; /* Padding molto ridotto */
@@ -188,8 +188,8 @@
 .tabella-calcolo-table td {
   padding: 2px 1px; /* Padding ultra ridotto */
   border: 1px solid #e0e0e0;
-  background-color: #ffffff !important;
-  color: #333 !important;
+  background-color: #ffffff;
+  color: #333;
   white-space: nowrap;
   text-align: center;
   font-size: 7px; /* Font molto piccola */
@@ -201,17 +201,17 @@
 .merged-cell {
   vertical-align: middle;
   text-align: center;
-  background-color: #f8f9fa !important;
+  background-color: #f8f9fa;
   font-weight: 500;
-  color: #333 !important;
+  color: #333;
 }
 
 /* Celle unite orizzontalmente */
 .merged-cell-horizontal {
   text-align: center;
-  background-color: #e3f2fd !important;
+  background-color: #e3f2fd;
   font-weight: 600;
-  color: #1976d2 !important;
+  color: #1976d2;
 }
 
 /* Celle editabili - evidenziate con hover */
@@ -219,12 +219,12 @@
   cursor: pointer;
   position: relative;
   transition: background-color 0.2s;
-  background-color: #ffffff !important;
+  background-color: #ffffff;
 }
 
 .editable-cell:hover {
-  background-color: #e3f2fd !important;
-  color: #1976d2 !important;
+  background-color: #e3f2fd;
+  color: #1976d2;
 }
 
 .editable-cell::after {
@@ -241,54 +241,54 @@
   opacity: 0.7;
 }
 
-/* Colori chiari per tipo di riga - FORZATI */
+/* Colori chiari per tipo di riga */
 .riga-contratto {
-  background-color: #f0f8ff !important;
+  background-color: #f0f8ff;
 }
 
 .riga-contratto td {
-  background-color: #f0f8ff !important;
-  color: #333 !important;
+  background-color: #f0f8ff;
+  color: #333;
 }
 
 .riga-rol {
-  background-color: #f5f0ff !important;
+  background-color: #f5f0ff;
 }
 
 .riga-rol td {
-  background-color: #f5f0ff !important;
-  color: #333 !important;
+  background-color: #f5f0ff;
+  color: #333;
 }
 
 .riga-exfest {
-  background-color: #f0fff4 !important;
+  background-color: #f0fff4;
 }
 
 .riga-exfest td {
-  background-color: #f0fff4 !important;
-  color: #333 !important;
+  background-color: #f0fff4;
+  color: #333;
 }
 
 .riga-ferie {
-  background-color: #fffef0 !important;
+  background-color: #fffef0;
 }
 
 .riga-ferie td {
-  background-color: #fffef0 !important;
-  color: #333 !important;
+  background-color: #fffef0;
+  color: #333;
 }
 
 /* Colonne totali */
 .total-column {
-  background-color: #e8f5e9 !important;
+  background-color: #e8f5e9;
   font-weight: 600;
-  color: #2e7d32 !important;
+  color: #2e7d32;
 }
 
 .residuo-column {
-  background-color: #fff3e0 !important;
+  background-color: #fff3e0;
   font-weight: 600;
-  color: #f57c00 !important;
+  color: #f57c00;
 }
 
 /* Modal per editing */
@@ -307,7 +307,7 @@
 }
 
 .edit-modal {
-  background-color: #ffffff !important;
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 400px;
@@ -321,19 +321,19 @@
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #e0e0e0;
-  background-color: #f5f5f5 !important;
+  background-color: #f5f5f5;
 }
 
 .edit-modal-header h4 {
   margin: 0;
-  color: #333 !important;
+  color: #333;
   font-size: 1.1rem;
 }
 
 .close-button {
   background: none;
   border: none;
-  color: #666 !important;
+  color: #666;
   font-size: 1.5rem;
   cursor: pointer;
   padding: 5px;
@@ -347,12 +347,12 @@
 }
 
 .close-button:hover {
-  background-color: #e0e0e0 !important;
+  background-color: #e0e0e0;
 }
 
 .edit-modal-body {
   padding: 30px 20px;
-  background-color: #ffffff !important;
+  background-color: #ffffff;
 }
 
 .edit-modal-input {
@@ -363,8 +363,8 @@
   font-size: 16px;
   text-align: center;
   transition: border-color 0.2s;
-  background-color: #ffffff !important;
-  color: #333 !important;
+  background-color: #ffffff;
+  color: #333;
 }
 
 .edit-modal-input:focus {
@@ -379,12 +379,12 @@
   gap: 10px;
   padding: 20px;
   border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa !important;
+  background-color: #f8f9fa;
 }
 
 /* Legenda e info */
 .tabella-info {
-  background-color: #f8f9fa !important;
+  background-color: #f8f9fa;
   padding: 20px;
   border-radius: 4px;
   margin-top: 20px;
@@ -393,7 +393,7 @@
 .tabella-info h4 {
   margin: 0 0 10px 0;
   font-size: 14px;
-  color: #333 !important;
+  color: #333;
 }
 
 .info-section {
@@ -403,41 +403,41 @@
 .info-section ul {
   margin: 0;
   padding-left: 20px;
-  color: #333 !important;
+  color: #333;
 }
 
 .info-section li {
   margin-bottom: 5px;
   font-size: 13px;
-  color: #333 !important;
+  color: #333;
 }
 
 /* Stati vuoti e loading */
 .loading-spinner, .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #666 !important;
-  background-color: #ffffff !important;
+  color: #666;
+  background-color: #ffffff;
 }
 
 .loading-spinner i, .empty-state i {
   font-size: 48px;
   margin-bottom: 20px;
   display: block;
-  color: #3498db !important;
+  color: #3498db;
 }
 
 .loading-spinner span {
   display: block;
   margin-top: 20px;
   font-size: 16px;
-  color: #666 !important;
+  color: #666;
 }
 
 .empty-state p {
   margin: 10px 0;
   font-size: 16px;
-  color: #666 !important;
+  color: #666;
 }
 
 /* Indicatore di salvataggio */
@@ -445,8 +445,8 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background-color: #333 !important;
-  color: white !important;
+  background-color: #333;
+  color: white;
   padding: 12px 20px;
   border-radius: 4px;
   display: flex;
@@ -476,7 +476,7 @@
   }
   
   .tabella-content {
-    transform: scale(0.25) !important; /* Ultra piccola su mobile */
+    transform: scale(0.25); /* Ultra piccola su mobile */
   }
 }
 
@@ -504,64 +504,4 @@
 /* Allineamento testo */
 .text-center {
   text-align: center;
-}
-
-/* RIMOZIONE COMPLETA DEL DARK MODE - Solo tema chiaro */
-@media (prefers-color-scheme: dark) {
-  .tabella-calcolo-container,
-  .tabella-calcolo-table,
-  .tabella-calcolo-table th,
-  .tabella-calcolo-table td,
-  .year-selector,
-  .edit-modal,
-  .edit-modal-header,
-  .edit-modal-input,
-  .edit-modal-footer,
-  .tabella-info,
-  .saving-indicator {
-    /* Forza tema chiaro anche in dark mode */
-    background-color: #ffffff !important;
-    color: #333 !important;
-    border-color: #e0e0e0 !important;
-  }
-  
-  .tabella-calcolo-table th {
-    background-color: #f8f9fa !important;
-    font-size: 7px !important; /* Mantieni font piccola anche in dark mode */
-  }
-  
-  .tabella-calcolo-table td {
-    font-size: 7px !important; /* Mantieni font piccola anche in dark mode */
-  }
-  
-  .edit-modal-header {
-    background-color: #f5f5f5 !important;
-  }
-  
-  .edit-modal-footer,
-  .tabella-info {
-    background-color: #f8f9fa !important;
-  }
-  
-  .saving-indicator {
-    background-color: #333 !important;
-    color: white !important;
-  }
-  
-  /* Mantieni i colori delle righe anche in dark mode */
-  .riga-contratto td {
-    background-color: #f0f8ff !important;
-  }
-  
-  .riga-rol td {
-    background-color: #f5f0ff !important;
-  }
-  
-  .riga-exfest td {
-    background-color: #f0fff4 !important;
-  }
-  
-  .riga-ferie td {
-    background-color: #fffef0 !important;
-  }
 }

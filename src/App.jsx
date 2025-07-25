@@ -26,7 +26,6 @@ import Navbar from './components/common/Navbar/Navbar';
 import AuthRequired from './features/auth/AuthRequired';
 import NotificationsContainer from './components/common/Notifications/NotificationsContainer';
 import ConfirmationDialog from './components/common/Modal/ConfirmationDialog';
-import ThemeToggle from './components/common/Layout/ThemeToggle';
 
 // Stili
 import './styles/global.css';
@@ -178,7 +177,7 @@ function App() {
           padding: '10px 20px',
           borderBottom: '1px solid var(--border-color)'
         }}>
-          <ThemeToggle />
+          
           
           <button 
             className="btn-danger"

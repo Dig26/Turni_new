@@ -17,11 +17,11 @@
 
 .negozio-info h2 {
   margin: 0 0 5px;
-  color: var(--text-color);
+  color: #333;
 }
 
 .negozio-address {
-  color: var(--text-muted);
+  color: #666;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -35,7 +35,7 @@
 
 .hub-navigation {
   display: flex;
-  background-color: var(--card-bg);
+  background-color: #ffffff;
   border-radius: 8px;
   margin-bottom: 20px;
   overflow: hidden;
@@ -47,7 +47,7 @@
   padding: 12px 20px;
   border: none;
   background: transparent;
-  color: var(--text-color);
+  color: #333;
   font-size: 1rem;
   cursor: pointer;
   display: flex;
@@ -59,13 +59,13 @@
 }
 
 .nav-button:hover {
-  background-color: var(--secondary-bg);
+  background-color: #f8f9fa;
 }
 
 .active-nav-button {
-  border-bottom: 3px solid var(--primary-color);
+  border-bottom: 3px solid #3498db;
   font-weight: 500;
-  color: var(--primary-color);
+  color: #3498db;
 }
 
 .hub-content {
@@ -88,7 +88,7 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
-  background-color: var(--card-bg);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -104,8 +104,8 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background-color: rgba(var(--primary-rgb), 0.1);
-  color: var(--primary-color);
+  background-color: rgba(52, 152, 219, 0.1);
+  color: #3498db;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,20 +115,20 @@
 .stat-info h3 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .stat-info p {
   margin: 5px 0 0;
-  color: var(--text-muted);
+  color: #666;
 }
 
 .stat-action {
   margin-top: auto;
   align-self: flex-end;
   padding: 8px 16px;
-  background-color: rgba(var(--primary-rgb), 0.05);
-  color: var(--primary-color);
+  background-color: rgba(52, 152, 219, 0.05);
+  color: #3498db;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -140,12 +140,12 @@
 }
 
 .stat-action:hover {
-  background-color: rgba(var(--primary-rgb), 0.1);
+  background-color: rgba(52, 152, 219, 0.1);
 }
 
 .info-card {
   padding: 20px;
-  background-color: var(--card-bg);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -157,7 +157,7 @@
   align-items: center;
   gap: 10px;
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .info-grid {
@@ -173,31 +173,31 @@
 }
 
 .info-label {
-  color: var(--text-muted);
+  color: #666;
   font-size: 0.9rem;
 }
 
 .info-value {
   font-size: 1rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .notes-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid #e0e0e0;
 }
 
 .notes-section h4 {
   margin-top: 0;
   margin-bottom: 10px;
   font-size: 1rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .notes-section p {
   margin: 0;
-  color: var(--text-color);
+  color: #333;
   line-height: 1.5;
 }
 
@@ -209,9 +209,9 @@
 
 .info-action {
   padding: 8px 16px;
-  background-color: var(--secondary-bg);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -221,7 +221,7 @@
 }
 
 .info-action:hover {
-  background-color: var(--secondary-hover);
+  background-color: #e9ecef;
 }
 
 .section-header {
@@ -245,9 +245,9 @@
 .search-input {
   padding: 8px 15px 8px 35px;
   border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
-  color: var(--text-color);
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  color: #333;
   width: 200px;
   font-size: 0.9rem;
   transition: all 0.2s;
@@ -258,13 +258,13 @@
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-muted);
+  color: #666;
 }
 
 .section-header h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .empty-state {
@@ -274,7 +274,7 @@
   flex-direction: column;
   align-items: center;
   gap: 15px;
-  background-color: var(--card-bg);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -283,22 +283,22 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: var(--secondary-bg);
+  background-color: #f8f9fa;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: var(--text-muted);
+  color: #666;
 }
 
 .empty-state h3 {
   margin: 0;
-  color: var(--text-color);
+  color: #333;
 }
 
 .empty-state p {
   margin: 0;
-  color: var(--text-muted);
+  color: #666;
   max-width: 400px;
 }
 
@@ -307,7 +307,7 @@
   align-items: center;
   gap: 20px;
   padding: 20px;
-  background-color: var(--card-bg);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -319,7 +319,7 @@
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  color: var(--primary-color);
+  color: #3498db;
 }
 
 .turni-info {
@@ -329,12 +329,12 @@
 .turni-info h3 {
   margin: 0 0 10px;
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: #333;
 }
 
 .turni-info p {
   margin: 0 0 20px;
-  color: var(--text-muted);
+  color: #666;
 }
 
 .turni-actions {
@@ -356,7 +356,7 @@
 
 .dipendente-card {
   padding: 18px;
-  background-color: var(--card-bg);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -373,13 +373,13 @@
   align-items: center;
   margin-bottom: 15px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .dipendente-header h4 {
   margin: 0;
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: #333;
   font-weight: 600;
 }
 
@@ -405,7 +405,7 @@
   display: flex;
   align-items: center;
   padding: 4px 0;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .info-label {
@@ -413,13 +413,13 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--text-muted);
+  color: #666;
   font-size: 0.85rem;
 }
 
 .info-value {
   flex: 1;
-  color: var(--text-color);
+  color: #333;
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -429,13 +429,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-color);
+  color: #333;
 }
 
 .icon-button {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: #666;
   cursor: pointer;
   width: 30px;
   height: 30px;
@@ -447,8 +447,8 @@
 }
 
 .icon-button:hover {
-  background-color: var(--secondary-bg);
-  color: var(--text-color);
+  background-color: #f8f9fa;
+  color: #333;
 }
 
 /* STILI BOTTONI - CORRETTI per combaciare con particolarità */
@@ -512,7 +512,7 @@
   color: white !important;
 }
 
-/* MODAL STYLES - AGGIUNTI */
+/* MODAL STYLES */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -533,7 +533,7 @@
 }
 
 .modal-content {
-  background-color: var(--card-bg, white);
+  background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   width: 90%;
@@ -554,13 +554,13 @@
 
 .modal-header {
   padding: 20px 24px 15px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 1.3rem;
-  color: var(--text-color, #333);
+  color: #333;
   font-weight: 600;
 }
 
@@ -571,7 +571,7 @@
 .modal-body p {
   margin: 0;
   line-height: 1.6;
-  color: var(--text-color, #333);
+  color: #333;
   font-size: 1rem;
 }
 
@@ -589,14 +589,14 @@
   font-size: 0.9rem;
 }
 
-/* LOADING SPINNER - MIGLIORATO */
+/* LOADING SPINNER */
 .loading-spinner {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: var(--text-muted);
+  color: #666;
   gap: 15px;
 }
 
@@ -606,12 +606,12 @@
 
 .loading-spinner i {
   font-size: 2rem;
-  color: var(--primary-color, #3498db);
+  color: #3498db;
 }
 
 .loading-spinner span {
   font-size: 1rem;
-  color: var(--text-muted);
+  color: #666;
 }
 
 /* Responsive */

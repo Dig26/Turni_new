@@ -9,8 +9,8 @@
 .help-tabs {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid var(--border-color, #e0e0e0);
-  background-color: var(--secondary-bg, #f8f9fa);
+  border-bottom: 2px solid #e0e0e0;
+  background-color: #f8f9fa;
   padding: 0 20px;
 }
 
@@ -20,19 +20,19 @@
   padding: 12px 20px;
   font-size: 0.95rem;
   font-weight: 500;
-  color: var(--text-muted, #666);
+  color: #666;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
 }
 
 .help-tabs button:hover {
-  color: var(--text-color, #333);
+  color: #333;
   background-color: rgba(0, 0, 0, 0.05);
 }
 
 .help-tabs button.active {
-  color: var(--primary-color, #3498db);
+  color: #3498db;
   background-color: white;
 }
 
@@ -43,7 +43,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background-color: var(--primary-color, #3498db);
+  background-color: #3498db;
 }
 
 .help-content {
@@ -57,7 +57,7 @@
 }
 
 .help-section h4 {
-  color: var(--primary-color, #3498db);
+  color: #3498db;
   margin: 0 0 15px 0;
   font-size: 1.1rem;
   display: flex;
@@ -66,7 +66,7 @@
 }
 
 .help-section h5 {
-  color: var(--text-color, #333);
+  color: #333;
   margin: 20px 0 10px 0;
   font-size: 1rem;
 }
@@ -74,7 +74,7 @@
 .help-section p {
   margin: 10px 0;
   line-height: 1.6;
-  color: var(--text-color, #333);
+  color: #333;
 }
 
 .help-section ul {
@@ -85,28 +85,28 @@
 .help-section li {
   margin-bottom: 8px;
   line-height: 1.5;
-  color: var(--text-color, #333);
+  color: #333;
 }
 
 .help-section strong {
-  color: var(--text-color, #333);
+  color: #333;
   font-weight: 600;
 }
 
 /* Stili per formule e calcoli */
 .help-section code {
-  background-color: var(--code-bg, #f4f4f4);
+  background-color: #f4f4f4;
   padding: 2px 6px;
   border-radius: 3px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.9em;
-  color: var(--code-color, #d14);
+  color: #d14;
 }
 
 /* Box informativi */
 .info-box {
   background-color: #e3f2fd;
-  border-left: 4px solid var(--primary-color, #3498db);
+  border-left: 4px solid #3498db;
   padding: 15px;
   margin: 15px 0;
   border-radius: 4px;
@@ -137,58 +137,6 @@
 
 .help-content::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .help-tabs {
-    background-color: #2d2d2d;
-    border-bottom-color: #444;
-  }
-  
-  .help-tabs button {
-    color: #aaa;
-  }
-  
-  .help-tabs button:hover {
-    color: #fff;
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .help-tabs button.active {
-    color: var(--primary-color, #3498db);
-    background-color: #1e1e1e;
-  }
-  
-  .help-content {
-    background-color: #1e1e1e;
-  }
-  
-  .help-section h4 {
-    color: #64b5f6;
-  }
-  
-  .help-section h5,
-  .help-section p,
-  .help-section li,
-  .help-section strong {
-    color: #e0e0e0;
-  }
-  
-  .help-section code {
-    background-color: #2d2d2d;
-    color: #ff9800;
-  }
-  
-  .info-box {
-    background-color: #1a237e;
-    border-left-color: #3949ab;
-  }
-  
-  .warning-box {
-    background-color: #5d4037;
-    border-left-color: #ff9800;
-  }
 }
 
 /* Responsive */

@@ -1,4 +1,4 @@
-/* src/styles/Theme.css - Versione corretta */
+/* src/styles/Theme.css - Solo tema chiaro */
 :root {
     --primary-color: #3498db;
     --primary-dark: #2980b9;
@@ -16,29 +16,7 @@
     --border-radius: 8px;
     --transition-speed: 0.3s;
     
-    /* Aggiungi variabili RGB separate per l'utilizzo con rgba() */
-    --success-color-rgb: 39, 174, 96;
-    --danger-color-rgb: 231, 76, 60;
-    --warning-color-rgb: 243, 156, 18;
-  }
-  
-  /* Tema scuro */
-  [data-theme="dark"] {
-    --primary-color: #3498db;
-    --primary-dark: #2980b9;
-    --secondary-color: #2c3e50;
-    --secondary-dark: #1e2a3a;
-    --success-color: #27ae60;
-    --danger-color: #e74c3c;
-    --warning-color: #f39c12;
-    --text-color: #ecf0f1; /* Colore del testo chiaro per il tema scuro */
-    --text-light: #bdc3c7;
-    --border-color: #34495e;
-    --background-color: #1a1a2e;
-    --card-bg: #2c3e50;
-    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    
-    /* Aggiorna anche le variabili RGB per il tema scuro */
+    /* Variabili RGB separate per l'utilizzo con rgba() */
     --success-color-rgb: 39, 174, 96;
     --danger-color-rgb: 231, 76, 60;
     --warning-color-rgb: 243, 156, 18;
@@ -57,101 +35,80 @@
     font-size: 18px;
   }
   
-  /* Pulsante per cambiare tema */
-  .theme-toggle-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-color);
-    font-size: 1.2rem;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s, color 0.2s;
-  }
-  
-  .theme-toggle-button:hover {
-    background-color: var(--secondary-color);
-  }
-  
-  /* Stili espliciti per garantire il contrasto in tema scuro */
-  [data-theme="dark"] body {
+  /* Assicura consistenza su tutto il sito */
+  body {
     background-color: var(--background-color);
     color: var(--text-color);
   }
   
-  [data-theme="dark"] .card,
-  [data-theme="dark"] .dashboard-header,
-  [data-theme="dark"] .dashboard-content,
-  [data-theme="dark"] .form-section,
-  [data-theme="dark"] .empty-state,
-  [data-theme="dark"] .modal-content,
-  [data-theme="dark"] .toast {
+  .card,
+  .dashboard-header,
+  .dashboard-content,
+  .form-section,
+  .empty-state,
+  .modal-content,
+  .toast {
     background-color: var(--card-bg);
     color: var(--text-color);
   }
   
-  [data-theme="dark"] .navbar {
+  .navbar {
     background-color: var(--card-bg);
     border-bottom: 1px solid var(--border-color);
   }
   
-  [data-theme="dark"] .navbar-item,
-  [data-theme="dark"] .profile-button,
-  [data-theme="dark"] .profile-name,
-  [data-theme="dark"] .breadcrumb,
-  [data-theme="dark"] h1,
-  [data-theme="dark"] h2,
-  [data-theme="dark"] h3,
-  [data-theme="dark"] h4,
-  [data-theme="dark"] h5,
-  [data-theme="dark"] h6,
-  [data-theme="dark"] p {
+  .navbar-item,
+  .profile-button,
+  .profile-name,
+  .breadcrumb,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p {
     color: var(--text-color);
   }
   
-  [data-theme="dark"] .btn-secondary {
+  .btn-secondary {
     background-color: var(--secondary-color);
     color: var(--text-color);
   }
   
-  [data-theme="dark"] .btn-secondary:hover {
+  .btn-secondary:hover {
     background-color: var(--secondary-dark);
   }
   
-  [data-theme="dark"] input,
-  [data-theme="dark"] select,
-  [data-theme="dark"] textarea {
-    background-color: var(--secondary-dark);
+  input,
+  select,
+  textarea {
+    background-color: var(--card-bg);
     border-color: var(--border-color);
     color: var(--text-color);
   }
   
-  [data-theme="dark"] input::placeholder {
-    color: rgba(236, 240, 241, 0.6);
+  input::placeholder {
+    color: rgba(44, 62, 80, 0.6);
   }
   
-  [data-theme="dark"] input:focus,
-  [data-theme="dark"] select:focus,
-  [data-theme="dark"] textarea:focus {
+  input:focus,
+  select:focus,
+  textarea:focus {
     border-color: var(--primary-color);
   }
   
-  /* Correzioni specifiche per le card dei negozi */
-  [data-theme="dark"] .negozio-card .negozio-name,
-  [data-theme="dark"] .negozio-card .negozio-card-header h3 {
+  /* Assicura che tutti gli elementi abbiano il tema chiaro */
+  .negozio-card .negozio-name,
+  .negozio-card .negozio-card-header h3 {
     color: var(--text-color);
   }
   
-  [data-theme="dark"] .negozio-card .info-item,
-  [data-theme="dark"] .tabella-card .tabella-card-header h4 {
+  .negozio-card .info-item,
+  .tabella-card .tabella-card-header h4 {
     color: var(--text-color);
   }
   
-  /* Correzioni per il messaggio di benvenuto */
-  [data-theme="dark"] .page-header p {
+  .page-header p {
     color: var(--text-light);
   }
