@@ -71,15 +71,6 @@ const Navbar = () => {
               <div className="profile-dropdown">
                 <ul>
                   <li>
-                    <button 
-                      className="profile-menu-item" 
-                      onClick={() => navigateTo('/settings')}
-                    >
-                      <i className="fas fa-cog"></i>
-                      <span>Impostazioni</span>
-                    </button>
-                  </li>
-                  <li>
                     <button className="profile-menu-item logout-button" onClick={handleLogout}>
                       <i className="fas fa-sign-out-alt"></i>
                       <span>Logout</span>

@@ -19,7 +19,6 @@ import TurniListPage from './pages/TurniListPage';
 import TurniAllPage from './pages/TurniAllPage';
 import TurniEditorPage from './pages/TurniEditorPage';
 import NotFoundPage from './pages/NotFoundPage';
-import SettingsPage from './pages/SettingsPage';
 
 // Components
 import Navbar from './components/common/Navbar/Navbar';
@@ -268,11 +267,6 @@ function App() {
           <Route path="/negozi/:negozioId/turni/:anno/:mese" element={
             <AuthRequired>
               <TurniEditorPage />
-            </AuthRequired>
-          } />
-          <Route path="/settings" element={
-            <AuthRequired>
-              <SettingsPage />
             </AuthRequired>
           } />
 

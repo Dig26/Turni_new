@@ -1,4 +1,4 @@
- // src/routes.js
+// src/routes.js
 import { lazy } from 'react';
 
 // Importazione lazy per migliorare le performance
@@ -11,7 +11,6 @@ const DipendentiPage = lazy(() => import('./pages/DipendentiPage'));
 const DipendenteFormPage = lazy(() => import('./pages/DipendenteFormPage'));
 const TurniListPage = lazy(() => import('./pages/TurniListPage')); // Mantenuto per struttura
 const TurniEditorPage = lazy(() => import('./pages/TurniEditorPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const ErrorPage = lazy(() => import('./pages/ErrorPage'));
 
@@ -93,12 +92,6 @@ export const routes = [
   {
     path: '/negozi/:negozioId/turni/:anno/:mese',
     component: TurniEditorPage,
-    exact: true,
-    protected: true
-  },
-  {
-    path: '/impostazioni',
-    component: SettingsPage,
     exact: true,
     protected: true
   },
