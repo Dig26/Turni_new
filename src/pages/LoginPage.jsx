@@ -1,5 +1,5 @@
-// src/pages/LoginPage.jsx
-import React, { useState } from 'react';
+// src/pages/LoginPage.jsx - Versione test semplificata per Google OAuth
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,60 +9,126 @@ const LoginPage = () => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const { login } = useAuth();
+
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  // Handler per i cambi nei campi del form
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    console.log(`📝 Campo ${name} cambiato:`, value);
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Pulisci l'errore quando l'utente inizia a digitare
-    if (error) {
-      setError('');
+  // Debug e inizializzazione Google
+  useEffect(() => {
+    const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
+    console.log('🔍 Debug Google OAuth:');
+    console.log('- Client ID:', CLIENT_ID);
+    console.log('- Origin:', window.location.origin);
+    console.log('- Protocol:', window.location.protocol);
+    console.log('- Host:', window.location.host);
+
+    if (!CLIENT_ID) {
+      setError('Client ID Google non configurato');
+      return;
+    }
+
+    // Carica script Google
+    if (!window.google) {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        console.log('✅ Script Google caricato');
+        initializeGoogle();
+      };
+      script.onerror = () => {
+        console.error('❌ Errore caricamento script Google');
+        setError('Impossibile caricare Google Sign-In');
+      };
+      document.head.appendChild(script);
+    } else {
+      initializeGoogle();
+    }
+
+    function initializeGoogle() {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: CLIENT_ID,
+          callback: handleGoogleResponse,
+          auto_select: false,
+        });
+        console.log('✅ Google inizializzato');
+      } catch (error) {
+        console.error('❌ Errore inizializzazione Google:', error);
+        setError('Errore inizializzazione Google Sign-In');
+      }
+    }
+  }, []);
+
+  // Aggiungi questo useEffect nella LoginPage.jsx per debug
+  useEffect(() => {
+    console.log('🔍 CLIENT_ID trovato:', process.env.REACT_APP_GOOGLE_CLIENT_ID);
+    console.log('🔍 Tipo CLIENT_ID:', typeof process.env.REACT_APP_GOOGLE_CLIENT_ID);
+    console.log('🔍 Lunghezza CLIENT_ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID?.length);
+  }, []);
+
+  // Handler per la risposta Google
+  const handleGoogleResponse = async (response) => {
+    console.log('🔄 Risposta Google ricevuta:', response);
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      const result = await loginWithGoogle(response.credential).unwrap();
+      console.log('✅ Login Google riuscito');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('❌ Errore login Google:', error);
+      setError('Errore durante l\'accesso con Google');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
-  // Handler per il submit del form
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    console.log('🔄 Form submit con dati:', formData);
-    
-    // Validazione base
-    if (!formData.email || !formData.password) {
-      setError('Email e password sono obbligatori');
+  // Click del pulsante Google - versione semplificata
+  const handleGoogleClick = () => {
+    console.log('🔄 Click Google button');
+
+    if (!window.google) {
+      setError('Google Sign-In non caricato');
       return;
     }
-    
-    if (!formData.email.includes('@')) {
-      setError('Inserisci un\'email valida');
+
+    try {
+      // Metodo semplificato - solo prompt
+      window.google.accounts.id.prompt();
+    } catch (error) {
+      console.error('❌ Errore Google prompt:', error);
+      setError('Errore apertura Google Sign-In');
+    }
+  };
+
+  // Form handlers (invariati)
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (error) setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.email || !formData.password) {
+      setError('Email e password sono obbligatori');
       return;
     }
 
     setLoading(true);
     setError('');
-    
+
     try {
-      console.log('🔑 Tentativo login con:', { 
-        email: formData.email, 
-        password: '***' 
-      });
-      
-      const result = await login(formData.email, formData.password).unwrap();
-      
-      console.log('✅ Login riuscito:', result);
+      await login(formData.email, formData.password).unwrap();
       navigate('/dashboard');
-      
     } catch (error) {
-      console.error('❌ Errore di login:', error);
       setError(error || 'Errore durante il login');
     } finally {
       setLoading(false);
@@ -91,6 +157,59 @@ const LoginPage = () => {
             </div>
           )}
 
+          {/* Pulsante Google semplificato */}
+          <button
+            type="button"
+            onClick={handleGoogleClick}
+            disabled={googleLoading || loading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: '#ffffff',
+              color: '#333',
+              border: '1px solid #dadce0',
+              borderRadius: '4px',
+              fontSize: '16px',
+              fontWeight: '500',
+              cursor: googleLoading || loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              marginBottom: '20px',
+              transition: 'all 0.2s'
+            }}
+          >
+            {googleLoading ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i>
+                Accesso in corso...
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Accedi con Google
+              </>
+            )}
+          </button>
+
+          {/* Divisore */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            margin: '20px 0',
+            color: '#666'
+          }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: '#dadce0' }}></div>
+            <span style={{ padding: '0 16px', fontSize: '14px' }}>oppure</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: '#dadce0' }}></div>
+          </div>
+
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
               <label htmlFor="email">Email</label>
@@ -101,7 +220,7 @@ const LoginPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Inserisci la tua email"
-                disabled={loading}
+                disabled={loading || googleLoading}
                 autoComplete="email"
                 style={{
                   width: '100%',
@@ -122,7 +241,7 @@ const LoginPage = () => {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Inserisci la tua password"
-                disabled={loading}
+                disabled={loading || googleLoading}
                 autoComplete="current-password"
                 style={{
                   width: '100%',
@@ -136,17 +255,16 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              disabled={loading || !formData.email || !formData.password}
-              className="login-button"
+              disabled={loading || googleLoading || !formData.email || !formData.password}
               style={{
                 width: '100%',
                 padding: '12px',
-                backgroundColor: loading ? '#ccc' : '#007bff',
+                backgroundColor: loading || googleLoading ? '#ccc' : '#007bff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
                 fontSize: '16px',
-                cursor: loading ? 'not-allowed' : 'pointer'
+                cursor: loading || googleLoading ? 'not-allowed' : 'pointer'
               }}
             >
               {loading ? (
@@ -160,29 +278,13 @@ const LoginPage = () => {
             </button>
           </form>
 
-          <div className="login-footer" style={{ marginTop: '20px', textAlign: 'center' }}>
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
             <p>
               Non hai un account?{' '}
               <Link to="/register" style={{ color: '#007bff', textDecoration: 'none' }}>
                 Registrati
               </Link>
             </p>
-          </div>
-
-          {/* Debug info (rimuovi in produzione) */}
-          <div style={{ 
-            marginTop: '20px', 
-            padding: '10px', 
-            background: '#f8f9fa', 
-            border: '1px solid #dee2e6',
-            borderRadius: '4px',
-            fontSize: '12px',
-            color: '#6c757d'
-          }}>
-            <strong>Debug:</strong>
-            <br />Email: {formData.email || '(vuoto)'}
-            <br />Password: {formData.password ? '***' : '(vuoto)'}
-            <br />Loading: {loading ? 'Sì' : 'No'}
           </div>
         </div>
       </div>
@@ -237,14 +339,6 @@ const LoginPage = () => {
           color: var(--text-color, #2c3e50);
           font-weight: 500;
           font-size: 14px;
-        }
-
-        .login-button:hover:not(:disabled) {
-          background-color: #0056b3;
-        }
-
-        .login-button:disabled {
-          opacity: 0.6;
         }
       `}</style>
     </div>

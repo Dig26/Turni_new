@@ -1,4 +1,4 @@
-// src/app/slices/authSlice.js - VERSIONE PRODUCTION-READY
+// src/app/slices/authSlice.js - VERSIONE PRODUCTION-READY CON GOOGLE OAUTH
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as authService from '../../services/authService';
 
@@ -38,6 +38,38 @@ export const register = createAsyncThunk(
     } catch (error) {
       console.error('❌ Redux register error:', error);
       return rejectWithValue(error.message || 'Errore durante la registrazione');
+    }
+  }
+);
+
+// 🆕 NUOVO: Thunk per il login con Google
+export const loginWithGoogle = createAsyncThunk(
+  'auth/loginWithGoogle',
+  async ({ googleToken }, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Redux login Google thunk');
+      const user = await authService.loginWithGoogle(googleToken);
+      console.log('✅ Redux login Google success:', user?.email);
+      return user;
+    } catch (error) {
+      console.error('❌ Redux login Google error:', error);
+      return rejectWithValue(error.message || 'Errore durante l\'accesso con Google');
+    }
+  }
+);
+
+// 🆕 NUOVO: Thunk per la registrazione con Google
+export const registerWithGoogle = createAsyncThunk(
+  'auth/registerWithGoogle',
+  async ({ googleToken }, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Redux register Google thunk');
+      const user = await authService.registerWithGoogle(googleToken);
+      console.log('✅ Redux register Google success:', user?.email);
+      return user;
+    } catch (error) {
+      console.error('❌ Redux register Google error:', error);
+      return rejectWithValue(error.message || 'Errore durante la registrazione con Google');
     }
   }
 );
@@ -153,6 +185,54 @@ const authSlice = createSlice({
       })
       .addCase(register.rejected, (state, action) => {
         console.log('❌ Redux register.rejected:', action.payload);
+        state.loading = false;
+        state.error = action.payload;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.initialized = true;
+      });
+
+    // 🆕 NUOVO: Login con Google
+    builder
+      .addCase(loginWithGoogle.pending, (state) => {
+        console.log('🔄 Redux loginWithGoogle.pending');
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginWithGoogle.fulfilled, (state, action) => {
+        console.log('✅ Redux loginWithGoogle.fulfilled:', action.payload?.email);
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.error = null;
+        state.initialized = true;
+      })
+      .addCase(loginWithGoogle.rejected, (state, action) => {
+        console.log('❌ Redux loginWithGoogle.rejected:', action.payload);
+        state.loading = false;
+        state.error = action.payload;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.initialized = true;
+      });
+
+    // 🆕 NUOVO: Registrazione con Google
+    builder
+      .addCase(registerWithGoogle.pending, (state) => {
+        console.log('🔄 Redux registerWithGoogle.pending');
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(registerWithGoogle.fulfilled, (state, action) => {
+        console.log('✅ Redux registerWithGoogle.fulfilled:', action.payload?.email);
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.error = null;
+        state.initialized = true;
+      })
+      .addCase(registerWithGoogle.rejected, (state, action) => {
+        console.log('❌ Redux registerWithGoogle.rejected:', action.payload);
         state.loading = false;
         state.error = action.payload;
         state.user = null;

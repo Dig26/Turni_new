@@ -1,9 +1,11 @@
-// hooks/useAuth.js - Versione semplificata per debug
+// hooks/useAuth.js - Versione aggiornata con Google OAuth
 import { useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   login, 
   register, 
+  loginWithGoogle,     // 🆕 NUOVO
+  registerWithGoogle,  // 🆕 NUOVO
   logoutUser, 
   initializeAuth,
   setUser,
@@ -22,7 +24,7 @@ export const useAuth = () => {
     return dispatch(initializeAuth()).unwrap();
   }, [dispatch]);
 
-  // Funzioni di autenticazione
+  // Funzioni di autenticazione tradizionale
   const loginFn = useCallback((email, password) => {
     console.log('🔄 useAuth login called for:', email);
     return dispatch(login({ email, password }));
@@ -31,6 +33,17 @@ export const useAuth = () => {
   const registerFn = useCallback((nome, cognome, email, password) => {
     console.log('🔄 useAuth register called for:', email);
     return dispatch(register({ nome, cognome, email, password }));
+  }, [dispatch]);
+
+  // 🆕 NUOVO: Funzioni di autenticazione Google
+  const loginWithGoogleFn = useCallback((googleToken) => {
+    console.log('🔄 useAuth loginWithGoogle called');
+    return dispatch(loginWithGoogle({ googleToken }));
+  }, [dispatch]);
+
+  const registerWithGoogleFn = useCallback((googleToken) => {
+    console.log('🔄 useAuth registerWithGoogle called');
+    return dispatch(registerWithGoogle({ googleToken }));
   }, [dispatch]);
 
   const logoutFn = useCallback(() => {
@@ -147,11 +160,15 @@ export const useAuth = () => {
     loading,
     initialized,
     
-    // Funzioni
+    // Funzioni tradizionali
     login: loginFn,
     register: registerFn,
     logout: logoutFn,
     forceLogout,
-    initialize
+    initialize,
+    
+    // 🆕 NUOVO: Funzioni Google OAuth
+    loginWithGoogle: loginWithGoogleFn,
+    registerWithGoogle: registerWithGoogleFn
   };
 };

@@ -30,7 +30,7 @@ import ConfirmationDialog from './components/common/Modal/ConfirmationDialog';
 import './styles/global.css';
 
 function App() {
-  const { user, isAuthenticated, loading, initialized, initialize, forceLogout } = useAuth();
+  const { user, isAuthenticated, loading, initialized, initialize } = useAuth();
   const { theme } = useTheme();
   const location = useLocation();
   const [initializationFailed, setInitializationFailed] = useState(false);
@@ -68,10 +68,11 @@ function App() {
     };
   }, [initialized, initialize, initializationFailed]);
 
-  // Applica il tema all'elemento root
+  // Forza sempre il tema chiaro
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme.mode);
-    document.documentElement.setAttribute('data-font-size', theme.fontSize);
+    // Forza sempre il tema chiaro
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-font-size', theme?.fontSize || 'medium');
 
     // Calcola le variabili RGB per i colori (utili per rgba())
     const hexToRgb = (hex) => {
@@ -82,8 +83,9 @@ function App() {
     };
 
     // Imposta il colore primario e le varianti RGB
-    document.documentElement.style.setProperty('--primary-color', theme.colors.primary);
-    document.documentElement.style.setProperty('--primary-color-rgb', hexToRgb(theme.colors.primary));
+    const primaryColor = theme?.colors?.primary || '#3498db';
+    document.documentElement.style.setProperty('--primary-color', primaryColor);
+    document.documentElement.style.setProperty('--primary-color-rgb', hexToRgb(primaryColor));
 
     // Calcola il colore primario scuro per gli effetti hover
     const darkenColor = (hex, percent) => {
@@ -95,38 +97,33 @@ function App() {
       return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
     };
 
-    document.documentElement.style.setProperty('--primary-dark', darkenColor(theme.colors.primary, 15));
+    document.documentElement.style.setProperty('--primary-dark', darkenColor(primaryColor, 15));
 
     // Imposta i colori semantici in RGB
     document.documentElement.style.setProperty('--success-color-rgb', hexToRgb('#27ae60'));
     document.documentElement.style.setProperty('--danger-color-rgb', hexToRgb('#e74c3c'));
     document.documentElement.style.setProperty('--warning-color-rgb', hexToRgb('#f39c12'));
 
-    // Imposta i colori di testo appropriate in base al tema
-    if (theme.mode === 'dark') {
-      document.documentElement.style.setProperty('--text-color', '#ecf0f1');
-      document.documentElement.style.setProperty('--text-light', '#bdc3c7');
-      document.documentElement.style.setProperty('--card-bg', '#2c3e50');
-      document.documentElement.style.setProperty('--background-color', '#1a1a2e');
-    } else {
-      document.documentElement.style.setProperty('--text-color', '#2c3e50');
-      document.documentElement.style.setProperty('--text-light', '#7f8c8d');
-      document.documentElement.style.setProperty('--card-bg', '#ffffff');
-      document.documentElement.style.setProperty('--background-color', '#f5f7fa');
-    }
+    // Forza sempre i colori del tema chiaro
+    document.documentElement.style.setProperty('--text-color', '#2c3e50');
+    document.documentElement.style.setProperty('--text-light', '#7f8c8d');
+    document.documentElement.style.setProperty('--card-bg', '#ffffff');
+    document.documentElement.style.setProperty('--background-color', '#f5f7fa');
+    document.documentElement.style.setProperty('--border-color', '#ddd');
+    document.documentElement.style.setProperty('--secondary-color', '#f1f2f6');
+    document.documentElement.style.setProperty('--secondary-dark', '#dfe4ea');
+
+    // Assicura che il body abbia sempre i colori del tema chiaro
+    document.body.style.backgroundColor = '#f5f7fa';
+    document.body.style.color = '#2c3e50';
+    
+    // Rimuovi qualsiasi classe di tema scuro che potrebbe essere stata applicata
+    document.documentElement.classList.remove('dark-theme');
+    document.body.classList.remove('dark-theme');
+    
   }, [theme]);
 
-  // Handler per il pulsante di reset
-  const handleForceLogout = async () => {
-    console.log('🔄 Force logout requested');
-    try {
-      await forceLogout();
-      window.location.reload(); // Ricarica completa per essere sicuri
-    } catch (error) {
-      console.error('❌ Error during force logout:', error);
-      window.location.reload();
-    }
-  };
+
 
   // Verifica se la rotta corrente è pubblica
   const isPublicRoute = ['/login', '/register', '/email-confirmation', '/email-confirmed'].includes(location.pathname);
@@ -167,32 +164,7 @@ function App() {
       {/* Navbar solo se l'utente è autenticato */}
       {isAuthenticated && user && <Navbar />}
       
-      {/* Header per rotte pubbliche */}
-      {!isAuthenticated && isPublicRoute && (
-        <div className="auth-header" style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          padding: '10px 20px',
-          borderBottom: '1px solid var(--border-color)'
-        }}>
-          
-          
-          <button 
-            className="btn-danger"
-            onClick={handleForceLogout}
-            title="Pulisce tutti i dati di autenticazione e ricarica l'app"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <i className="fas fa-exclamation-triangle"></i>
-            <span>Reset App</span>
-          </button>
-        </div>
-      )}
+
 
       <div className="container">
         <Routes>
