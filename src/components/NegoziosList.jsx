@@ -35,6 +35,11 @@ function NegoziosList() {
     }
   };
   
+  const handleAddNegozio = () => {
+    // Reindirizza alla pagina di pagamento invece che al form diretto
+    navigate('/payment');
+  };
+  
   const filteredNegozi = negozi.filter(negozio =>
     negozio.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     negozio.citta.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,7 +55,7 @@ function NegoziosList() {
         </div>
         <button 
           className="btn-primary" 
-          onClick={() => navigate('/negozi/nuovo')}
+          onClick={handleAddNegozio}
         >
           <i className="fas fa-plus"></i> Aggiungi Negozio
         </button>
@@ -92,7 +97,7 @@ function NegoziosList() {
               <p>Inizia aggiungendo il tuo primo negozio.</p>
               <button 
                 className="btn-primary" 
-                onClick={() => navigate('/negozi/nuovo')}
+                onClick={handleAddNegozio}
               >
                 Aggiungi Negozio
               </button>

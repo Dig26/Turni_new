@@ -1,239 +1,7 @@
-// src/pages/LoginPage.jsx - Versione completa con test Google OAuth integrato
+// src/pages/LoginPage.jsx - Versione pulita senza debug
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-
-// Componente di test integrato avanzato
-const GoogleOAuthTest = () => {
-  const [status, setStatus] = useState('Inizializzazione...');
-  const [error, setError] = useState('');
-  const [solutions, setSolutions] = useState([]);
-
-  useEffect(() => {
-    const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-    
-    if (!CLIENT_ID) {
-      setStatus('❌ Client ID mancante');
-      return;
-    }
-
-    const loadGoogleScript = () => {
-      if (window.google) {
-        testGoogleInit();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = testGoogleInit;
-      script.onerror = () => setStatus('❌ Errore caricamento script Google');
-      document.head.appendChild(script);
-    };
-
-    const testGoogleInit = () => {
-      try {
-        setStatus('🔧 Inizializzazione Google...');
-        
-        window.google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: (response) => {
-            setStatus('✅ Token ricevuto! Login riuscito!');
-            console.log('Google response:', response);
-          },
-          auto_select: false,
-        });
-
-        setStatus('✅ Google inizializzato correttamente');
-        
-      } catch (error) {
-        setStatus(`❌ Errore inizializzazione: ${error.message}`);
-        setError(error.message);
-      }
-    };
-
-    loadGoogleScript();
-  }, []);
-
-  const testPrompt = () => {
-    setStatus('🔄 Testing Google prompt...');
-    setError('');
-    setSolutions([]);
-    
-    try {
-      window.google.accounts.id.prompt((notification) => {
-        console.log('Notification:', notification);
-        
-        if (notification.isNotDisplayed()) {
-          const reason = notification.getNotDisplayedReason();
-          setStatus(`❌ Prompt non mostrato: ${reason}`);
-          setError(`Motivo: ${reason}`);
-          
-          if (reason === 'unregistered_origin') {
-            setError('ORIGINE NON REGISTRATA - Prova le soluzioni sotto!');
-            setSolutions([
-              '🔥 PRIORITÀ 1: Vai su APIs & Services > Library e abilita "Google+ API"',
-              '🔥 PRIORITÀ 2: Abilita anche "Google Identity Services API"',
-              '3. Verifica di essere nel progetto Google Cloud CORRETTO',
-              '4. Controlla OAuth consent screen sia configurato',
-              '5. Aggiungi ENTRAMBI: http://localhost:3000 E http://127.0.0.1:3000',
-              '6. Prova a creare un NUOVO Client ID OAuth 2.0',
-              '7. Aspetta 15-30 minuti (non solo 5-10)',
-              '8. Cancella TUTTA la cache del browser (non solo ricarica)',
-              '9. Prova in modalità incognito'
-            ]);
-          }
-        } else if (notification.isSkippedMoment()) {
-          const reason = notification.getSkippedReason();
-          setStatus(`⚠️ Prompt saltato: ${reason}`);
-        } else {
-          setStatus('✅ Prompt mostrato correttamente');
-        }
-      });
-    } catch (error) {
-      setStatus(`❌ Errore prompt: ${error.message}`);
-      setError(error.message);
-    }
-  };
-
-  const testWith127 = () => {
-    setStatus('🔄 Testando con 127.0.0.1...');    
-    const newUrl = window.location.href.replace('localhost', '127.0.0.1');
-    window.open(newUrl, '_blank');
-  };
-
-  const clearAllCache = () => {
-    // Cancella tutti i possibili storage
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Prova a cancellare anche la cache Google se possibile
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => {
-          caches.delete(name);
-        });
-      });
-    }
-    
-    setStatus('🧹 Cache cancellata - ricarica la pagina');
-    setTimeout(() => {
-      window.location.reload(true);
-    }, 1000);
-  };
-
-  return (
-    <div style={{
-      border: '2px solid #007bff',
-      borderRadius: '8px',
-      padding: '20px',
-      margin: '20px 0',
-      backgroundColor: '#f8f9fa'
-    }}>
-      <h3>🧪 Test Google OAuth Avanzato</h3>
-      
-      <div style={{ marginBottom: '15px' }}>
-        <strong>Status:</strong> {status}
-      </div>
-      
-      {error && (
-        <div style={{
-          background: '#fee',
-          color: '#c33',
-          padding: '10px',
-          borderRadius: '4px',
-          marginBottom: '15px'
-        }}>
-          <strong>Errore:</strong> {error}
-        </div>
-      )}
-
-      {solutions.length > 0 && (
-        <div style={{
-          background: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          borderRadius: '4px',
-          padding: '15px',
-          marginBottom: '15px'
-        }}>
-          <strong>🔧 Soluzioni da provare:</strong>
-          <ol style={{ margin: '10px 0', paddingLeft: '20px' }}>
-            {solutions.map((solution, index) => (
-              <li key={index} style={{ marginBottom: '5px' }}>{solution}</li>
-            ))}
-          </ol>
-        </div>
-      )}
-      
-      <div style={{ marginBottom: '15px', fontSize: '14px' }}>
-        <strong>Origin corrente:</strong> {window.location.origin}<br/>
-        <strong>Client ID:</strong> {process.env.REACT_APP_GOOGLE_CLIENT_ID ? 
-          `${process.env.REACT_APP_GOOGLE_CLIENT_ID.substring(0, 30)}...` : 
-          'NON IMPOSTATO'
-        }<br/>
-        <strong>User Agent:</strong> {navigator.userAgent.includes('Chrome') ? '✅ Chrome' : '⚠️ ' + navigator.userAgent.split(' ')[0]}<br/>
-        <strong>⚠️ API Status:</strong> <span style={{color: '#e74c3c'}}>Verifica che Google+ API sia abilitata!</span>
-      </div>
-      
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '15px' }}>
-        <button
-          onClick={testPrompt}
-          disabled={!window.google}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          🧪 Test Prompt
-        </button>
-        
-        <button
-          onClick={testWith127}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          🔗 Prova con 127.0.0.1
-        </button>
-        
-        <button
-          onClick={clearAllCache}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#ffc107',
-            color: 'black',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          🧹 Cancella Cache
-        </button>
-      </div>
-      
-      <div style={{ fontSize: '12px', color: '#666', borderTop: '1px solid #ddd', paddingTop: '15px' }}>
-        <strong>🔥 PASSO FONDAMENTALE - Abilita le API:</strong><br/>
-        1. Google Cloud Console - APIs & Services - Library<br/>
-        2. Cerca "Google+ API" e clicca ENABLE<br/>
-        3. Cerca "Google Identity Services API" e clicca ENABLE<br/>
-        4. Poi testa di nuovo il prompt<br/><br/>
-        <strong>⚡ Se continua a non funzionare:</strong><br/>
-        Crea nuovo Client ID: Credentials - Create Credentials - OAuth 2.0 Client ID - 
-        Authorized JavaScript origins: <code>http://localhost:3000</code>
-      </div>
-    </div>
-  );
-};
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -243,138 +11,160 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
-  const [debugInfo, setDebugInfo] = useState({});
+  const [googleInitialized, setGoogleInitialized] = useState(false);
 
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginOrRegisterWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  // Debug e inizializzazione Google
+  // Inizializzazione Google
   useEffect(() => {
     const CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
-    // Raccogli informazioni di debug
-    const debug = {
-      clientId: CLIENT_ID,
-      clientIdLength: CLIENT_ID?.length,
-      origin: window.location.origin,
-      href: window.location.href,
-      hostname: window.location.hostname,
-      port: window.location.port,
-      protocol: window.location.protocol,
-      host: window.location.host,
-      pathname: window.location.pathname,
-      userAgent: navigator.userAgent,
-      timestamp: new Date().toISOString()
-    };
-
-    setDebugInfo(debug);
-
-    console.log('🔍 Debug completo Google OAuth:');
-    console.table(debug);
-
     if (!CLIENT_ID) {
-      setError('Client ID Google non configurato nella variabile REACT_APP_GOOGLE_CLIENT_ID');
+      setError('Google Sign-In non configurato');
       return;
     }
 
     if (CLIENT_ID.length < 50) {
-      setError('Client ID Google sembra troppo corto. Verifica che sia corretto.');
+      setError('Configurazione Google Sign-In non valida');
       return;
     }
 
     // Carica script Google
     if (!window.google) {
-      console.log('📦 Caricamento script Google...');
       const script = document.createElement('script');
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        console.log('✅ Script Google caricato con successo');
         setTimeout(initializeGoogle, 100);
       };
-      script.onerror = (e) => {
-        console.error('❌ Errore caricamento script Google:', e);
+      script.onerror = () => {
         setError('Impossibile caricare Google Sign-In');
       };
       document.head.appendChild(script);
     } else {
-      console.log('✅ Script Google già presente');
       initializeGoogle();
     }
 
     function initializeGoogle() {
       try {
-        console.log('🔧 Inizializzazione Google con CLIENT_ID:', CLIENT_ID);
-        console.log('🔧 Inizializzazione Google da origin:', window.location.origin);
-        
         window.google.accounts.id.initialize({
           client_id: CLIENT_ID,
           callback: handleGoogleResponse,
           auto_select: false,
           cancel_on_tap_outside: true,
+          use_fedcm_for_prompt: false,
         });
         
-        console.log('✅ Google inizializzato con successo');
+        setGoogleInitialized(true);
         
       } catch (error) {
-        console.error('❌ Errore inizializzazione Google:', error);
-        setError(`Errore inizializzazione Google Sign-In: ${error.message}`);
+        setError('Errore inizializzazione Google Sign-In');
       }
     }
   }, []);
 
   // Handler per la risposta Google
   const handleGoogleResponse = async (response) => {
-    console.log('🔄 Risposta Google ricevuta');
-    console.log('🔍 Response object:', response);
-    console.log('🔍 Credential present:', !!response.credential);
-    console.log('🔍 Credential length:', response.credential?.length);
-    
     setGoogleLoading(true);
     setError('');
 
     try {
-      const result = await loginWithGoogle(response.credential).unwrap();
-      console.log('✅ Login Google riuscito:', result);
+      const result = await loginOrRegisterWithGoogle(response.credential);
       navigate('/dashboard');
     } catch (error) {
-      console.error('❌ Errore login Google nel componente:', error);
-      setError(`Errore durante l'accesso con Google: ${error.message || error}`);
+      const errorMessage = error?.data?.message || error?.message || error || 'Errore sconosciuto';
+      setError(`Errore durante l'accesso con Google: ${errorMessage}`);
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  // Click del pulsante Google
+  // Click del pulsante Google con fallback OAuth2
   const handleGoogleClick = () => {
-    console.log('🔄 Click Google button');
-    console.log('🔍 Current origin:', window.location.origin);
-    console.log('🔍 Google object available:', !!window.google);
-
     if (!window.google) {
       setError('Google Sign-In non caricato. Ricarica la pagina.');
       return;
     }
 
+    if (!googleInitialized) {
+      setError('Google Sign-In non inizializzato. Attendi qualche secondo e riprova.');
+      return;
+    }
+
     try {
-      console.log('🔧 Tentativo prompt Google...');
+      setError('');
       
       window.google.accounts.id.prompt((notification) => {
-        console.log('🔔 Google prompt notification:', notification);
-        
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.log('⚠️ Prompt non mostrato, motivo:', notification.getNotDisplayedReason());
-          console.log('⚠️ Skipped reason:', notification.getSkippedReason());
-          
-          const reason = notification.getNotDisplayedReason() || notification.getSkippedReason();
-          setError(`Google Sign-In non disponibile: ${reason}`);
+          // Se il prompt normale non funziona, usa OAuth2 come fallback
+          handleGoogleOAuth2Fallback();
         }
       });
       
     } catch (error) {
-      console.error('❌ Errore Google prompt:', error);
-      setError(`Errore apertura Google Sign-In: ${error.message}`);
+      handleGoogleOAuth2Fallback();
+    }
+  };
+
+  // Fallback OAuth2 per quando il prompt normale non funziona
+  const handleGoogleOAuth2Fallback = () => {
+    try {
+      setGoogleLoading(true);
+      
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+        callback: async (response) => {
+          if (response.access_token) {
+            try {
+              // Usa l'access token per ottenere le info utente
+              const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: {
+                  'Authorization': `Bearer ${response.access_token}`
+                }
+              });
+              
+              if (userInfoResponse.ok) {
+                const userInfo = await userInfoResponse.json();
+                
+                try {
+                  const result = await loginOrRegisterWithGoogle(userInfo);
+                  navigate('/dashboard');
+                  
+                } catch (backendError) {
+                  setError(`Errore Google: ${backendError.message || backendError}`);
+                }
+                
+              } else {
+                throw new Error('Errore recupero info utente da Google');
+              }
+            } catch (fetchError) {
+              setError(`Errore durante il recupero delle informazioni utente: ${fetchError.message}`);
+            }
+          } else if (response.error) {
+            setError(`Errore OAuth2: ${response.error}`);
+          } else {
+            setError('Nessun access token ricevuto da Google');
+          }
+          
+          setGoogleLoading(false);
+        },
+        error_callback: (error) => {
+          setError(`Errore OAuth2: ${error.type || error.message || 'Errore sconosciuto'}`);
+          setGoogleLoading(false);
+        }
+      });
+      
+      // Richiedi il token
+      tokenClient.requestAccessToken({
+        prompt: 'select_account',
+      });
+      
+    } catch (error) {
+      setError(`Errore fallback OAuth2: ${error.message}`);
+      setGoogleLoading(false);
     }
   };
 
@@ -406,6 +196,9 @@ const LoginPage = () => {
     }
   };
 
+  const isClientIdValid = process.env.REACT_APP_GOOGLE_CLIENT_ID && 
+                         process.env.REACT_APP_GOOGLE_CLIENT_ID.length > 50;
+
   return (
     <div className="login-page">
       <div className="login-container">
@@ -415,9 +208,6 @@ const LoginPage = () => {
             <p>Inserisci le tue credenziali per accedere</p>
           </div>
 
-          {/* Componente di test integrato */}
-          {process.env.NODE_ENV === 'development' && <GoogleOAuthTest />}
-
           {error && (
             <div className="error-message" style={{
               background: '#fee',
@@ -426,40 +216,18 @@ const LoginPage = () => {
               borderRadius: '4px',
               marginBottom: '20px',
               border: '1px solid #fcc',
-              fontSize: '14px'
+              fontSize: '14px',
+              lineHeight: '1.4'
             }}>
               {error}
             </div>
-          )}
-
-          {/* Informazioni di debug */}
-          {process.env.NODE_ENV === 'development' && (
-            <details style={{ marginBottom: '20px', fontSize: '12px' }}>
-              <summary style={{ cursor: 'pointer', padding: '8px', background: '#f0f0f0', borderRadius: '4px' }}>
-                🔍 Debug Info (clicca per espandere)
-              </summary>
-              <div style={{ padding: '10px', background: '#f9f9f9', borderRadius: '4px', marginTop: '5px' }}>
-                <div><strong>Client ID:</strong> {debugInfo.clientId ? `${debugInfo.clientId.substring(0, 20)}...` : 'Non impostato'}</div>
-                <div><strong>Origin:</strong> {debugInfo.origin}</div>
-                <div><strong>Host:</strong> {debugInfo.host}</div>
-                <div><strong>Protocol:</strong> {debugInfo.protocol}</div>
-                <div><strong>Port:</strong> {debugInfo.port || 'default'}</div>
-                <div><strong>Google loaded:</strong> {window.google ? '✅' : '❌'}</div>
-                <hr style={{ margin: '10px 0' }} />
-                <div><strong>Origins da aggiungere in Google Console:</strong></div>
-                <div style={{ fontFamily: 'monospace', background: '#fff', padding: '5px', border: '1px solid #ddd' }}>
-                  {debugInfo.origin}<br/>
-                  http://127.0.0.1:{debugInfo.port || '3000'}
-                </div>
-              </div>
-            </details>
           )}
 
           {/* Pulsante Google */}
           <button
             type="button"
             onClick={handleGoogleClick}
-            disabled={googleLoading || loading || !debugInfo.clientId}
+            disabled={googleLoading || loading || !isClientIdValid || !googleInitialized}
             style={{
               width: '100%',
               padding: '12px',
@@ -469,14 +237,14 @@ const LoginPage = () => {
               borderRadius: '4px',
               fontSize: '16px',
               fontWeight: '500',
-              cursor: (googleLoading || loading || !debugInfo.clientId) ? 'not-allowed' : 'pointer',
+              cursor: (googleLoading || loading || !isClientIdValid || !googleInitialized) ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '12px',
               marginBottom: '20px',
               transition: 'all 0.2s',
-              opacity: (googleLoading || loading || !debugInfo.clientId) ? 0.6 : 1
+              opacity: (googleLoading || loading || !isClientIdValid || !googleInitialized) ? 0.6 : 1
             }}
           >
             {googleLoading ? (
@@ -484,10 +252,15 @@ const LoginPage = () => {
                 <i className="fas fa-spinner fa-spin"></i>
                 Accesso in corso...
               </>
-            ) : !debugInfo.clientId ? (
+            ) : !isClientIdValid ? (
               <>
                 <i className="fas fa-exclamation-triangle"></i>
                 Google non configurato
+              </>
+            ) : !googleInitialized ? (
+              <>
+                <i className="fas fa-hourglass-half"></i>
+                Inizializzazione Google...
               </>
             ) : (
               <>

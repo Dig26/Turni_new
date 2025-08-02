@@ -26,7 +26,8 @@ const DashboardPage = () => {
     fetchNegozi();
   }, []);
   
-  const handleAddNegozio = () => navigate('/negozi/nuovo');
+  // MODIFICATO: ora reindirizza a /payment invece di /negozi/nuovo
+  const handleAddNegozio = () => navigate('/payment');
   const handleViewAllNegozi = () => navigate('/negozi');
   
   return (

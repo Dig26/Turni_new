@@ -22,6 +22,7 @@ function NegozioForm({ negozioId }) {
 
     const [loading, setLoading] = useState(negozioId ? true : false);
     const [error, setError] = useState('');
+    const [pendingShops, setPendingShops] = useState(0);
     const navigate = useNavigate();
 
     // Aggiornati i settori in base ai dati del PDF
@@ -32,6 +33,14 @@ function NegozioForm({ negozioId }) {
         { value: 'logistica', label: 'Logistica e Trasporti' },
         { value: 'turismo', label: 'Turismo e Ristorazione' },
     ];
+
+    // Effect per controllare i negozi pendenti
+    useEffect(() => {
+        const shops = localStorage.getItem('pendingShops');
+        if (shops && !negozioId) {
+            setPendingShops(parseInt(shops));
+        }
+    }, [negozioId]);
 
     // Effect per aggiornare user_id quando l'utente cambia
     useEffect(() => {
@@ -106,6 +115,35 @@ function NegozioForm({ negozioId }) {
         try {
             console.log("Dati inviati:", formData);
             await saveNegozio(formData, negozioId);
+            
+            // Se abbiamo negozi pendenti, decrementa il contatore
+            if (pendingShops > 0 && !negozioId) {
+                const remaining = pendingShops - 1;
+                if (remaining > 0) {
+                    localStorage.setItem('pendingShops', remaining);
+                    // Mostra messaggio e continua con il prossimo negozio
+                    if (window.confirm(`Negozio creato con successo! Ti rimangono ancora ${remaining} negozi da creare. Vuoi crearne un altro ora?`)) {
+                        // Reset form per il prossimo negozio
+                        setFormData({
+                            nome: '',
+                            paese: 'IT',
+                            citta: '',
+                            indirizzo: '',
+                            settore: 'commercio',
+                            orarioApertura: '09:00',
+                            orarioChiusura: '18:00',
+                            giorniLavorativi: 6,
+                            capoarea: '',
+                            user_id: user?.id
+                        });
+                        setPendingShops(remaining);
+                        return;
+                    }
+                } else {
+                    localStorage.removeItem('pendingShops');
+                }
+            }
+            
             navigate('/negozi');
         } catch (error) {
             console.error('Errore nel salvataggio del negozio:', error);
@@ -126,6 +164,12 @@ function NegozioForm({ negozioId }) {
         <div className="negozio-form-container">
             <div className="page-header">
                 <h1>{negozioId ? 'Modifica Negozio' : 'Aggiungi Nuovo Negozio'}</h1>
+                {pendingShops > 0 && !negozioId && (
+                    <div className="pending-shops-info">
+                        <i className="fas fa-info-circle"></i>
+                        Hai ancora <strong>{pendingShops} negozi</strong> da creare con il tuo abbonamento.
+                    </div>
+                )}
             </div>
 
             {error && <div className="error-message">{error}</div>}

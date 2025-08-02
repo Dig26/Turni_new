@@ -1,4 +1,4 @@
-// services/authService.js - VERSIONE PRODUCTION-READY CON GOOGLE OAUTH
+// services/authService.js - VERSIONE AGGIORNATA CON SUPPORTO JWT + USER INFO OBJECTS
 import { supabase } from './api/apiClient';
 
 // Cache per evitare chiamate multiple
@@ -34,17 +34,58 @@ const waitForSupabaseReady = async () => {
   }
 };
 
-// 🆕 NUOVO: Helper per decodificare token Google
-const decodeGoogleToken = (token) => {
-  try {
-    // Decodifica la parte payload del JWT
-    const payload = token.split('.')[1];
-    const decodedPayload = atob(payload);
-    return JSON.parse(decodedPayload);
-  } catch (error) {
-    console.error('❌ Errore decodifica token Google:', error);
-    throw new Error('Token Google non valido');
+// 🆕 AGGIORNATO: Helper per processare dati Google (JWT o User Info Object)
+const processGoogleData = (googleData) => {
+  console.log('🔍 Processing Google data type:', typeof googleData);
+  
+  // Caso 1: È un JWT token (string)
+  if (typeof googleData === 'string') {
+    console.log('📄 Processing JWT token');
+    try {
+      // Decodifica la parte payload del JWT
+      const payload = googleData.split('.')[1];
+      const decodedPayload = atob(payload);
+      const parsed = JSON.parse(decodedPayload);
+      
+      return {
+        email: parsed.email,
+        nome: parsed.given_name || parsed.name?.split(' ')[0] || 'User',
+        cognome: parsed.family_name || parsed.name?.split(' ').slice(1).join(' ') || 'Google',
+        picture: parsed.picture,
+        verified: parsed.email_verified,
+        source: 'jwt_token'
+      };
+    } catch (error) {
+      console.error('❌ Errore decodifica JWT token:', error);
+      throw new Error('Token Google non valido');
+    }
   }
+  
+  // Caso 2: È già un oggetto user info (da OAuth2)
+  if (typeof googleData === 'object' && googleData !== null) {
+    console.log('📦 Processing user info object');
+    
+    if (!googleData.email) {
+      throw new Error('User info object deve contenere email');
+    }
+    
+    return {
+      email: googleData.email,
+      nome: googleData.given_name || googleData.name?.split(' ')[0] || 'User',
+      cognome: googleData.family_name || googleData.name?.split(' ').slice(1).join(' ') || 'Google',
+      picture: googleData.picture,
+      verified: googleData.verified_email || googleData.email_verified || true,
+      source: 'user_info_object'
+    };
+  }
+  
+  throw new Error('Formato dati Google non supportato');
+};
+
+// Helper per decodificare token Google (mantenuto per compatibilità)
+const decodeGoogleToken = (token) => {
+  console.warn('⚠️ decodeGoogleToken deprecato, usa processGoogleData');
+  return processGoogleData(token);
 };
 
 // Funzione per ottenere l'utente dalla sessione (più affidabile di getUser)
@@ -267,9 +308,10 @@ export const register = async (nome, cognome, email, password) => {
   }
 };
 
-// 🆕 NUOVO: Login con Google
-export const loginWithGoogle = async (googleToken) => {
+// 🆕 AGGIORNATO: Login con Google - supporta JWT + User Info Objects
+export const loginWithGoogle = async (googleData) => {
   console.log('🔄 Login Google start');
+  console.log('🔍 Google data type:', typeof googleData);
   
   try {
     // Clear cache
@@ -278,16 +320,19 @@ export const loginWithGoogle = async (googleToken) => {
     
     await waitForSupabaseReady();
     
-    // Decodifica il token Google per ottenere le informazioni utente
-    const googlePayload = decodeGoogleToken(googleToken);
-    console.log('✅ Google token decoded:', googlePayload.email);
+    // Processa i dati Google (JWT o User Info Object)
+    const userInfo = processGoogleData(googleData);
+    console.log('✅ Google data processed:', { 
+      email: userInfo.email, 
+      source: userInfo.source 
+    });
     
     // Cerca prima se l'utente esiste già nel database
     const { data: existingUser, error: searchError } = await withTimeout(
       supabase
         .from('utenti')
         .select('*')
-        .eq('email', googlePayload.email)
+        .eq('email', userInfo.email)
         .single(),
       3000
     );
@@ -303,63 +348,86 @@ export const loginWithGoogle = async (googleToken) => {
     
     console.log('✅ Existing user found:', existingUser.email);
     
-    // Prova l'autenticazione con Supabase usando Google OAuth
+    // Tentativo di autenticazione con Supabase (solo se abbiamo un JWT)
+    if (userInfo.source === 'jwt_token' && typeof googleData === 'string') {
+      try {
+        console.log('🔧 Attempting Supabase Google auth with JWT...');
+        
+        const { data, error } = await withTimeout(
+          supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleData,
+          }),
+          10000
+        );
+        
+        if (error) {
+          console.warn('⚠️ Supabase Google auth failed:', error.message);
+          throw error; // Passa al fallback
+        }
+        
+        console.log('✅ Supabase Google auth success:', data.user?.email);
+        
+        // Aspetta un momento per permettere al session state di aggiornarsi
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Ottieni l'utente completo dalla sessione
+        const user = await getCurrentUser();
+        
+        if (user) {
+          console.log('🎉 Login Google completed (Supabase):', user.email);
+          return user;
+        }
+        
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase Google OAuth failed, using fallback...');
+        // Continua con il fallback
+      }
+    }
+    
+    // Fallback: Login senza sessione Supabase (per OAuth2 user info objects)
+    console.log('🔧 Using Google login fallback approach...');
+    
+    // Verifica che l'email sia verificata (se disponibile)
+    if (userInfo.verified === false) {
+      throw new Error('Email Google non verificata');
+    }
+    
+    // Aggiorna l'utente esistente con eventuali nuove informazioni
     try {
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: googleToken,
-        }),
-        10000
+      const { data: updatedUser, error: updateError } = await withTimeout(
+        supabase
+          .from('utenti')
+          .update({
+            // Aggiorna solo se i campi sono vuoti o il nome è generico
+            nome: existingUser.nome === 'User' || !existingUser.nome ? userInfo.nome : existingUser.nome,
+            cognome: existingUser.cognome === 'Google' || !existingUser.cognome ? userInfo.cognome : existingUser.cognome,
+            // Aggiorna sempre la data di ultimo accesso
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingUser.id)
+          .select()
+          .single(),
+        3000
       );
       
-      if (error) {
-        console.warn('⚠️ Supabase Google auth failed, trying manual approach:', error.message);
-        throw error; // Passa al fallback
+      if (!updateError && updatedUser) {
+        console.log('✅ User info updated from Google');
+        existingUser.nome = updatedUser.nome;
+        existingUser.cognome = updatedUser.cognome;
       }
       
-      console.log('✅ Supabase Google auth success:', data.user?.email);
-      
-    } catch (supabaseError) {
-      console.log('⚠️ Supabase Google OAuth non disponibile, uso approccio manuale...');
-      
-      // Fallback: crea una sessione manuale
-      // Questo è un approccio semplificato - in produzione potresti voler implementare
-      // un sistema più robusto con il tuo backend
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithPassword({
-          email: existingUser.email,
-          password: 'temp_google_password_' + Date.now(), // Password temporanea
-        }),
-        5000
-      );
-      
-      // Se fallisce il login con password (normale), proviamo un approccio diverso
-      if (error) {
-        console.log('⚠️ Manual login failed, this is expected for Google users');
-        
-        // Aggiorna direttamente la cache con l'utente esistente
-        userCache = existingUser;
-        cacheTime = Date.now();
-        
-        console.log('✅ Google login completed (manual approach):', existingUser.email);
-        return existingUser;
-      }
+    } catch (updateError) {
+      console.warn('⚠️ Failed to update user info:', updateError);
+      // Non è critico, continua
     }
     
-    // Aspetta un momento per permettere al session state di aggiornarsi
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Aggiorna la cache con l'utente esistente
+    userCache = existingUser;
+    cacheTime = Date.now();
     
-    // Ottieni l'utente completo
-    const user = await getCurrentUser();
-    
-    if (!user) {
-      console.log('⚠️ Session user not found, using existing user data');
-      return existingUser;
-    }
-    
-    console.log('🎉 Login Google completed:', user.email);
-    return user;
+    console.log('🎉 Login Google completed (fallback):', existingUser.email);
+    return existingUser;
     
   } catch (error) {
     console.error('❌ Login Google failed:', error.message);
@@ -367,9 +435,10 @@ export const loginWithGoogle = async (googleToken) => {
   }
 };
 
-// 🆕 NUOVO: Registrazione con Google
-export const registerWithGoogle = async (googleToken) => {
+// 🆕 AGGIORNATO: Registrazione con Google - supporta JWT + User Info Objects
+export const registerWithGoogle = async (googleData) => {
   console.log('🔄 Register Google start');
+  console.log('🔍 Google data type:', typeof googleData);
   
   try {
     // Clear cache
@@ -378,21 +447,19 @@ export const registerWithGoogle = async (googleToken) => {
     
     await waitForSupabaseReady();
     
-    // Decodifica il token Google per ottenere le informazioni utente
-    const googlePayload = decodeGoogleToken(googleToken);
-    console.log('✅ Google token decoded:', googlePayload.email);
-    
-    // Estrai informazioni dal payload Google
-    const email = googlePayload.email;
-    const nome = googlePayload.given_name || googlePayload.name?.split(' ')[0] || 'User';
-    const cognome = googlePayload.family_name || googlePayload.name?.split(' ').slice(1).join(' ') || 'Google';
+    // Processa i dati Google (JWT o User Info Object)
+    const userInfo = processGoogleData(googleData);
+    console.log('✅ Google data processed for registration:', { 
+      email: userInfo.email, 
+      source: userInfo.source 
+    });
     
     // Controlla se l'utente esiste già
     const { data: existingUser, error: searchError } = await withTimeout(
       supabase
         .from('utenti')
         .select('*')
-        .eq('email', email)
+        .eq('email', userInfo.email)
         .single(),
       3000
     );
@@ -408,26 +475,37 @@ export const registerWithGoogle = async (googleToken) => {
     
     console.log('✅ Email available for registration');
     
-    // Prova la registrazione con Supabase usando Google OAuth
-    try {
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: googleToken,
-        }),
-        10000
-      );
-      
-      if (error) {
-        console.warn('⚠️ Supabase Google registration failed:', error.message);
-        throw error; // Passa al fallback
+    // Verifica che l'email sia verificata (se disponibile)
+    if (userInfo.verified === false) {
+      throw new Error('Email Google non verificata');
+    }
+    
+    // Tentativo di registrazione con Supabase (solo se abbiamo un JWT)
+    let supabaseAuthSuccess = false;
+    
+    if (userInfo.source === 'jwt_token' && typeof googleData === 'string') {
+      try {
+        console.log('🔧 Attempting Supabase Google registration with JWT...');
+        
+        const { data, error } = await withTimeout(
+          supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleData,
+          }),
+          10000
+        );
+        
+        if (error) {
+          console.warn('⚠️ Supabase Google registration failed:', error.message);
+        } else {
+          console.log('✅ Supabase Google registration success:', data.user?.email);
+          supabaseAuthSuccess = true;
+        }
+        
+      } catch (supabaseError) {
+        console.log('⚠️ Supabase Google OAuth non disponibile per registrazione');
+        // Continua con l'approccio manuale
       }
-      
-      console.log('✅ Supabase Google registration success:', data.user?.email);
-      
-    } catch (supabaseError) {
-      console.log('⚠️ Supabase Google OAuth non disponibile per registrazione');
-      // Continua con l'approccio manuale
     }
     
     // Inserimento nella tabella utenti
@@ -435,10 +513,10 @@ export const registerWithGoogle = async (googleToken) => {
       supabase
         .from('utenti')
         .insert({
-          nome,
-          cognome,
-          email,
-          password: 'managed_by_google_oauth',
+          nome: userInfo.nome,
+          cognome: userInfo.cognome,
+          email: userInfo.email,
+          password: supabaseAuthSuccess ? 'managed_by_supabase_google_auth' : 'managed_by_google_oauth_fallback',
           role: 'user'
         })
         .select()
@@ -448,6 +526,15 @@ export const registerWithGoogle = async (googleToken) => {
     
     if (dbError) {
       console.error('❌ Database insert error:', dbError.message);
+      
+      // Rollback Supabase auth se era riuscito
+      if (supabaseAuthSuccess) {
+        try {
+          await supabase.auth.signOut();
+        } catch (rollbackError) {
+          console.error('❌ Rollback error:', rollbackError);
+        }
+      }
       
       if (dbError.code === '23505') {
         throw new Error('Un utente con questa email esiste già');

@@ -1,4 +1,4 @@
-// src/app/slices/authSlice.js - VERSIONE PRODUCTION-READY CON GOOGLE OAUTH
+// src/app/slices/authSlice.js - VERSIONE AGGIORNATA PER JWT + USER INFO OBJECTS
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as authService from '../../services/authService';
 
@@ -42,13 +42,15 @@ export const register = createAsyncThunk(
   }
 );
 
-// 🆕 NUOVO: Thunk per il login con Google
+// 🆕 AGGIORNATO: Thunk per il login con Google - supporta JWT + User Info Objects
 export const loginWithGoogle = createAsyncThunk(
   'auth/loginWithGoogle',
-  async ({ googleToken }, { rejectWithValue }) => {
+  async ({ googleData }, { rejectWithValue }) => {
     try {
       console.log('🔄 Redux login Google thunk');
-      const user = await authService.loginWithGoogle(googleToken);
+      console.log('🔍 Google data type in Redux:', typeof googleData);
+      
+      const user = await authService.loginWithGoogle(googleData);
       console.log('✅ Redux login Google success:', user?.email);
       return user;
     } catch (error) {
@@ -58,13 +60,15 @@ export const loginWithGoogle = createAsyncThunk(
   }
 );
 
-// 🆕 NUOVO: Thunk per la registrazione con Google
+// 🆕 AGGIORNATO: Thunk per la registrazione con Google - supporta JWT + User Info Objects
 export const registerWithGoogle = createAsyncThunk(
   'auth/registerWithGoogle',
-  async ({ googleToken }, { rejectWithValue }) => {
+  async ({ googleData }, { rejectWithValue }) => {
     try {
       console.log('🔄 Redux register Google thunk');
-      const user = await authService.registerWithGoogle(googleToken);
+      console.log('🔍 Google data type in Redux:', typeof googleData);
+      
+      const user = await authService.registerWithGoogle(googleData);
       console.log('✅ Redux register Google success:', user?.email);
       return user;
     } catch (error) {
@@ -192,7 +196,7 @@ const authSlice = createSlice({
         state.initialized = true;
       });
 
-    // 🆕 NUOVO: Login con Google
+    // 🆕 AGGIORNATO: Login con Google
     builder
       .addCase(loginWithGoogle.pending, (state) => {
         console.log('🔄 Redux loginWithGoogle.pending');
@@ -216,7 +220,7 @@ const authSlice = createSlice({
         state.initialized = true;
       });
 
-    // 🆕 NUOVO: Registrazione con Google
+    // 🆕 AGGIORNATO: Registrazione con Google
     builder
       .addCase(registerWithGoogle.pending, (state) => {
         console.log('🔄 Redux registerWithGoogle.pending');
