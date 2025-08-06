@@ -18,6 +18,7 @@ import DipendenteFormPage from './pages/DipendenteFormPage';
 import TurniListPage from './pages/TurniListPage';
 import TurniAllPage from './pages/TurniAllPage';
 import TurniEditorPage from './pages/TurniEditorPage';
+import PaymentPage from './pages/PaymentPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Components
@@ -199,6 +200,11 @@ function App() {
           <Route path="/negozi" element={
             <AuthRequired>
               <NegoziPage />
+            </AuthRequired>
+          } />
+          <Route path="/payment" element={
+            <AuthRequired>
+              <PaymentPage />
             </AuthRequired>
           } />
           <Route path="/negozi/nuovo" element={
