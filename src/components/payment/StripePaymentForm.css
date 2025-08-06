@@ -7,6 +7,7 @@
   background-color: #f7f9fc;
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
 }
 
 .payment-header {
@@ -188,112 +189,7 @@
   background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
   cursor: not-allowed;
   transform: none;
-}
-
-/* Payment Section */
-.payment-section {
-  background: white;
-  padding: 30px;
-}
-
-.btn-back {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.btn-back:hover {
-  background-color: #f5f7fa;
-}
-
-.order-summary {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 25px;
-  border: 1px solid #e0e0e0;
-}
-
-.order-summary h3 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
-  color: #333;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  font-size: 16px;
-}
-
-.summary-note {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
-  font-size: 14px;
-  color: #666;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.payment-form {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.payment-element-container {
-  margin-bottom: 25px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-}
-
-/* Stripe Payment Element personalizzazione */
-.payment-element-container .StripeElement {
-  background: white;
-  padding: 0;
-}
-
-.btn-submit-payment {
-  width: 100%;
-  padding: 18px 24px;
-  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 17px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-}
-
-.btn-submit-payment:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
-}
-
-.btn-submit-payment:disabled {
-  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-  cursor: not-allowed;
-  transform: none;
+  box-shadow: none;
 }
 
 .security-info {
@@ -341,7 +237,7 @@
 @media (max-width: 650px) {
   .stripe-payment-container {
     margin: 20px;
-    border-radius: 0;
+    border-radius: 8px;
   }
   
   .payment-header {
@@ -353,30 +249,49 @@
   }
   
   .shop-selector,
-  .price-summary,
-  .payment-section {
+  .price-summary {
     padding: 20px;
   }
   
   .btn-create-subscription {
     width: calc(100% - 40px);
     margin: 20px;
+    font-size: 16px;
   }
   
   .security-info {
     padding: 20px;
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .shop-input-group {
+    gap: 15px;
+  }
+  
+  .btn-adjust {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+  }
+  
+  .shop-input-group input {
+    width: 80px;
+    height: 42px;
+    font-size: 18px;
   }
 }
 
-/* Stili per negozi pendenti nel form */
-.pending-shops-info {
-  background-color: #e3f2fd;
-  color: #1976d2;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* Stili per stati di loading */
+.btn-create-subscription:disabled i.fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
