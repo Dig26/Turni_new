@@ -17,18 +17,6 @@ import Handsontable from 'handsontable';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-let pinchState = null;
-let initialPinchDistance = null;
-let initialZoomLevel = null;
-let currentZoom = 1;
-
-const getDistance = (touch1, touch2) => {
-    return Math.sqrt(
-        Math.pow(touch1.clientX - touch2.clientX, 2) +
-        Math.pow(touch1.clientY - touch2.clientY, 2)
-    );
-};
-
 const TurniTableComponent = ({
     negozioId,
     anno,
@@ -66,26 +54,6 @@ const TurniTableComponent = ({
         totaleOreRowIndex: 0,
         orePagateRowIndex: 0,
         diffCorrenteRowIndex: 0
-    });
-    const [zoomLevel, setZoomLevel] = useState(1);
-    const [minZoom, setMinZoom] = useState(0.3);
-    const [maxZoom, setMaxZoom] = useState(3);
-    const zoomContainerRef = useRef(null);
-    const [debugInfo, setDebugInfo] = useState({
-        touchCount: 0,
-        pinchActive: false,
-        initialDistance: 0,
-        currentDistance: 0,
-        scale: 1,
-        eventCount: 0,
-        currentZoom: 100,
-        containerAttached: false,
-        containerElement: '',
-        dipendentiCount: 0,
-        lastRerender: Date.now(),
-        tableElementFound: false,
-        elementType: 'unknown',
-        scrollInfo: { needsH: false, needsV: false, scaledW: 0, scaledH: 0 }
     });
     const [exportingPDF, setExportingPDF] = useState(false);
     const motivazioni = useSelector(state => {
@@ -281,52 +249,6 @@ const TurniTableComponent = ({
             }
         };
     }, [loading, data]); // Re-esegui quando la tabella viene ricaricata
-    useEffect(() => {
-        // Solo su mobile
-        if (window.innerWidth > 768) return;
-
-        const container = zoomContainerRef.current;
-        if (!container) {
-            console.log('❌ Container non trovato, riprovo...');
-            return;
-        }
-
-        console.log('✅ Attaccando event listeners al container', container);
-
-        // Debug: verifica che il container sia quello giusto
-        setDebugInfo(prev => ({
-            ...prev,
-            containerAttached: true,
-            containerElement: container.className || 'no-class'
-        }));
-
-        container.addEventListener('touchstart', handleTouchStart, { passive: false });
-        container.addEventListener('touchmove', handleTouchMove, { passive: false });
-        container.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-        return () => {
-            if (container) {
-                console.log('🧹 Rimuovendo event listeners');
-                container.removeEventListener('touchstart', handleTouchStart);
-                container.removeEventListener('touchmove', handleTouchMove);
-                container.removeEventListener('touchend', handleTouchEnd);
-            }
-        };
-    }, [zoomLevel, minZoom, maxZoom, data.length, columnUnits.length, loading]);
-    useEffect(() => {
-        setDebugInfo(prev => ({
-            ...prev,
-            dipendentiCount: columnUnits.filter(unit => unit.type === "employee").length,
-            lastRerender: Date.now(),
-            containerAttached: !!zoomContainerRef.current
-        }));
-
-        console.log('🔄 Tabella re-renderizzata:', {
-            dipendenti: columnUnits.filter(unit => unit.type === "employee").length,
-            containerValido: !!zoomContainerRef.current,
-            loadingCompleto: !loading
-        });
-    }, [columnUnits, loading, data]);
     // Aggiungi questa funzione per forzare immediatamente il ricalcolo dopo che le variazioni sono state aggiornate
     useEffect(() => {
         // Questo effetto si attiva quando employeeVariations cambia
@@ -2793,119 +2715,6 @@ const TurniTableComponent = ({
         }
     };
 
-    const updateContainerScroll = (zoom) => {
-        if (window.innerWidth <= 768 && hotRef.current?.hotInstance && zoomContainerRef.current) {
-            try {
-                const container = zoomContainerRef.current;
-                const tableElement = hotRef.current.hotInstance.rootElement.querySelector('table');
-
-                if (!tableElement) return { needsH: false, needsV: false };
-
-                const originalWidth = tableElement.offsetWidth;
-                const originalHeight = tableElement.offsetHeight;
-                const scaledWidth = originalWidth * zoom;
-                const scaledHeight = originalHeight * zoom;
-
-                const containerWidth = container.clientWidth;
-                const containerHeight = container.clientHeight;
-
-                const needsHorizontalScroll = scaledWidth > containerWidth;
-                const needsVerticalScroll = scaledHeight > containerHeight;
-
-                if (needsHorizontalScroll) {
-                    container.style.overflowX = 'auto';
-                    hotRef.current.hotInstance.rootElement.style.overflowX = 'auto';
-                } else {
-                    container.style.overflowX = 'hidden';
-                    hotRef.current.hotInstance.rootElement.style.overflowX = 'hidden';
-                }
-
-                if (needsVerticalScroll) {
-                    container.style.overflowY = 'auto';
-                    hotRef.current.hotInstance.rootElement.style.overflowY = 'auto';
-                } else {
-                    container.style.overflowY = 'hidden';
-                    hotRef.current.hotInstance.rootElement.style.overflowY = 'hidden';
-                }
-
-                return { needsH: needsHorizontalScroll, needsV: needsVerticalScroll };
-
-            } catch (error) {
-                console.log('Errore controllo scrollbar:', error);
-                return { needsH: false, needsV: false };
-            }
-        }
-        return { needsH: false, needsV: false };
-    };
-
-    const applyZoomToDom = (zoom) => {
-        if (window.innerWidth <= 768) {
-            try {
-                if (!hotRef.current?.hotInstance?.rootElement) return;
-
-                const rootElement = hotRef.current.hotInstance.rootElement;
-                const tableElement = rootElement.querySelector('table');
-
-                if (!tableElement) return;
-
-                tableElement.style.transform = `scale(${zoom})`;
-                tableElement.style.transformOrigin = '0 0';
-                currentZoom = zoom;
-
-                const scrollState = updateContainerScroll(zoom);
-
-                if (!scrollState.needsH && !scrollState.needsV) {
-                    const newMinZoom = zoom - 0.01;
-                    setMinZoom(Math.max(newMinZoom, 0.2));
-                }
-
-            } catch (error) {
-                console.log('Errore zoom:', error);
-            }
-        }
-    };
-
-    const handleTouchStart = (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
-
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const distance = getDistance(touch1, touch2);
-
-            pinchState = {
-                startDistance: distance,
-                startZoom: currentZoom
-            };
-
-            setMinZoom(0.2);
-        }
-    };
-
-    const handleTouchMove = (e) => {
-        if (e.touches.length === 2 && pinchState) {
-            e.preventDefault();
-
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const distance = getDistance(touch1, touch2);
-
-            const scale = distance / pinchState.startDistance;
-            const newZoom = pinchState.startZoom * scale;
-            const clampedZoom = Math.min(Math.max(newZoom, minZoom), maxZoom);
-
-            if (Math.abs(clampedZoom - currentZoom) > 0.005) {
-                applyZoomToDom(clampedZoom);
-            }
-        }
-    };
-
-    const handleTouchEnd = (e) => {
-        if (e.touches.length < 2) {
-            setZoomLevel(currentZoom);
-            pinchState = null;
-        }
-    };
     return (
         <div className="turni-table-container">
             {loading ? (
@@ -2964,7 +2773,6 @@ const TurniTableComponent = ({
 
                     {/* Contenitore con zoom */}
                     <div
-                        ref={zoomContainerRef}
                         className="hot-container"
                     >
                         <HotTable
