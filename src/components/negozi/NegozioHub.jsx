@@ -475,18 +475,6 @@ const NegozioHub = ({ negozioId }) => {
                           <div className="info-label"><i className="fas fa-calendar-times"></i> <strong>Fine contr.:</strong></div>
                           <div className="info-value">{dipendente.dataFineContratto ? new Date(dipendente.dataFineContratto).toLocaleDateString() : 'Non spec.'}</div>
                         </div>
-                        <div className="info-row">
-                          <div className="info-label"><i className="fas fa-umbrella-beach"></i> <strong>Ferie:</strong></div>
-                          <div className="info-value">{dipendente.giorniFerie || '0'}</div>
-                        </div>
-                        <div className="info-row">
-                          <div className="info-label"><i className="fas fa-calendar-day"></i> <strong>ROL:</strong></div>
-                          <div className="info-value">{dipendente.giorniROL || '0'}</div>
-                        </div>
-                        <div className="info-row">
-                          <div className="info-label"><i className="fas fa-calendar-plus"></i> <strong>Ex fest.:</strong></div>
-                          <div className="info-value">{dipendente.giorniExFestivita || '0'}</div>
-                        </div>
                       </div>
                     </div>
                   </div>

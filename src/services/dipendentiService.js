@@ -28,23 +28,32 @@ export const getDipendenteById = async (id) => {
     
     const data = await handleResponse(query);
     
-    // Converti i dati dal database al formato del form
-    return {
+    console.log('🔍 RAW data from handleResponse:', data);
+    console.log('🔍 Available keys:', Object.keys(data));
+    
+    // I dati sono già convertiti in camelCase da handleResponse
+    // Quindi usiamo i nomi camelCase
+    const mappedData = {
       id: data.id,
       nome: data.nome,
       cognome: data.cognome,
-      nomeTurno: data.nome_turno || '',
-      oreSettimanali: parseFloat(data.ore_settimanali) || 40,
-      dataAssunzione: data.data_assunzione,
-      dataFineContratto: data.data_fine_contratto || '',
+      nomeTurno: data.nomeTurno || '',
+      oreSettimanali: parseFloat(data.oreSettimanali) || 40,
+      // ✅ FIX: Usa i campi già convertiti in camelCase
+      dataAssunzione: data.dataAssunzione || data.data_assunzione,
+      dataFineContratto: data.dataFineContratto || data.data_fine_contratto || '',
       ruolo: data.ruolo || 'dipendente',
-      giorniFerie: data.giorni_ferie || 0,
-      giorniROL: data.giorni_rol || 0,
-      giorniExFestivita: data.giorni_ex_festivita || 0,
+      giorniFerie: data.giorniFerie || data.giorni_ferie || 0,
+      giorniROL: data.giorniRol || data.giorni_rol || 0,
+      giorniExFestivita: data.giorniExFestivita || data.giorni_ex_festivita || 0,
       email: data.email || '',
       telefono: data.telefono || '',
-      negozioId: data.negozio_id
+      negozioId: data.negozioId || data.negozio_id
     };
+    
+    console.log('✅ Mapped data:', mappedData);
+    return mappedData;
+    
   } catch (error) {
     console.error('Errore nel recupero del dipendente:', error);
     throw error;
@@ -54,7 +63,7 @@ export const getDipendenteById = async (id) => {
 // Salva un dipendente (crea o aggiorna)
 export const saveDipendente = async (dipendenteData, dipendenteId = null) => {
   try {
-    // Prepara i dati per il database
+    // Prepara i dati per il database (converti in snake_case manualmente)
     const dataToSave = {
       nome: dipendenteData.nome.trim(),
       cognome: dipendenteData.cognome.trim(),

@@ -13,9 +13,6 @@ function DipendenteForm({ negozioId, dipendenteId }) {
     dataAssunzione: '',
     dataFineContratto: '',
     ruolo: 'dipendente',
-    giorniFerie: 0,
-    giorniROL: 0,
-    giorniExFestivita: 0,
     negozioId: negozioId
   });
   
@@ -42,12 +39,35 @@ function DipendenteForm({ negozioId, dipendenteId }) {
         // Se è una modifica, carica i dati del dipendente
         if (dipendenteId) {
           const dipendente = await getDipendenteById(dipendenteId);
+          console.log('📅 Dati dipendente caricati COMPLETI:', JSON.stringify(dipendente, null, 2));
+          
+          // Usa i nomi corretti dei campi dal database (snake_case)
+          const dataAssunzioneDB = dipendente.data_assunzione || dipendente.dataAssunzione;
+          const dataFineContrattiDB = dipendente.data_fine_contratto || dipendente.dataFineContratto;
+          
+          console.log('🔍 Dati dal DB:', {
+            data_assunzione_db: dipendente.data_assunzione,
+            data_fine_contratto_db: dipendente.data_fine_contratto,
+            dataAssunzioneDB,
+            dataFineContrattiDB
+          });
+          
+          const dataAssunzioneFormatted = dataAssunzioneDB ? formatDateForInput(dataAssunzioneDB) : '';
+          const dataFineContrattoFormatted = dataFineContrattiDB ? formatDateForInput(dataFineContrattiDB) : '';
+          
+          console.log('📅 Date formattate:', {
+            dataAssunzione: dataAssunzioneFormatted,
+            dataFineContratto: dataFineContrattoFormatted
+          });
+          
           setFormData({
-            ...dipendente,
-            // Assicurati che le date siano in formato YYYY-MM-DD per gli input di tipo date
-            dataAssunzione: dipendente.dataAssunzione ? formatDateForInput(dipendente.dataAssunzione) : '',
-            dataFineContratto: dipendente.dataFineContratto ? formatDateForInput(dipendente.dataFineContratto) : '',
-            // IMPORTANTE: Preserva sempre il negozioId dal prop, anche se presente nei dati del dipendente
+            nome: dipendente.nome || '',
+            cognome: dipendente.cognome || '',
+            nomeTurno: dipendente.nomeTurno || dipendente.nome_turno || '',
+            oreSettimanali: dipendente.oreSettimanali || dipendente.ore_settimanali || 40,
+            dataAssunzione: dataAssunzioneFormatted,
+            dataFineContratto: dataFineContrattoFormatted,
+            ruolo: dipendente.ruolo || 'dipendente',
             negozioId: negozioId
           });
         } else {
@@ -72,11 +92,43 @@ function DipendenteForm({ negozioId, dipendenteId }) {
   const formatDateForInput = (date) => {
     if (!date) return '';
     
-    if (typeof date === 'string') {
-      date = new Date(date);
+    try {
+      let dateObj;
+      
+      if (typeof date === 'string') {
+        // Gestisce diversi formati di data che potrebbero arrivare dal backend
+        if (date.includes('T')) {
+          // Formato ISO con orario (2024-01-15T00:00:00.000Z)
+          dateObj = new Date(date);
+        } else if (date.includes('-') && date.length === 10) {
+          // Formato YYYY-MM-DD
+          dateObj = new Date(date + 'T00:00:00');
+        } else {
+          // Altri formati
+          dateObj = new Date(date);
+        }
+      } else if (date instanceof Date) {
+        dateObj = date;
+      } else {
+        return '';
+      }
+      
+      // Verifica che la data sia valida
+      if (isNaN(dateObj.getTime())) {
+        console.warn('Data non valida ricevuta:', date);
+        return '';
+      }
+      
+      // Restituisce nel formato YYYY-MM-DD per gli input HTML
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Errore nella formattazione della data:', error, 'Data ricevuta:', date);
+      return '';
     }
-    
-    return date.toISOString().split('T')[0];
   };
   
   const handleChange = (e) => {
@@ -299,48 +351,6 @@ function DipendenteForm({ negozioId, dipendenteId }) {
                 value={formData.dataFineContratto}
                 onChange={handleChange}
                 min={formData.dataAssunzione}
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="form-section">
-          <h3>Giorni Disponibili</h3>
-          
-          <div className="form-row three-columns">
-            <div className="form-group">
-              <label htmlFor="giorniFerie">Giorni Ferie</label>
-              <input
-                type="number"
-                id="giorniFerie"
-                name="giorniFerie"
-                value={formData.giorniFerie}
-                onChange={handleChange}
-                min="0"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="giorniROL">Giorni ROL</label>
-              <input
-                type="number"
-                id="giorniROL"
-                name="giorniROL"
-                value={formData.giorniROL}
-                onChange={handleChange}
-                min="0"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="giorniExFestivita">Giorni Ex Festività</label>
-              <input
-                type="number"
-                id="giorniExFestivita"
-                name="giorniExFestivita"
-                value={formData.giorniExFestivita}
-                onChange={handleChange}
-                min="0"
               />
             </div>
           </div>
