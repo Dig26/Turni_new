@@ -30,35 +30,70 @@ const StripePaymentForm = () => {
   
   // Gestisce il checkout con Stripe
   const handleCheckout = async () => {
+    if (!user?.email || !user?.id) {
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Errore: utente non identificato. Effettua il login e riprova.',
+        duration: 5000
+      }));
+      return;
+    }
+
     try {
       setProcessing(true);
       
       console.log('🚀 Creazione sessione di checkout...');
       
-      const response = await axios.post('http://localhost:3001/api/create-checkout-session', {
+      const checkoutData = {
         email: user.email,
         userId: user.id,
         numberOfShops: numberOfShops,
         successUrl: `${window.location.origin}/negozi/nuovo?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}/payment`
-      });
+      };
+      
+      const response = await axios.post('http://localhost:3001/api/create-checkout-session', checkoutData);
       
       console.log('✅ Sessione creata, reindirizzamento a Stripe...');
-      
-      // Salva il numero di negozi nel localStorage per recuperarlo dopo
-      localStorage.setItem('pendingShops', numberOfShops);
       
       // Reindirizza a Stripe Checkout
       window.location.href = response.data.url;
       
     } catch (error) {
       console.error('Errore nella creazione della sessione di checkout:', error);
+      
+      let errorMessage = 'Errore nella preparazione del pagamento. Riprova.';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch(addNotification({
         type: 'error',
-        message: 'Errore nella preparazione del pagamento. Riprova.',
+        message: errorMessage,
         duration: 5000
       }));
       setProcessing(false);
+    }
+  };
+
+  // Gestisce i cambiamenti del numero di negozi
+  const handleShopsChange = (newValue) => {
+    const value = Math.max(1, Math.min(100, parseInt(newValue) || 1));
+    setNumberOfShops(value);
+  };
+
+  const incrementShops = () => {
+    if (numberOfShops < 100) {
+      setNumberOfShops(numberOfShops + 1);
+    }
+  };
+
+  const decrementShops = () => {
+    if (numberOfShops > 1) {
+      setNumberOfShops(numberOfShops - 1);
     }
   };
   
@@ -76,8 +111,10 @@ const StripePaymentForm = () => {
         <div className="shop-input-group">
           <button 
             className="btn-adjust" 
-            onClick={() => setNumberOfShops(Math.max(1, numberOfShops - 1))}
+            onClick={decrementShops}
             disabled={numberOfShops <= 1}
+            type="button"
+            aria-label="Diminuisci numero negozi"
           >
             -
           </button>
@@ -85,22 +122,26 @@ const StripePaymentForm = () => {
             type="number"
             id="numberOfShops"
             value={numberOfShops}
-            onChange={(e) => setNumberOfShops(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) => handleShopsChange(e.target.value)}
             min="1"
             max="100"
+            aria-label="Numero di negozi"
           />
           <button 
             className="btn-adjust" 
-            onClick={() => setNumberOfShops(numberOfShops + 1)}
+            onClick={incrementShops}
             disabled={numberOfShops >= 100}
+            type="button"
+            aria-label="Aumenta numero negozi"
           >
             +
           </button>
         </div>
         
-        {numberOfShops > 20 && (
+        {hasDiscount && (
           <div className="discount-badge">
-            <i className="fas fa-tag"></i> Sconto del 25% applicato!
+            <i className="fas fa-tag"></i> 
+            Sconto del 25% applicato per ordini superiori a 20 negozi!
           </div>
         )}
       </div>
@@ -132,14 +173,17 @@ const StripePaymentForm = () => {
         </div>
         <div className="trial-info">
           <i className="fas fa-info-circle"></i>
-          I primi 7 giorni sono gratuiti. Puoi cancellare in qualsiasi momento.
+          <div>
+            <strong>Prova gratuita di 7 giorni</strong><br />
+            Non verrai addebitato fino alla fine del periodo di prova. Puoi cancellare in qualsiasi momento.
+          </div>
         </div>
       </div>
       
       <button 
         className="btn-create-subscription"
         onClick={handleCheckout}
-        disabled={!numberOfShops || processing}
+        disabled={!numberOfShops || processing || !user}
       >
         {processing ? (
           <>
@@ -147,17 +191,21 @@ const StripePaymentForm = () => {
           </>
         ) : (
           <>
-            <i className="fas fa-credit-card"></i> Procedi al pagamento
+            <i className="fas fa-credit-card"></i> 
+            Inizia la prova gratuita di 7 giorni
           </>
         )}
       </button>
       
       <div className="security-info">
         <i className="fas fa-shield-alt"></i>
-        <p>
-          Verrai reindirizzato a Stripe per completare il pagamento in sicurezza. 
-          Non memorizziamo mai i dati della tua carta.
-        </p>
+        <div>
+          <p>
+            <strong>Pagamento sicuro con Stripe</strong><br />
+            Verrai reindirizzato a Stripe per completare il pagamento in sicurezza. 
+            Non memorizziamo mai i dati della tua carta di credito.
+          </p>
+        </div>
       </div>
     </div>
   );

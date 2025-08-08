@@ -1,0 +1,265 @@
+/* src/components/dashboard/NegozioCard.css */
+
+.negozio-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.negozio-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-color);
+}
+
+/* Header del card */
+.negozio-card-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.negozio-info {
+  flex: 1;
+  min-width: 0; /* Per il text overflow */
+}
+
+.negozio-name {
+  margin: 0 0 8px 0;
+  color: var(--text-color);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.negozio-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.negozio-location i {
+  color: var(--primary-color);
+  font-size: 12px;
+}
+
+.negozio-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Bottone di modifica nell'header */
+.btn-icon.btn-edit {
+  width: 32px;
+  height: 32px;
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.btn-icon.btn-edit:hover {
+  background: #3498db;
+  color: white;
+  transform: scale(1.05);
+  border-color: #3498db;
+}
+
+/* Dettagli del negozio */
+.negozio-details {
+  padding: 16px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.detail-item i {
+  color: var(--primary-color);
+  font-size: 12px;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.detail-label {
+  color: var(--text-light);
+  font-weight: 500;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: var(--text-color);
+  font-weight: 400;
+  word-wrap: break-word;
+  flex: 1;
+}
+
+/* Footer con quick actions */
+.negozio-card-footer {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.btn-quick {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--secondary-color);
+  color: var(--text-color);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.btn-quick:hover {
+  background: var(--secondary-dark);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.btn-quick.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-quick.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(var(--primary-color-rgb), 0.3);
+}
+
+.btn-quick i {
+  font-size: 11px;
+}
+
+.btn-quick span {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .negozio-card {
+    margin-bottom: 16px;
+  }
+
+  .negozio-card-header {
+    padding: 16px 16px 12px;
+  }
+
+  .negozio-name {
+    font-size: 16px;
+  }
+
+  .negozio-details {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .detail-item {
+    font-size: 13px;
+  }
+
+  .detail-label {
+    min-width: 50px;
+    font-size: 12px;
+  }
+
+  .negozio-card-footer {
+    padding: 12px 16px 16px;
+  }
+
+  .quick-actions {
+    gap: 6px;
+  }
+
+  .btn-quick {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .btn-quick span {
+    display: none; /* Nascondi il testo sui mobile, mostra solo icone */
+  }
+
+  .btn-quick i {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .negozio-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .negozio-actions {
+    align-self: flex-end;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .detail-label {
+    min-width: auto;
+    font-weight: 600;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-quick {
+    justify-content: flex-start;
+    padding: 8px 12px;
+  }
+
+  .btn-quick span {
+    display: inline; /* Mostra il testo su mobile quando stacked */
+  }
+}

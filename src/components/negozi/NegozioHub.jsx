@@ -1,6 +1,6 @@
 // src/components/negozi/NegozioHub.jsx
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchNegozioById } from '../../app/slices/negoziSlice';
 import { fetchDipendentiByNegozioId, deleteDipendenteThunk } from '../../app/slices/dipendentiSlice';
@@ -56,6 +56,7 @@ const findResponsabile = (dipendenti) => {
 const NegozioHub = ({ negozioId }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const negozio = useSelector(state => state.negozi.currentNegozio);
   const dipendenti = useSelector(state => 
     state.dipendenti && state.dipendenti.byNegozio && state.dipendenti.byNegozio[negozioId] ? 
@@ -93,16 +94,28 @@ const NegozioHub = ({ negozioId }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [dipendenteToDelete, setDipendenteToDelete] = useState(null);
   
-  // Gestore per il cambio di tab - MODIFICATO
+  // Gestore per il cambio di tab - AGGIORNATO per gestire URL
   const handleTabChange = (tabName) => {
     console.log(`Cambio tab da "${activeTab}" a "${tabName}"`);
     
-    // Rimuoviamo la ricarica automatica delle motivazioni quando si seleziona la tab
-    // per evitare di sovrascrivere le motivazioni personalizzate
-    
     setLastActiveTab(activeTab);
     setActiveTab(tabName);
+    
+    // Aggiorna l'URL senza ricaricare la pagina
+    if (tabName === 'home') {
+      navigate(`/negozi/${negozioId}`, { replace: true });
+    } else {
+      navigate(`/negozi/${negozioId}?tab=${tabName}`, { replace: true });
+    }
   };
+
+  // Effetto per gestire il parametro tab nell'URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['home', 'dipendenti', 'turni', 'particolarita', 'motivazioni'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Effetto per caricare i dati iniziali e quando cambia il negozio - MODIFICATO
   useEffect(() => {
@@ -257,7 +270,7 @@ const NegozioHub = ({ negozioId }) => {
                     <p>Dipendenti</p>
                   </div>
                 </div>
-                <button className="stat-action" onClick={() => setActiveTab('dipendenti')}>
+                <button className="stat-action" onClick={() => handleTabChange('dipendenti')}>
                   Gestisci <i className="fas fa-arrow-right"></i>
                 </button>
               </div>
@@ -272,7 +285,7 @@ const NegozioHub = ({ negozioId }) => {
                     <p>Pianificazione</p>
                   </div>
                 </div>
-                <button className="stat-action" onClick={() => setActiveTab('turni')}>
+                <button className="stat-action" onClick={() => handleTabChange('turni')}>
                   Gestisci <i className="fas fa-arrow-right"></i>
                 </button>
               </div>
@@ -302,7 +315,7 @@ const NegozioHub = ({ negozioId }) => {
                     <p>Motivazioni Assenze</p>
                   </div>
                 </div>
-                <button className="stat-action" onClick={() => setActiveTab('motivazioni')}>
+                <button className="stat-action" onClick={() => handleTabChange('motivazioni')}>
                   Gestisci <i className="fas fa-arrow-right"></i>
                 </button>
               </div>

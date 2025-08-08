@@ -93,7 +93,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
         numberOfShops: numberOfShops.toString(),
         userId: userId.toString()
       },
-      // Opzioni aggiuntive per migliorare l'esperienza
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       customer_update: {
@@ -115,18 +114,28 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
-// Endpoint per verificare lo stato di una sessione (opzionale, utile per confermare il pagamento)
+// Endpoint per verificare lo stato di una sessione (SENZA aggiornare il DB)
 app.post('/api/verify-session', async (req, res) => {
   try {
     const { sessionId } = req.body;
     
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     
+    console.log('✅ Sessione verificata:', {
+      id: session.id,
+      status: session.payment_status,
+      userId: session.metadata.userId,
+      numberOfShops: session.metadata.numberOfShops
+    });
+    
     res.json({
       status: session.payment_status,
       subscriptionId: session.subscription,
       customerId: session.customer,
-      numberOfShops: session.metadata.numberOfShops
+      numberOfShops: parseInt(session.metadata.numberOfShops),
+      userId: session.metadata.userId,
+      // Flag per indicare al frontend di aggiornare i negozi
+      shouldUpdateShops: session.payment_status === 'paid'
     });
     
   } catch (error) {
@@ -135,10 +144,15 @@ app.post('/api/verify-session', async (req, res) => {
   }
 });
 
-// Webhook per gestire gli eventi di Stripe (opzionale ma consigliato)
+// Webhook per gestire gli eventi di Stripe (opzionale)
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  if (!endpointSecret) {
+    console.log('⚠️ STRIPE_WEBHOOK_SECRET non configurato');
+    return res.status(200).json({received: true});
+  }
   
   let event;
   
@@ -149,12 +163,15 @@ app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   
-  // Gestisci gli eventi
+  // Gestisci gli eventi (solo logging, il DB viene aggiornato dal frontend)
   switch (event.type) {
     case 'checkout.session.completed':
       const session = event.data.object;
-      console.log('✅ Checkout completato:', session.id);
-      // Qui puoi aggiornare il tuo database, inviare email di conferma, etc.
+      console.log('✅ Checkout completato:', {
+        sessionId: session.id,
+        userId: session.metadata.userId,
+        numberOfShops: session.metadata.numberOfShops
+      });
       break;
       
     case 'customer.subscription.created':
@@ -176,16 +193,21 @@ app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server Stripe funzionante con Checkout!' });
+  res.json({ 
+    status: 'ok', 
+    message: 'Server Stripe semplificato funzionante!',
+    timestamp: new Date().toISOString()
+  });
 });
 
 const PORT = process.env.STRIPE_PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`\n✅ Server Stripe avviato!`);
+  console.log(`\n✅ Server Stripe Semplificato avviato!`);
   console.log(`📍 URL: http://localhost:${PORT}`);
   console.log(`🔧 Endpoints disponibili:`);
   console.log(`   - POST http://localhost:${PORT}/api/create-checkout-session`);
   console.log(`   - POST http://localhost:${PORT}/api/verify-session`);
-  console.log(`   - POST http://localhost:${PORT}/api/stripe-webhook`);
-  console.log(`   - GET  http://localhost:${PORT}/api/health\n`);
+  console.log(`   - POST http://localhost:${PORT}/api/stripe-webhook (opzionale)`);
+  console.log(`   - GET  http://localhost:${PORT}/api/health`);
+  console.log(`\n💡 Nota: Il database viene aggiornato direttamente dal frontend\n`);
 });

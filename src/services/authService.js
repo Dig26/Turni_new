@@ -1,5 +1,5 @@
-// services/authService.js - VERSIONE AGGIORNATA CON SUPPORTO JWT + USER INFO OBJECTS
-import { supabase } from './api/apiClient';
+// services/authService.js - VERSIONE AGGIORNATA CON SUPPORTO JWT + USER INFO OBJECTS + AUTH_USER_ID
+import { supabase, prepareData, handleResponse } from './api/apiClient';
 
 // Cache per evitare chiamate multiple
 let userCache = null;
@@ -31,6 +31,94 @@ const waitForSupabaseReady = async () => {
       if (attempts === maxAttempts) throw error;
       await new Promise(resolve => setTimeout(resolve, 500));
     }
+  }
+};
+
+// 🆕 NUOVA FUNZIONE: Ottieni o crea il record utente con auth_user_id
+const ensureUserRecord = async (authUser) => {
+  try {
+    if (!authUser) {
+      throw new Error('Nessun utente auth fornito');
+    }
+
+    console.log('🔍 Verifica record utente per:', authUser.email);
+
+    // 1. Prima cerca per auth_user_id
+    try {
+      const promise = supabase
+        .from('utenti')
+        .select('*')
+        .eq('auth_user_id', authUser.id)
+        .single();
+
+      const userRecord = await handleResponse(promise);
+      console.log('✅ Utente trovato tramite auth_user_id:', userRecord.id);
+      return userRecord;
+      
+    } catch (error) {
+      console.log('🔍 Utente non trovato tramite auth_user_id, cerco per email...');
+    }
+
+    // 2. Se non trovato, cerca per email
+    try {
+      const promise = supabase
+        .from('utenti')
+        .select('*')
+        .eq('email', authUser.email)
+        .single();
+
+      const userRecord = await handleResponse(promise);
+      console.log('✅ Utente trovato tramite email:', userRecord.id);
+      
+      // 3. Aggiorna il record con auth_user_id
+      const updateData = prepareData({
+        authUserId: authUser.id,
+        aggiornatoIl: new Date().toISOString()
+      });
+
+      const updatePromise = supabase
+        .from('utenti')
+        .update(updateData)
+        .eq('id', userRecord.id)
+        .select();
+
+      const updatedRecord = await handleResponse(updatePromise);
+      console.log('✅ Record utente aggiornato con auth_user_id');
+      return updatedRecord[0];
+      
+    } catch (emailError) {
+      console.log('🔍 Utente non trovato tramite email, lo creo...');
+    }
+
+    // 4. Se non esiste, crea nuovo record
+    const emailParts = authUser.email.split('@')[0].split('.');
+    const nome = authUser.user_metadata?.nome || emailParts[0] || 'Nome';
+    const cognome = authUser.user_metadata?.cognome || emailParts[1] || 'Cognome';
+
+    const newUserData = prepareData({
+      nome: nome.charAt(0).toUpperCase() + nome.slice(1),
+      cognome: cognome.charAt(0).toUpperCase() + cognome.slice(1),
+      email: authUser.email,
+      password: 'managed_by_supabase_auth',
+      role: authUser.user_metadata?.role || 'user',
+      authUserId: authUser.id,
+      negoziDisponibili: 0,
+      creatoIl: new Date().toISOString(),
+      aggiornatoIl: new Date().toISOString()
+    });
+
+    const createPromise = supabase
+      .from('utenti')
+      .insert(newUserData)
+      .select();
+
+    const newRecord = await handleResponse(createPromise);
+    console.log('✅ Nuovo record utente creato:', newRecord[0].id);
+    return newRecord[0];
+
+  } catch (error) {
+    console.error('❌ Errore nella gestione del record utente:', error);
+    throw error;
   }
 };
 
@@ -88,7 +176,7 @@ const decodeGoogleToken = (token) => {
   return processGoogleData(token);
 };
 
-// Funzione per ottenere l'utente dalla sessione (più affidabile di getUser)
+// 🆕 AGGIORNATO: Funzione per ottenere l'utente dalla sessione con logica robusta
 const getUserFromSession = async () => {
   try {
     const { data: sessionData, error } = await withTimeout(supabase.auth.getSession(), 3000);
@@ -101,55 +189,16 @@ const getUserFromSession = async () => {
     const authUser = sessionData.session.user;
     console.log('✅ Session user found:', authUser.email);
     
-    // Ora cerca l'utente nella tabella utenti usando l'email
-    const { data: dbUser, error: dbError } = await withTimeout(
-      supabase
-        .from('utenti')
-        .select('*')
-        .eq('email', authUser.email)
-        .single(),
-      3000
-    );
-    
-    if (dbError) {
-      console.error('❌ Error getting user from database:', dbError.message);
+    // Usa la nuova logica robusta per ottenere/creare il record utente
+    try {
+      const dbUser = await ensureUserRecord(authUser);
+      console.log('✅ Database user resolved:', { id: dbUser.id, email: dbUser.email });
+      return dbUser;
       
-      if (dbError.code === 'PGRST116') { // Not found
-        console.warn('⚠️ User exists in auth but not in utenti table');
-        
-        // Tentativo di auto-sincronizzazione
-        console.log('🔄 Attempting to sync user to database...');
-        try {
-          const { data: newUser, error: insertError } = await supabase
-            .from('utenti')
-            .insert({
-              nome: authUser.user_metadata?.nome || authUser.email.split('@')[0],
-              cognome: authUser.user_metadata?.cognome || 'User',
-              email: authUser.email,
-              password: 'managed_by_supabase_auth',
-              role: authUser.user_metadata?.role || 'user'
-            })
-            .select()
-            .single();
-          
-          if (insertError) {
-            console.error('❌ Failed to sync user:', insertError.message);
-            return null;
-          }
-          
-          console.log('✅ User synced successfully:', newUser);
-          return newUser;
-          
-        } catch (syncError) {
-          console.error('❌ Sync attempt failed:', syncError);
-          return null;
-        }
-      }
+    } catch (dbError) {
+      console.error('❌ Error ensuring user record:', dbError.message);
       return null;
     }
-    
-    console.log('✅ Database user found:', { id: dbUser.id, email: dbUser.email });
-    return dbUser;
     
   } catch (error) {
     console.error('❌ Error in getUserFromSession:', error.message);
@@ -232,7 +281,7 @@ export const login = async (email, password) => {
   }
 };
 
-// Register
+// 🆕 AGGIORNATO: Register con logica auth_user_id
 export const register = async (nome, cognome, email, password) => {
   console.log('🔄 Register start:', email);
   
@@ -266,39 +315,37 @@ export const register = async (nome, cognome, email, password) => {
     
     console.log('✅ Auth register success:', authData.user.email);
     
-    // Inserimento nella tabella utenti
-    const { data: dbUser, error: dbError } = await withTimeout(
-      supabase
-        .from('utenti')
-        .insert({
-          nome,
-          cognome,
-          email,
-          password: 'managed_by_supabase_auth',
-          role: 'user'
-        })
-        .select()
-        .single(),
-      5000
-    );
+    // Inserimento nella tabella utenti con auth_user_id
+    const userData = prepareData({
+      nome,
+      cognome,
+      email,
+      password: 'managed_by_supabase_auth',
+      role: 'user',
+      authUserId: authData.user.id,
+      negoziDisponibili: 0,
+      creatoIl: new Date().toISOString(),
+      aggiornatoIl: new Date().toISOString()
+    });
+
+    const insertPromise = supabase
+      .from('utenti')
+      .insert(userData)
+      .select();
+
+    const dbResult = await handleResponse(insertPromise);
     
-    if (dbError) {
-      console.error('❌ Database insert error:', dbError.message);
-      
+    if (!dbResult || dbResult.length === 0) {
       // Rollback: elimina utente da Auth
       try {
         await supabase.auth.signOut();
       } catch (rollbackError) {
         console.error('❌ Rollback error:', rollbackError);
       }
-      
-      if (dbError.code === '23505') {
-        throw new Error('Un utente con questa email esiste già');
-      } else {
-        throw new Error(`Errore database: ${dbError.message}`);
-      }
+      throw new Error('Errore nella creazione del record utente');
     }
     
+    const dbUser = dbResult[0];
     console.log('🎉 Register completed:', dbUser.email);
     return dbUser;
     
@@ -308,7 +355,7 @@ export const register = async (nome, cognome, email, password) => {
   }
 };
 
-// 🆕 AGGIORNATO: Login con Google - supporta JWT + User Info Objects
+// 🆕 AGGIORNATO: Login con Google - supporta JWT + User Info Objects + auth_user_id
 export const loginWithGoogle = async (googleData) => {
   console.log('🔄 Login Google start');
   console.log('🔍 Google data type:', typeof googleData);
@@ -328,24 +375,24 @@ export const loginWithGoogle = async (googleData) => {
     });
     
     // Cerca prima se l'utente esiste già nel database
-    const { data: existingUser, error: searchError } = await withTimeout(
+    const { data: existingUsers, error: searchError } = await withTimeout(
       supabase
         .from('utenti')
         .select('*')
-        .eq('email', userInfo.email)
-        .single(),
+        .eq('email', userInfo.email),
       3000
     );
     
-    if (searchError && searchError.code !== 'PGRST116') {
+    if (searchError) {
       console.error('❌ Error searching for existing user:', searchError.message);
       throw new Error('Errore durante la ricerca utente');
     }
     
-    if (!existingUser) {
+    if (!existingUsers || existingUsers.length === 0) {
       throw new Error('Account non trovato. Registrati prima con Google.');
     }
     
+    const existingUser = existingUsers[0];
     console.log('✅ Existing user found:', existingUser.email);
     
     // Tentativo di autenticazione con Supabase (solo se abbiamo un JWT)
@@ -371,7 +418,7 @@ export const loginWithGoogle = async (googleData) => {
         // Aspetta un momento per permettere al session state di aggiornarsi
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Ottieni l'utente completo dalla sessione
+        // Ottieni l'utente completo dalla sessione (che userà ensureUserRecord)
         const user = await getCurrentUser();
         
         if (user) {
@@ -395,31 +442,36 @@ export const loginWithGoogle = async (googleData) => {
     
     // Aggiorna l'utente esistente con eventuali nuove informazioni
     try {
-      const { data: updatedUser, error: updateError } = await withTimeout(
-        supabase
-          .from('utenti')
-          .update({
-            // Aggiorna solo se i campi sono vuoti o il nome è generico
-            nome: existingUser.nome === 'User' || !existingUser.nome ? userInfo.nome : existingUser.nome,
-            cognome: existingUser.cognome === 'Google' || !existingUser.cognome ? userInfo.cognome : existingUser.cognome,
-            // Aggiorna sempre la data di ultimo accesso
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingUser.id)
-          .select()
-          .single(),
-        3000
-      );
+      const updateData = prepareData({
+        // Aggiorna solo se i campi sono vuoti o il nome è generico
+        nome: existingUser.nome === 'User' || !existingUser.nome ? userInfo.nome : existingUser.nome,
+        cognome: existingUser.cognome === 'Google' || !existingUser.cognome ? userInfo.cognome : existingUser.cognome,
+        // Aggiorna sempre la data di ultimo accesso
+        aggiornatoIl: new Date().toISOString()
+      });
+
+      const updatePromise = supabase
+        .from('utenti')
+        .update(updateData)
+        .eq('id', existingUser.id)
+        .select();
+
+      const updatedResult = await handleResponse(updatePromise);
       
-      if (!updateError && updatedUser) {
+      if (updatedResult && updatedResult.length > 0) {
         console.log('✅ User info updated from Google');
-        existingUser.nome = updatedUser.nome;
-        existingUser.cognome = updatedUser.cognome;
+        const updatedUser = updatedResult[0];
+        // Aggiorna la cache con l'utente aggiornato
+        userCache = updatedUser;
+        cacheTime = Date.now();
+        
+        console.log('🎉 Login Google completed (fallback):', updatedUser.email);
+        return updatedUser;
       }
       
     } catch (updateError) {
       console.warn('⚠️ Failed to update user info:', updateError);
-      // Non è critico, continua
+      // Non è critico, continua con l'utente esistente
     }
     
     // Aggiorna la cache con l'utente esistente
@@ -435,7 +487,7 @@ export const loginWithGoogle = async (googleData) => {
   }
 };
 
-// 🆕 AGGIORNATO: Registrazione con Google - supporta JWT + User Info Objects
+// 🆕 AGGIORNATO: Registrazione con Google - supporta JWT + User Info Objects + auth_user_id
 export const registerWithGoogle = async (googleData) => {
   console.log('🔄 Register Google start');
   console.log('🔍 Google data type:', typeof googleData);
@@ -455,21 +507,20 @@ export const registerWithGoogle = async (googleData) => {
     });
     
     // Controlla se l'utente esiste già
-    const { data: existingUser, error: searchError } = await withTimeout(
+    const { data: existingUsers, error: searchError } = await withTimeout(
       supabase
         .from('utenti')
         .select('*')
-        .eq('email', userInfo.email)
-        .single(),
+        .eq('email', userInfo.email),
       3000
     );
     
-    if (searchError && searchError.code !== 'PGRST116') {
+    if (searchError) {
       console.error('❌ Error searching for existing user:', searchError.message);
       throw new Error('Errore durante la ricerca utente');
     }
     
-    if (existingUser) {
+    if (existingUsers && existingUsers.length > 0) {
       throw new Error('Un account con questa email esiste già. Prova ad accedere.');
     }
     
@@ -482,6 +533,7 @@ export const registerWithGoogle = async (googleData) => {
     
     // Tentativo di registrazione con Supabase (solo se abbiamo un JWT)
     let supabaseAuthSuccess = false;
+    let authUserId = null;
     
     if (userInfo.source === 'jwt_token' && typeof googleData === 'string') {
       try {
@@ -500,6 +552,7 @@ export const registerWithGoogle = async (googleData) => {
         } else {
           console.log('✅ Supabase Google registration success:', data.user?.email);
           supabaseAuthSuccess = true;
+          authUserId = data.user?.id;
         }
         
       } catch (supabaseError) {
@@ -509,24 +562,26 @@ export const registerWithGoogle = async (googleData) => {
     }
     
     // Inserimento nella tabella utenti
-    const { data: dbUser, error: dbError } = await withTimeout(
-      supabase
-        .from('utenti')
-        .insert({
-          nome: userInfo.nome,
-          cognome: userInfo.cognome,
-          email: userInfo.email,
-          password: supabaseAuthSuccess ? 'managed_by_supabase_google_auth' : 'managed_by_google_oauth_fallback',
-          role: 'user'
-        })
-        .select()
-        .single(),
-      5000
-    );
+    const userData = prepareData({
+      nome: userInfo.nome,
+      cognome: userInfo.cognome,
+      email: userInfo.email,
+      password: supabaseAuthSuccess ? 'managed_by_supabase_google_auth' : 'managed_by_google_oauth_fallback',
+      role: 'user',
+      authUserId: authUserId, // Può essere null se il fallback
+      negoziDisponibili: 0,
+      creatoIl: new Date().toISOString(),
+      aggiornatoIl: new Date().toISOString()
+    });
+
+    const insertPromise = supabase
+      .from('utenti')
+      .insert(userData)
+      .select();
+
+    const dbResult = await handleResponse(insertPromise);
     
-    if (dbError) {
-      console.error('❌ Database insert error:', dbError.message);
-      
+    if (!dbResult || dbResult.length === 0) {
       // Rollback Supabase auth se era riuscito
       if (supabaseAuthSuccess) {
         try {
@@ -535,14 +590,10 @@ export const registerWithGoogle = async (googleData) => {
           console.error('❌ Rollback error:', rollbackError);
         }
       }
-      
-      if (dbError.code === '23505') {
-        throw new Error('Un utente con questa email esiste già');
-      } else {
-        throw new Error(`Errore database: ${dbError.message}`);
-      }
+      throw new Error('Errore nella creazione del record utente');
     }
     
+    const dbUser = dbResult[0];
     console.log('🎉 Register Google completed:', dbUser.email);
     
     // Aggiorna la cache

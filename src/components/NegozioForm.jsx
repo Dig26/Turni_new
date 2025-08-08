@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { saveNegozio, getNegozioById } from '../services/negoziService';
 import { addNotification } from '../app/slices/uiSlice';
+import { getAvailableShops, addAvailableShops, consumeShop } from '../services/userService';
 import axios from 'axios';
 import '../styles/NegozioForm.css';
 
@@ -27,8 +28,9 @@ function NegozioForm({ negozioId }) {
 
     const [loading, setLoading] = useState(negozioId ? true : false);
     const [error, setError] = useState('');
-    const [pendingShops, setPendingShops] = useState(0);
+    const [availableShops, setAvailableShops] = useState(0);
     const [verifyingSession, setVerifyingSession] = useState(false);
+    const [loadingShops, setLoadingShops] = useState(false);
 
     // Aggiornati i settori in base ai dati del PDF
     const settoriOptions = [
@@ -39,17 +41,28 @@ function NegozioForm({ negozioId }) {
         { value: 'turismo', label: 'Turismo e Ristorazione' },
     ];
 
+    // Funzione per recuperare i negozi disponibili dal database
+    const fetchAvailableShops = async () => {
+        try {
+            setLoadingShops(true);
+            const shops = await getAvailableShops();
+            setAvailableShops(shops);
+        } catch (error) {
+            console.error('Errore nel recupero dei negozi disponibili:', error);
+        } finally {
+            setLoadingShops(false);
+        }
+    };
+
     // Gestisci il ritorno da Stripe Checkout
     useEffect(() => {
         const checkStripeSession = async () => {
-            // Controlla se c'è un session_id nei parametri URL (ritorno da Stripe)
             const urlParams = new URLSearchParams(location.search);
             const sessionId = urlParams.get('session_id');
             
             if (sessionId && !negozioId) {
                 setVerifyingSession(true);
                 try {
-                    // Verifica la sessione con il backend
                     const response = await axios.post('http://localhost:3001/api/verify-session', {
                         sessionId: sessionId
                     });
@@ -57,25 +70,31 @@ function NegozioForm({ negozioId }) {
                     console.log('Sessione verificata:', response.data);
                     
                     if (response.data.status === 'paid' || response.data.status === 'complete') {
-                        // Recupera il numero di negozi acquistati
-                        const numberOfShops = response.data.numberOfShops || localStorage.getItem('pendingShops');
-                        
-                        if (numberOfShops) {
-                            setPendingShops(parseInt(numberOfShops));
-                            localStorage.setItem('pendingShops', numberOfShops);
+                        // Aggiorna i negozi disponibili nel database tramite il frontend
+                        if (response.data.shouldUpdateShops) {
+                            const numberOfShops = parseInt(response.data.numberOfShops);
+                            try {
+                                const newTotal = await addAvailableShops(numberOfShops);
+                                setAvailableShops(newTotal);
+                                
+                                dispatch(addNotification({
+                                    type: 'success',
+                                    message: `✅ Abbonamento attivato con successo! Hai ${newTotal} negozi disponibili. Inizia creando il tuo primo negozio.`,
+                                    duration: 7000
+                                }));
+                            } catch (dbError) {
+                                console.error('Errore aggiornamento negozi disponibili:', dbError);
+                                dispatch(addNotification({
+                                    type: 'error',
+                                    message: 'Pagamento completato, ma errore nell\'aggiornamento dei negozi. Contatta il supporto.',
+                                    duration: 7000
+                                }));
+                            }
                         }
-                        
-                        // Mostra notifica di successo
-                        dispatch(addNotification({
-                            type: 'success',
-                            message: `✅ Abbonamento attivato con successo! Hai ${numberOfShops} negozi disponibili. Inizia creando il tuo primo negozio.`,
-                            duration: 7000
-                        }));
                         
                         // Pulisci l'URL rimuovendo il session_id
                         window.history.replaceState({}, document.title, '/negozi/nuovo');
                     } else {
-                        // Pagamento non completato
                         dispatch(addNotification({
                             type: 'warning',
                             message: 'Il pagamento non è stato completato. Riprova.',
@@ -99,23 +118,12 @@ function NegozioForm({ negozioId }) {
         checkStripeSession();
     }, [location.search, dispatch, navigate, negozioId]);
 
-    // Effect per controllare i negozi pendenti (quando non c'è session_id)
+    // Carica i negozi disponibili quando il componente si monta
     useEffect(() => {
-        const shops = localStorage.getItem('pendingShops');
-        if (shops && !negozioId && !location.search.includes('session_id')) {
-            setPendingShops(parseInt(shops));
-            
-            // Mostra notifica solo se non l'abbiamo già mostrata
-            if (!sessionStorage.getItem('pendingShopsNotificationShown')) {
-                dispatch(addNotification({
-                    type: 'info',
-                    message: `📦 Hai ${shops} negozi disponibili da configurare nel tuo abbonamento.`,
-                    duration: 5000
-                }));
-                sessionStorage.setItem('pendingShopsNotificationShown', 'true');
-            }
+        if (user?.id && !negozioId && !location.search.includes('session_id')) {
+            fetchAvailableShops();
         }
-    }, [negozioId, location.search, dispatch]);
+    }, [user?.id, negozioId, location.search]);
 
     // Effect per aggiornare user_id quando l'utente cambia
     useEffect(() => {
@@ -127,14 +135,13 @@ function NegozioForm({ negozioId }) {
         }
     }, [user]);
 
+    // Effect per caricare i dati del negozio se è una modifica
     useEffect(() => {
-        // Se è una modifica, carica i dati del negozio
         if (negozioId) {
             const fetchNegozio = async () => {
                 try {
                     const negozio = await getNegozioById(negozioId);
                     
-                    // Assicurati che user_id sia presente
                     const negozioConUserID = {
                         ...negozio,
                         user_id: negozio.user_id || user?.id
@@ -181,9 +188,14 @@ function NegozioForm({ negozioId }) {
             return;
         }
 
-        // Verifica che user_id sia presente
         if (!formData.user_id) {
             setError('Errore: Utente non identificato. Effettua il login e riprova.');
+            return;
+        }
+
+        // Se non è una modifica, verifica che ci siano negozi disponibili
+        if (!negozioId && availableShops <= 0) {
+            setError('Non hai negozi disponibili. Acquista prima un abbonamento.');
             return;
         }
 
@@ -191,64 +203,74 @@ function NegozioForm({ negozioId }) {
             console.log("Dati inviati:", formData);
             await saveNegozio(formData, negozioId);
             
-            // Se abbiamo negozi pendenti, decrementa il contatore
-            if (pendingShops > 0 && !negozioId) {
-                const remaining = pendingShops - 1;
-                
-                // Mostra notifica di successo
-                dispatch(addNotification({
-                    type: 'success',
-                    message: `✅ Negozio "${formData.nome}" creato con successo!`,
-                    duration: 3000
-                }));
-                
-                if (remaining > 0) {
-                    localStorage.setItem('pendingShops', remaining);
+            // Se è una creazione (non modifica), consuma un negozio disponibile
+            if (!negozioId) {
+                try {
+                    const remainingShops = await consumeShop();
+                    setAvailableShops(remainingShops);
                     
-                    // Usa una notifica invece di window.confirm per un'esperienza migliore
-                    setTimeout(() => {
-                        dispatch(addNotification({
-                            type: 'info',
-                            message: `Ti rimangono ancora ${remaining} negozi da creare. Vuoi crearne un altro?`,
-                            duration: 5000,
-                            action: {
-                                label: 'Crea altro negozio',
-                                onClick: () => {
-                                    // Reset form per il prossimo negozio
-                                    setFormData({
-                                        nome: '',
-                                        paese: 'IT',
-                                        citta: '',
-                                        indirizzo: '',
-                                        settore: 'commercio',
-                                        orarioApertura: '09:00',
-                                        orarioChiusura: '18:00',
-                                        giorniLavorativi: 6,
-                                        capoarea: '',
-                                        user_id: user?.id
-                                    });
-                                    setPendingShops(remaining);
-                                    window.scrollTo(0, 0);
-                                }
-                            }
-                        }));
-                    }, 500);
-                    
-                    // Dopo 3 secondi, se l'utente non ha cliccato, vai alla lista negozi
-                    setTimeout(() => {
-                        navigate('/negozi');
-                    }, 3500);
-                } else {
-                    localStorage.removeItem('pendingShops');
-                    sessionStorage.removeItem('pendingShopsNotificationShown');
                     dispatch(addNotification({
                         type: 'success',
-                        message: '🎉 Tutti i negozi del tuo abbonamento sono stati configurati!',
-                        duration: 5000
+                        message: `✅ Negozio "${formData.nome}" creato con successo!`,
+                        duration: 3000
                     }));
-                    navigate('/negozi');
+
+                    // Se ci sono ancora negozi disponibili, chiedi se vuole crearne altri
+                    if (remainingShops > 0) {
+                        setTimeout(() => {
+                            dispatch(addNotification({
+                                type: 'info',
+                                message: `Ti rimangono ancora ${remainingShops} negozi da creare. Vuoi crearne un altro?`,
+                                duration: 5000,
+                                action: {
+                                    label: 'Crea altro negozio',
+                                    onClick: () => {
+                                        // Reset form per il prossimo negozio
+                                        setFormData({
+                                            nome: '',
+                                            paese: 'IT',
+                                            citta: '',
+                                            indirizzo: '',
+                                            settore: 'commercio',
+                                            orarioApertura: '09:00',
+                                            orarioChiusura: '18:00',
+                                            giorniLavorativi: 6,
+                                            capoarea: '',
+                                            user_id: user?.id
+                                        });
+                                        window.scrollTo(0, 0);
+                                    }
+                                }
+                            }));
+                        }, 500);
+                        
+                        // Dopo 3 secondi, se l'utente non ha cliccato, vai alla lista negozi
+                        setTimeout(() => {
+                            navigate('/negozi');
+                        }, 3500);
+                    } else {
+                        dispatch(addNotification({
+                            type: 'success',
+                            message: '🎉 Tutti i negozi del tuo abbonamento sono stati configurati!',
+                            duration: 5000
+                        }));
+                        navigate('/negozi');
+                    }
+                } catch (consumeError) {
+                    console.error('Errore nel consumo del negozio:', consumeError);
+                    dispatch(addNotification({
+                        type: 'error',
+                        message: `Negozio creato, ma errore nell'aggiornamento dell'abbonamento: ${consumeError.message}`,
+                        duration: 7000
+                    }));
                 }
             } else {
+                // È una modifica
+                dispatch(addNotification({
+                    type: 'success',
+                    message: `✅ Negozio "${formData.nome}" aggiornato con successo!`,
+                    duration: 3000
+                }));
                 navigate('/negozi');
             }
         } catch (error) {
@@ -257,13 +279,34 @@ function NegozioForm({ negozioId }) {
         }
     };
 
-    if (loading || verifyingSession) {
+    if (loading || verifyingSession || loadingShops) {
         return (
             <div className="loading-spinner center">
                 <i className="fas fa-spinner fa-spin"></i>
                 <span>
-                    {verifyingSession ? 'Verifica pagamento in corso...' : 'Caricamento dati negozio...'}
+                    {verifyingSession ? 'Verifica pagamento in corso...' : 
+                     loadingShops ? 'Caricamento negozi disponibili...' :
+                     'Caricamento dati negozio...'}
                 </span>
+            </div>
+        );
+    }
+
+    // Se non ci sono negozi disponibili e non è una modifica, mostra messaggio
+    if (!negozioId && availableShops <= 0 && !verifyingSession) {
+        return (
+            <div className="negozio-form-container">
+                <div className="empty-state">
+                    <i className="fas fa-shopping-cart"></i>
+                    <h3>Nessun negozio disponibile</h3>
+                    <p>Non hai negozi disponibili nel tuo abbonamento. Acquista prima un piano per creare nuovi negozi.</p>
+                    <button 
+                        className="btn-primary" 
+                        onClick={() => navigate('/payment')}
+                    >
+                        Acquista Abbonamento
+                    </button>
+                </div>
             </div>
         );
     }
@@ -272,10 +315,10 @@ function NegozioForm({ negozioId }) {
         <div className="negozio-form-container">
             <div className="page-header">
                 <h1>{negozioId ? 'Modifica Negozio' : 'Aggiungi Nuovo Negozio'}</h1>
-                {pendingShops > 0 && !negozioId && (
+                {availableShops > 0 && !negozioId && (
                     <div className="pending-shops-info">
                         <i className="fas fa-shopping-cart"></i>
-                        Hai ancora <strong>{pendingShops} {pendingShops === 1 ? 'negozio' : 'negozi'}</strong> da creare con il tuo abbonamento.
+                        Hai ancora <strong>{availableShops} {availableShops === 1 ? 'negozio' : 'negozi'}</strong> da creare con il tuo abbonamento.
                     </div>
                 )}
             </div>
