@@ -56,6 +56,16 @@ const TurniTableComponent = ({
         diffCorrenteRowIndex: 0
     });
     const [exportingPDF, setExportingPDF] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const [minZoom, setMinZoom] = useState(0.5);
+    const [isPinching, setIsPinching] = useState(false);
+    const [baseColWidths, setBaseColWidths] = useState({});
+    const [initialPinchDistance, setInitialPinchDistance] = useState(0);
+    const [baseRowHeight, setBaseRowHeight] = useState(0); // altezza base righe normali
+    const [baseHeaderHeight, setBaseHeaderHeight] = useState(0); // altezza base header
+    const [baseFontSize, setBaseFontSize] = useState(0); // font-size base
+    const [minZoomCalculated, setMinZoomCalculated] = useState(false);
+    const containerRef = useRef(null);
     const motivazioni = useSelector(state => {
         try {
             if (state.motivazioni && state.motivazioni.items && negozioId) {
@@ -73,6 +83,221 @@ const TurniTableComponent = ({
     const getDaysInMonth = (month, year) => {
         // Nota: month è 0-based (0-11)
         return new Date(year, month + 1, 0).getDate();
+    };
+
+    const getDistance = (touches) => {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const calculateEmployeeColumnWidth = () => {
+        if (!pairToEmployee || pairToEmployee.length === 0) return 100;
+
+        // Trova il nome più lungo
+        const longestName = pairToEmployee.reduce((longest, current) =>
+            current.length > longest.length ? current : longest, '');
+
+        // Calcola la larghezza necessaria (PIÙ pixel per carattere)
+        const charWidth = 6.5; // ERA 8, ora 10
+        const gearSpace = 30; // ERA 30, ora 35
+        const padding = 20; // ERA 20, ora 25
+
+        const neededWidth = (longestName.length * charWidth) + gearSpace + padding;
+
+        // Minimo 100, massimo 200 (aumentato da 180)
+        return Math.max(100, neededWidth); // Rimosso il limite massimo
+    };
+
+    const calculateMinZoom = () => {
+        if (!hotRef.current?.hotInstance) return;
+
+        // ASSICURATI CHE QUESTO SIA FALSE O RIMUOVI TUTTO IL BLOCCO
+        const useManualZoom = false; // <-- DEVE ESSERE FALSE
+
+        if (useManualZoom) {
+            setMinZoom(0.5);
+            return;
+        }
+
+        // Verifica che le altezze siano state lette
+        if (baseHeaderHeight === 0 || baseRowHeight === 0) {
+            setMinZoomCalculated(false);
+            return;
+        }
+
+        // AGGIUNGI QUESTO per tracciare che il calcolo è partito
+        setMinZoomCalculated(true);
+
+        // Calcola le dimensioni TEORICHE della tabella
+        let tableWidth = 80 + 50; // colonne fisse
+        columnUnits.forEach(unit => {
+            if (unit.type === "employee") {
+                tableWidth += 100 + 60;
+            } else if (unit.type === "fatturato") {
+                tableWidth += 80;
+            } else if (unit.type === "particolarita") {
+                tableWidth += 100;
+            }
+        });
+
+        const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
+        const numRighe = 1 + giorniNelMese + 8;
+        const tableHeight = (baseHeaderHeight + (baseRowHeight * (numRighe - 1))) * 1.7;
+
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const actionButtonsHeight = 70;
+        const safeMargin = 10;
+
+        const availableWidth = viewportWidth - (safeMargin * 2);
+        const availableHeight = viewportHeight - actionButtonsHeight - (safeMargin * 2);
+
+        const zoomForWidth = availableWidth / tableWidth;
+        const zoomForHeight = availableHeight / tableHeight;
+
+        const calculatedMin = Math.min(zoomForWidth, zoomForHeight);
+        const finalZoom = calculatedMin * 0.95;
+
+        setMinZoom(Math.max(0.25, Math.min(1, finalZoom)));
+    };
+    const applyZoom = (zoom) => {
+        if (!hotRef.current?.hotInstance || Object.keys(baseColWidths).length === 0) return;
+
+        const hot = hotRef.current.hotInstance;
+
+        // Calcola le nuove larghezze delle colonne
+        const newColWidths = {};
+        Object.keys(baseColWidths).forEach(key => {
+            newColWidths[key] = Math.round(baseColWidths[key] * zoom);
+        });
+
+        // Converti l'oggetto in array per Handsontable
+        const colWidthsArray = [];
+        for (let i = 0; i < Object.keys(newColWidths).length; i++) {
+            colWidthsArray.push(newColWidths[i]);
+        }
+
+        // Calcola le nuove altezze delle righe come array
+        const rowCount = hot.countRows();
+        const newRowHeights = [];
+        for (let i = 0; i < rowCount; i++) {
+            if (i === 0) {
+                newRowHeights.push(Math.round(baseHeaderHeight * zoom));
+            } else {
+                newRowHeights.push(Math.round(baseRowHeight * zoom));
+            }
+        }
+
+        // Applica le nuove dimensioni
+        hot.updateSettings({
+            colWidths: colWidthsArray,
+            rowHeights: newRowHeights, // Ora è un array, non una funzione
+            stretchH: 'none'
+        });
+
+        // Aggiorna TUTTO proporzionalmente tramite CSS
+        const style = document.getElementById('zoom-style') || document.createElement('style');
+        style.id = 'zoom-style';
+        style.innerHTML = `
+            
+            /* Forza le dimensioni delle colonne */
+            
+            /* Forza le altezze delle righe */
+            .handsontable tr {
+                height: auto !important;
+            }
+            .handsontable tbody tr {
+                height: ${Math.round(baseRowHeight * zoom)}px !important;
+            }
+            .handsontable thead tr,
+            .handsontable tbody tr:first-child {
+                height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+            }
+            
+            /* Stili per le celle normali */
+            .handsontable td {
+                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+                padding: ${Math.round(4 * zoom)}px ${Math.round(8 * zoom)}px !important;
+                line-height: ${Math.round(20 * zoom)}px !important;
+                height: ${Math.round(baseRowHeight * zoom)}px !important;
+                min-height: ${Math.round(baseRowHeight * zoom)}px !important;
+                max-height: ${Math.round(baseRowHeight * zoom)}px !important;
+            }
+            
+            /* Stili per header e celle compatte */
+            .handsontable th,
+            .handsontable .compact-header-cell {
+                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+                height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                min-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                max-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                line-height: ${Math.round(32 * zoom)}px !important;
+                padding: ${Math.round(4 * zoom)}px ${Math.round(8 * zoom)}px !important;
+            }
+            
+            /* Container per nome dipendente e ingranaggio */
+            .employee-header-container {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                height: ${Math.round(32 * zoom)}px !important;
+                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+            }
+            
+            /* Nome dipendente */
+            .employee-name-header {
+                cursor: pointer !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: ${Math.round(4 * zoom)}px !important;
+                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+                flex: 1 !important;
+                text-align: left !important;
+            }
+            
+            /* Icona ingranaggio */
+            .settings-icon {
+                display: inline-block !important;
+                font-size: 12px !important;
+                opacity: 0.7 !important;
+                transform: scale(${zoom}) rotate(0deg) !important;
+                transform-origin: center !important;
+                transition: all 0.3s ease !important;
+                margin-left: ${Math.round(6 * zoom)}px !important;
+            }
+            
+            /* Animazione ingranaggio su hover */
+            td:hover .settings-icon,
+            .employee-header-container:hover .settings-icon,
+            .employee-name-header:hover .settings-icon {
+                transform: scale(${zoom}) rotate(45deg) !important;
+                opacity: 1 !important;
+            }
+            
+            /* Input e textarea */
+            .handsontable input, 
+            .handsontable textarea {
+                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+            }
+            
+            /* Core della tabella */
+            .handsontable .htCore {
+                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+            }
+            
+            /* Assicura che le celle abbiano le dimensioni corrette */
+            .handsontable .htCore td {
+                width: auto !important;
+                overflow: hidden !important;
+            }
+        `;
+        if (!document.getElementById('zoom-style')) {
+            document.head.appendChild(style);
+        }
+
+        // Forza il re-render
+        hot.render();
     };
 
     // Verifica se un anno è bisestile
@@ -271,6 +496,226 @@ const TurniTableComponent = ({
             return () => clearTimeout(timeoutId);
         }
     }, [employeeVariations]);
+
+    useEffect(() => {
+        if (!loading && columnUnits.length > 0 && Object.keys(baseColWidths).length === 0) {
+            const widths = {};
+            let colIndex = 0;
+
+            widths[colIndex++] = 80;
+            widths[colIndex++] = 50;
+
+            // Calcola la larghezza ottimale
+            const employeeColWidth = calculateEmployeeColumnWidth();
+
+            console.log('=== DEBUG LARGHEZZE ===');
+            console.log('Nome più lungo:', pairToEmployee.reduce((longest, current) =>
+                current.length > longest.length ? current : longest, ''));
+            console.log('Larghezza calcolata:', employeeColWidth);
+            console.log('Dipendenti:', pairToEmployee);
+
+            columnUnits.forEach(unit => {
+                if (unit.type === "employee") {
+                    widths[colIndex] = employeeColWidth;
+                    console.log(`Colonna ${colIndex}: ${employeeColWidth}px (${unit.header})`);
+                    colIndex++;
+                    widths[colIndex] = 60;
+                    colIndex++;
+                } else if (unit.type === "fatturato") {
+                    widths[colIndex++] = 80;
+                } else if (unit.type === "particolarita") {
+                    widths[colIndex++] = 100;
+                }
+            });
+
+            console.log('Widths finali:', widths);
+            setBaseColWidths(widths);
+        }
+    }, [loading, columnUnits, baseColWidths]);
+
+    useEffect(() => {
+        if (loading || !hotRef.current?.hotInstance) return;
+
+        const handleTouchStart = (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                setIsPinching(true);
+                setInitialPinchDistance(getDistance(e.touches));
+            }
+        };
+
+        const handleTouchMove = (e) => {
+            if (e.touches.length === 2 && isPinching) {
+                e.preventDefault();
+
+                const currentDistance = getDistance(e.touches);
+                const scale = currentDistance / initialPinchDistance;
+
+                let newZoom = zoomLevel * scale;
+                newZoom = Math.max(minZoom, Math.min(1.5, newZoom));
+
+                if (Math.abs(newZoom - zoomLevel) > 0.01) {
+                    applyZoom(newZoom);
+                    setZoomLevel(newZoom);
+                    setInitialPinchDistance(currentDistance);
+                }
+            } else if (e.touches.length === 1) {
+                // NON fare nulla con un solo dito - lascia che Handsontable gestisca lo scroll
+                return;
+            }
+        };
+
+        const handleTouchEnd = (e) => {
+            if (e.touches.length < 2) {
+                setIsPinching(false);
+
+                // Previeni qualsiasi evento di Handsontable
+                if (e.cancelable) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+        };
+
+        const container = containerRef.current;
+        if (container) {
+            container.addEventListener('touchstart', handleTouchStart, { passive: false });
+            container.addEventListener('touchmove', handleTouchMove, { passive: false });
+            container.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+            return () => {
+                container.removeEventListener('touchstart', handleTouchStart);
+                container.removeEventListener('touchmove', handleTouchMove);
+                container.removeEventListener('touchend', handleTouchEnd);
+            };
+        }
+    }, [isPinching, initialPinchDistance, zoomLevel, minZoom, loading]);
+
+    useEffect(() => {
+        // Aggiungi meta tag per disabilitare zoom del browser
+        const metaViewport = document.querySelector('meta[name="viewport"]');
+        if (metaViewport) {
+            const originalContent = metaViewport.getAttribute('content');
+            metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+
+            return () => {
+                // Ripristina il meta tag originale quando il componente viene smontato
+                metaViewport.setAttribute('content', originalContent);
+            };
+        }
+    }, []);
+
+    useEffect(() => {
+        if (loading) return;
+
+        const handleMouseOver = (e) => {
+            if (e.target.classList.contains('employee-name-header')) {
+                const gear = e.target.querySelector('.settings-icon');
+                if (gear) {
+                    gear.style.transform = `scale(${zoomLevel}) rotate(45deg)`;
+                }
+            }
+        };
+
+        const handleMouseOut = (e) => {
+            if (e.target.classList.contains('employee-name-header')) {
+                const gear = e.target.querySelector('.settings-icon');
+                if (gear) {
+                    gear.style.transform = `scale(${zoomLevel}) rotate(0deg)`;
+                }
+            }
+        };
+
+        const container = hotRef.current?.hotInstance?.rootElement;
+        if (container) {
+            container.addEventListener('mouseover', handleMouseOver);
+            container.addEventListener('mouseout', handleMouseOut);
+
+            return () => {
+                container.removeEventListener('mouseover', handleMouseOver);
+                container.removeEventListener('mouseout', handleMouseOut);
+            };
+        }
+    }, [loading, zoomLevel]);
+
+    useEffect(() => {
+        if (!loading && hotRef.current?.hotInstance && data.length > 1) {
+            // Aspetta che la tabella sia completamente renderizzata
+            setTimeout(() => {
+                // Leggi altezza header
+                const headerHeight = hotRef.current.hotInstance.getRowHeight(0);
+                if (headerHeight && headerHeight > 0 && baseHeaderHeight === 0) {
+                    setBaseHeaderHeight(headerHeight);
+                }
+
+                // Prova a leggere l'altezza di una riga normale (non la prima che è header)
+                let normalHeight = 0;
+
+                // Prova con diverse righe per essere sicuri
+                for (let i = 1; i < Math.min(10, data.length); i++) {
+                    const height = hotRef.current.hotInstance.getRowHeight(i);
+                    if (height && height > 0) {
+                        normalHeight = height;
+                        break;
+                    }
+                }
+
+                // Se ancora non l'ha trovata, prova a leggerla dal DOM
+                if (normalHeight === 0) {
+                    const normalRow = document.querySelector('.handsontable tbody tr:nth-child(3)');
+                    if (normalRow) {
+                        normalHeight = normalRow.offsetHeight;
+                    }
+                }
+
+                // Se ancora zero, usa un default ragionevole
+                if (normalHeight === 0) {
+                    normalHeight = 23; // Default standard di Handsontable
+                }
+
+                if (normalHeight > 0 && baseRowHeight === 0) {
+                    setBaseRowHeight(normalHeight);
+
+                    // Ricalcola minZoom quando abbiamo entrambe le altezze
+                    if (headerHeight > 0) {
+                        setTimeout(calculateMinZoom, 100);
+                    }
+                }
+            }, 500);
+        }
+    }, [loading, data]);
+
+    useEffect(() => {
+        if (!loading && hotRef.current?.hotInstance && baseFontSize === 0) {
+            // Leggi direttamente dall'elemento root di Handsontable
+            const tableElement = hotRef.current.hotInstance.rootElement;
+
+            if (tableElement) {
+                // Cerca il primo TD per avere il font reale applicato
+                const firstTd = tableElement.querySelector('.htCore td');
+
+                if (firstTd) {
+                    const computedStyle = window.getComputedStyle(firstTd);
+                    const fontSize = parseFloat(computedStyle.fontSize);
+
+                    setBaseFontSize(fontSize || 13); // 13 è quello definito nel CSS
+                    console.log('Font size dal CSS:', fontSize || 13);
+                } else {
+                    // Se non trova TD, leggi dalla tabella stessa
+                    const tableStyle = window.getComputedStyle(tableElement);
+                    const fontSize = parseFloat(tableStyle.fontSize);
+                    setBaseFontSize(fontSize || 13);
+                }
+            }
+        }
+    }, [loading, baseFontSize]);
+
+    useEffect(() => {
+        // Quando tutte le dimensioni sono pronte, calcola
+        if (baseHeaderHeight > 0 && baseRowHeight > 0 && baseFontSize > 0 && Object.keys(baseColWidths).length > 0) {
+            calculateMinZoom();
+        }
+    }, [baseHeaderHeight, baseRowHeight, baseFontSize, baseColWidths]);
 
     const generateAllTimesTable = () => {
         const times = [];
@@ -927,12 +1372,12 @@ const TurniTableComponent = ({
                             td.style.padding = '4px 8px';
 
                             // HTML compatto per l'header
-                            td.innerHTML = `<div style="display: flex; align-items: center; justify-content: space-between; height: 32px; font-size: 13px;">
-                            <span class="employee-name-header" data-col="${col}" style="cursor: pointer; flex: 1; text-align: left;">
-                                ${value}
-                            </span>
-                            <span class="settings-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.7;">⚙️</span>
-                        </div>`;
+                            td.innerHTML = `<div class="employee-header-container">
+                                <span class="employee-name-header" data-col="${col}">
+                                    ${value}
+                                    <span class="settings-icon">⚙️</span>
+                                </span>
+                            </div>`;
 
                             // Mantieni le proprietà originali
                             cellProperties.readOnly = true;
@@ -2770,10 +3215,15 @@ const TurniTableComponent = ({
                             <i className="fas fa-arrow-left"></i> Torna alla Lista
                         </button>
                     </div>
-
                     {/* Contenitore con zoom */}
                     <div
+                        ref={containerRef}
                         className="hot-container"
+                        style={{
+                            touchAction: 'none', // Disabilita i gesti nativi del browser
+                            position: 'relative',
+                            overflow: 'auto'
+                        }}
                     >
                         <HotTable
                             ref={hotRef}
@@ -2792,9 +3242,9 @@ const TurniTableComponent = ({
                             disableVisualSelection={true}
                             rowHeights={function (index) {
                                 if (index === 0) {
-                                    return 40; // Header compatto a 40px
+                                    return 40;
                                 }
-                                return undefined; // Lascia l'altezza automatica per tutte le altre righe
+                                return undefined;
                             }}
                         />
                     </div>
@@ -2863,6 +3313,52 @@ const TurniTableComponent = ({
                     )}
                 </>
             )}
+
+            {/* Indicatore zoom (se l'hai già aggiunto) */}
+            {zoomLevel !== 1 && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    padding: '8px 12px',
+                    borderRadius: '20px',
+                    fontSize: '14px',
+                    zIndex: 1000
+                }}>
+                    Zoom: {Math.round(zoomLevel * 100)}%
+                </div>
+            )}
+
+            {/* Debug info - RIMUOVI DOPO IL TEST */}
+            {/* Debug info - RIMUOVI DOPO IL TEST */}
+            <div style={{
+                position: 'fixed',
+                top: '60px',
+                left: '10px',
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '10px',
+                fontSize: '10px',
+                zIndex: 9999,
+                maxWidth: '200px',
+                fontFamily: 'monospace'
+            }}>
+                <div>Viewport: {window.innerWidth}x{window.innerHeight}</div>
+                <div>MinZoom: {Math.round(minZoom * 100)}%</div>
+                <div>Current: {Math.round(zoomLevel * 100)}%</div>
+                <div>Giorni: {new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate()}</div>
+                <div>Dipendenti: {pairToEmployee.length}</div>
+                <div>Colonne: {columnUnits.length}</div>
+                <div style={{ color: '#ffeb3b' }}>--- Dimensioni Base ---</div>
+                <div>HeaderH: {baseHeaderHeight}px</div>
+                <div>RowH: {baseRowHeight}px</div>
+                <div>Font: {baseFontSize}px</div>
+                <div>ColWidths: {Object.keys(baseColWidths).length > 0 ? 'OK' : 'NO'}</div>
+                <div>CalcEseguito: {minZoomCalculated ? 'SI' : 'NO'}</div>
+                <div>ManualZoom: NO</div>
+            </div>
         </div>
     );
 };

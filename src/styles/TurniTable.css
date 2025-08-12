@@ -555,3 +555,12 @@ td.giorno-sabato,
 .compact-header-cell:hover {
   background-color: #e9ecef;
 }
+
+/* Animazione ingranaggio */
+.settings-icon {
+    transition: transform 0.3s ease !important;
+}
+
+td:hover .settings-icon {
+    transform: rotate(45deg) !important;
+}
