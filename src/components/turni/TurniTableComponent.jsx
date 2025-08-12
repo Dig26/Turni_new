@@ -65,6 +65,8 @@ const TurniTableComponent = ({
     const [baseHeaderHeight, setBaseHeaderHeight] = useState(0); // altezza base header
     const [baseFontSize, setBaseFontSize] = useState(0); // font-size base
     const [minZoomCalculated, setMinZoomCalculated] = useState(false);
+    const [allCalculationsReady, setAllCalculationsReady] = useState(false);
+    const [calculationsLoading, setCalculationsLoading] = useState(true);
     const containerRef = useRef(null);
     const motivazioni = useSelector(state => {
         try {
@@ -99,7 +101,7 @@ const TurniTableComponent = ({
             current.length > longest.length ? current : longest, '');
 
         // Calcola la larghezza necessaria (PIÙ pixel per carattere)
-        const charWidth = 6.5; // ERA 8, ora 10
+        const charWidth = 6; // ERA 8, ora 10
         const gearSpace = 30; // ERA 30, ora 35
         const padding = 20; // ERA 20, ora 25
 
@@ -401,6 +403,12 @@ const TurniTableComponent = ({
     const [hasInitialized, setHasInitialized] = useState(false);
 
     useEffect(() => {
+        // *** MODIFICA: Attiva solo su mobile ***
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            setCalculationsLoading(true);
+        }
+
         // Se abbiamo già inizializzato e NON è una richiesta esplicita
         // di nuova tabella (isNewTable === true), non fare nulla
         if (hasInitialized && !isNewTable) {
@@ -745,6 +753,39 @@ const TurniTableComponent = ({
         }
     }, [baseHeaderHeight, baseRowHeight, baseFontSize, baseColWidths, columnUnits, pairToEmployee]);
 
+    useEffect(() => {
+        // Solo se la tabella principale non è in loading E siamo su mobile
+        const isMobile = window.innerWidth <= 768;
+
+        if (!loading && isMobile) {
+            const isReady =
+                baseHeaderHeight > 0 &&
+                baseRowHeight > 0 &&
+                baseFontSize > 0 &&
+                Object.keys(baseColWidths).length > 0 &&
+                minZoomCalculated === true;
+
+            if (isReady && calculationsLoading) {
+                // Piccolo delay per assicurarsi che tutto sia stabilizzato
+                setTimeout(() => {
+                    setCalculationsLoading(false);
+                }, 300);
+            }
+        } else if (!isMobile) {
+            // Su desktop, disattiva subito il calculations loading
+            setCalculationsLoading(false);
+        }
+    }, [baseHeaderHeight, baseRowHeight, baseFontSize, baseColWidths, minZoomCalculated, loading, calculationsLoading]);
+
+    useEffect(() => {
+        if (Object.keys(baseColWidths).length > 0 && !loading && hotRef.current?.hotInstance) {
+            // Applica le larghezze appena sono pronte
+            setTimeout(() => {
+                applyZoom(zoomLevel);
+            }, 100);
+        }
+    }, [baseColWidths, loading]);
+
     const generateAllTimesTable = () => {
         const times = [];
         for (let h = 0; h < 24; h++) {
@@ -902,7 +943,7 @@ const TurniTableComponent = ({
                     });
 
                     // Verifica che i dati contengano le intestazioni e gli elementi essenziali
-                    const hasHeaders = extensibleData[0] && extensibleData[0].giorno === "Giorno Settimana";
+                    const hasHeaders = extensibleData[0] && extensibleData[0].giorno === "Giorno";
                     const hasSummary = extensibleData.some(row => row.giorno === "ORE LAVORATE");
 
                     if (!hasHeaders || !hasSummary) {
@@ -1011,7 +1052,7 @@ const TurniTableComponent = ({
             headerRow[key] = "";
         });
 
-        headerRow.giorno = "Giorno Settimana";
+        headerRow.giorno = "Giorno";
         headerRow.giornoMese = "Giorno";
 
         // Imposta i dati dell'header per ciascuna unità
@@ -1387,6 +1428,7 @@ const TurniTableComponent = ({
                 cols.push({
                     data: unit.inizio,
                     readOnly: true,
+                    
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
                         // Se è una riga riepilogativa, aggiungi la classe summary-cell
                         if (Object.values(summaryRows).includes(row)) {
@@ -3276,7 +3318,26 @@ const TurniTableComponent = ({
                             }}
                         />
                     </div>
-
+                    {/* Overlay per calcoli post-caricamento */}
+                    {!loading && calculationsLoading && (
+                        <div className="calculation-overlay" style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            zIndex: 1000
+                        }}>
+                            <div className="loading-spinner">
+                                <i className="fas fa-calculator fa-spin"></i>
+                                <span>Calcolo dimensioni ottimali...</span>
+                            </div>
+                        </div>
+                    )}
                     {/* Tutti i popup */}
                     {showCellPopup && (
                         <CellPopup
