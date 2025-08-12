@@ -218,10 +218,16 @@ const TurniTableComponent = ({
             }
         }
 
-        // Applica le nuove dimensioni
+        // Applica le nuove dimensioni CON LA NUOVA FUNZIONE
         hot.updateSettings({
             colWidths: colWidthsArray,
-            rowHeights: newRowHeights, // Ora è un array, non una funzione
+            rowHeights: function (index) {
+                if (index === 0) {
+                    return Math.round(baseHeaderHeight * zoom);
+                } else {
+                    return Math.round(baseRowHeight * zoom);
+                }
+            },
             stretchH: 'none'
         });
 
@@ -242,22 +248,35 @@ const TurniTableComponent = ({
             .handsontable thead tr,
             .handsontable tbody tr:first-child {
                 height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                max-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                min-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+            }
+
+            /* Forza specificamente l'header */
+            .handsontable .ht_master .htCore tbody tr:first-child td {
+                height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                max-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                min-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
             }
             
-            /* Stili per le celle normali */
-            .handsontable td {
-                font-size: ${Math.round(baseFontSize * zoom)}px !important;
-                padding: ${Math.round(4 * zoom)}px ${Math.round(8 * zoom)}px !important;
-                line-height: ${Math.round(20 * zoom)}px !important;
-                height: ${Math.round(baseRowHeight * zoom)}px !important;
-                min-height: ${Math.round(baseRowHeight * zoom)}px !important;
-                max-height: ${Math.round(baseRowHeight * zoom)}px !important;
-            }
-            
-            /* Stili per header e celle compatte */
-            .handsontable th,
-            .handsontable .compact-header-cell {
-                font-size: ${Math.round(baseFontSize * zoom)}px !important;
+            /* Stili per le celle normali - TUTTE LE RIGHE inclusa la 0 */
+                .handsontable td {
+                    font-size: ${Math.round(baseFontSize * zoom)}px !important;
+                    padding: ${Math.round(4 * zoom)}px ${Math.round(8 * zoom)}px !important;
+                    line-height: ${Math.round(20 * zoom)}px !important;
+                    height: ${Math.round(baseRowHeight * zoom)}px !important;
+                    min-height: ${Math.round(baseRowHeight * zoom)}px !important;
+                    max-height: ${Math.round(baseRowHeight * zoom)}px !important;
+                }
+                
+                /* Override specifico per riga 0 (header simbolico) */
+                .handsontable tbody tr:first-child td {
+                    height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                    min-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                    max-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                    line-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
+                }
+                    
                 height: ${Math.round(baseHeaderHeight * zoom)}px !important;
                 min-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
                 max-height: ${Math.round(baseHeaderHeight * zoom)}px !important;
@@ -1623,26 +1642,6 @@ const TurniTableComponent = ({
         });
 
         return schema;
-    };
-
-    // Funzione per gestire l'inizializzazione della tabella e impostare le altezze delle righe
-    const handleAfterInit = () => {
-        if (!hotRef.current || !hotRef.current.hotInstance) return;
-
-        try {
-            // Imposta l'altezza SOLO della prima riga (header) a 40px
-            hotRef.current.hotInstance.setRowHeight(0, 40);
-
-            // Applica stili personalizzati alle celle header
-            applyHeaderStyles();
-
-            // Forza il rendering
-            hotRef.current.hotInstance.render();
-
-            console.log("Altezza header impostata a 40px, altre righe inalterate");
-        } catch (error) {
-            console.error("Errore nell'impostazione dell'altezza header:", error);
-        }
     };
 
     // Funzione per applicare stili specifici alle celle header
@@ -3450,7 +3449,13 @@ const TurniTableComponent = ({
                 <div>Font: {baseFontSize}px</div>
                 <div>ColWidths: {Object.keys(baseColWidths).length > 0 ? 'OK' : 'NO'}</div>
                 <div>CalcEseguito: {minZoomCalculated ? 'SI' : 'NO'}</div>
-                <div>ManualZoom: NO</div>
+                <div style={{ color: '#ff6b6b' }}>--- Zoom Calc ---</div>
+                <div>HeaderCalc: {Math.round(baseHeaderHeight * zoomLevel)}px</div>
+                <div>RowCalc: {Math.round(baseRowHeight * zoomLevel)}px</div>
+                <div>ZoomApplied: {Object.keys(baseColWidths).length > 0 && baseHeaderHeight > 0 ? 'SI' : 'NO'}</div>
+                <div style={{ color: '#ff9f43' }}>--- Real Heights ---</div>
+                <div>RealHeader: {hotRef.current?.hotInstance?.getRowHeight(0) || 'N/A'}px</div>
+                <div>RealRow1: {hotRef.current?.hotInstance?.getRowHeight(1) || 'N/A'}px</div>
             </div>
         </div>
     );
