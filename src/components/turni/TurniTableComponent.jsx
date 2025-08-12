@@ -129,17 +129,34 @@ const TurniTableComponent = ({
         // AGGIUNGI QUESTO per tracciare che il calcolo è partito
         setMinZoomCalculated(true);
 
-        // Calcola le dimensioni TEORICHE della tabella
-        let tableWidth = 80 + 50; // colonne fisse
-        columnUnits.forEach(unit => {
-            if (unit.type === "employee") {
-                tableWidth += 100 + 60;
-            } else if (unit.type === "fatturato") {
-                tableWidth += 80;
-            } else if (unit.type === "particolarita") {
-                tableWidth += 100;
-            }
-        });
+        // ===== FIX: Calcola le dimensioni REALI usando baseColWidths o calcolo dinamico =====
+        let tableWidth = 0;
+
+        // Se baseColWidths è disponibile, usalo (è più preciso)
+        if (Object.keys(baseColWidths).length > 0) {
+            // Usa le larghezze reali già calcolate
+            tableWidth = Object.values(baseColWidths).reduce((sum, width) => sum + width, 0);
+            console.log('MinZoom: Usando baseColWidths, larghezza totale:', tableWidth);
+        } else {
+            // Fallback: calcola dinamicamente se baseColWidths non è ancora disponibile
+            tableWidth = 80 + 50; // colonne fisse
+
+            // Calcola la larghezza reale per i dipendenti
+            const dynamicEmployeeColWidth = calculateEmployeeColumnWidth();
+            console.log('MinZoom: Larghezza dinamica dipendente calcolata:', dynamicEmployeeColWidth);
+
+            columnUnits.forEach(unit => {
+                if (unit.type === "employee") {
+                    tableWidth += dynamicEmployeeColWidth + 60; // ← Usa il valore dinamico!
+                } else if (unit.type === "fatturato") {
+                    tableWidth += 80;
+                } else if (unit.type === "particolarita") {
+                    tableWidth += 100;
+                }
+            });
+
+            console.log('MinZoom: Usando calcolo dinamico, larghezza totale:', tableWidth);
+        }
 
         const giorniNelMese = new Date(parseInt(anno), parseInt(mese) + 1, 0).getDate();
         const numRighe = 1 + giorniNelMese + 8;
@@ -158,6 +175,16 @@ const TurniTableComponent = ({
 
         const calculatedMin = Math.min(zoomForWidth, zoomForHeight);
         const finalZoom = calculatedMin * 0.95;
+
+        console.log('MinZoom Debug:', {
+            tableWidth,
+            tableHeight,
+            availableWidth,
+            availableHeight,
+            zoomForWidth: Math.round(zoomForWidth * 100) + '%',
+            zoomForHeight: Math.round(zoomForHeight * 100) + '%',
+            finalZoom: Math.round(finalZoom * 100) + '%'
+        });
 
         setMinZoom(Math.max(0.25, Math.min(1, finalZoom)));
     };
@@ -711,11 +738,12 @@ const TurniTableComponent = ({
     }, [loading, baseFontSize]);
 
     useEffect(() => {
-        // Quando tutte le dimensioni sono pronte, calcola
-        if (baseHeaderHeight > 0 && baseRowHeight > 0 && baseFontSize > 0 && Object.keys(baseColWidths).length > 0) {
+        // Quando tutte le dimensioni sono pronte O quando baseColWidths cambia, ricalcola
+        if (baseHeaderHeight > 0 && baseRowHeight > 0 && baseFontSize > 0) {
+            // Calcola sempre, anche se baseColWidths è vuoto (userà il fallback)
             calculateMinZoom();
         }
-    }, [baseHeaderHeight, baseRowHeight, baseFontSize, baseColWidths]);
+    }, [baseHeaderHeight, baseRowHeight, baseFontSize, baseColWidths, columnUnits, pairToEmployee]);
 
     const generateAllTimesTable = () => {
         const times = [];
