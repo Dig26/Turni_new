@@ -537,7 +537,7 @@ const TurniTableComponent = ({
             const widths = {};
             let colIndex = 0;
 
-            widths[colIndex++] = 80;
+            widths[colIndex++] = Math.max(100, ("DOMENICA".length * 8) + 16);;
             widths[colIndex++] = 50;
 
             // Calcola la larghezza ottimale
@@ -1386,7 +1386,11 @@ const TurniTableComponent = ({
                                 td.className += ' giorno-domenica';
                             } else if (dayValue.includes('sabato')) {
                                 td.className += ' giorno-sabato';
+                            } else {
+                                td.className += ' giorno-normale';
                             }
+                        } else {
+                            td.className += ' giorno-normale';
                         }
                     }
 
@@ -1428,7 +1432,7 @@ const TurniTableComponent = ({
                 cols.push({
                     data: unit.inizio,
                     readOnly: true,
-                    
+
                     renderer: (instance, td, row, col, prop, value, cellProperties) => {
                         // Se è una riga riepilogativa, aggiungi la classe summary-cell
                         if (Object.values(summaryRows).includes(row)) {

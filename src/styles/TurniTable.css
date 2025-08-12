@@ -1,4 +1,4 @@
-/* TurniTable.css - Correzioni finali con dipendenti centrati */
+/* TurniTable.css - Correzioni finali con dipendenti centrati e colonna giorno centrata */
 
 /* ===== LAYOUT DI BASE ===== */
 .turni-table-container {
@@ -263,106 +263,40 @@
   text-overflow: ellipsis;
 }
 
-/* ===== STILI HEADER DIPENDENTI - CENTRATI ===== */
+/* ===== STILI PER COLONNA GIORNO - CENTRATI E CON PADDING UNIFORME ===== */
 
-/* Container per nome dipendente e ingranaggio - CENTRATO */
-.employee-header-container {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important; /* CENTRATO */
-    height: 32px !important;
-    font-size: 13px !important;
-    padding: 0 !important; /* Nessun padding interno, usa solo quello della cella */
+/* Stile base per tutte le celle della colonna giorno (non riepilogative) */
+.giorno-cell {
+  text-align: center !important;
+  padding: 8px !important;
+  vertical-align: middle !important;
 }
-
-/* Nome dipendente - raggruppato con ingranaggio */
-.employee-name-header {
-    cursor: pointer !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 4px !important; /* Spazio tra nome e ingranaggio */
-    font-size: 13px !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    color: #495057;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    /* Rimosse: flex: 1, max-width che causavano sbilanciamento */
-}
-
-/* Hover effect per il nome dipendente */
-.employee-name-header:hover {
-    color: #2196f3;
-}
-
-/* Icona ingranaggio */
-.settings-icon {
-    display: inline-block !important;
-    font-size: 12px !important;
-    opacity: 0.7 !important;
-    transition: all 0.3s ease !important;
-    transform-origin: center !important;
-    flex-shrink: 0;
-}
-
-/* Animazione ingranaggio su hover */
-td:hover .settings-icon,
-.employee-header-container:hover .settings-icon,
-.employee-name-header:hover .settings-icon {
-    transform: rotate(45deg) !important;
-    opacity: 1 !important;
-    color: #2196f3;
-}
-
-/* ===== STILI CELLE HEADER COMPATTE ===== */
-.compact-header-cell {
-  height: 40px !important;
-  max-height: 40px !important;
-  min-height: 40px !important;
-  padding: 4px 8px !important; /* Padding uniforme */
-  vertical-align: middle;
-  font-size: 13px !important;
-  line-height: 32px !important;
-  font-weight: 600;
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-  text-align: center !important; /* Centra tutto */
-}
-
-/* Stile specifico per i div all'interno delle celle header */
-.compact-header-cell div {
-  height: 32px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important; /* CENTRATO */
-  overflow: hidden;
-}
-
-/* Assicura che le celle header non si espandano */
-.ht_master .htCore tbody tr:first-child td.compact-header-cell {
-  height: 40px !important;
-  max-height: 40px !important;
-  overflow: hidden;
-}
-
-/* Stile per le celle header quando sono in hover */
-.compact-header-cell:hover {
-  background-color: #e9ecef;
-}
-
-/* Stili per i giorni della settimana nella tabella turni */
 
 /* Domenica - sfondo scuro con testo bianco */
 .giorno-domenica {
   background-color: #464646 !important;
   color: #ffffff !important;
   font-weight: bold !important;
+  text-align: center !important;
+  padding: 8px !important;
+  vertical-align: middle !important;
 }
 
 /* Sabato - sfondo grigio medio */
 .giorno-sabato {
   background-color: #aaaaaa !important;
+  color: #000000 !important;
   font-weight: bold !important;
+  text-align: center !important;
+  padding: 8px !important;
+  vertical-align: middle !important;
+}
+
+/* Altri giorni della settimana - stile normale con centratura */
+.giorno-normale {
+  text-align: center !important;
+  padding: 8px !important;
+  vertical-align: middle !important;
 }
 
 /* Assicurati che i colori si applichino anche quando la cella è selezionata */
@@ -394,6 +328,88 @@ td.giorno-domenica,
 td.giorno-sabato,
 .giorno-sabato td {
   color: #000000 !important;
+}
+
+/* ===== STILI HEADER DIPENDENTI - CENTRATI ===== */
+
+/* Container per nome dipendente e ingranaggio - CENTRATO */
+.employee-header-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important; /* CENTRATO */
+  height: 32px !important;
+  font-size: 13px !important;
+  padding: 0 !important; /* Nessun padding interno, usa solo quello della cella */
+}
+
+/* Nome dipendente - raggruppato con ingranaggio */
+.employee-name-header {
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important; /* Spazio tra nome e ingranaggio */
+  font-size: 13px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  color: #495057;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  /* Rimosse: flex: 1, max-width che causavano sbilanciamento */
+}
+
+/* Hover effect per il nome dipendente */
+.employee-name-header:hover {
+  color: #2196f3;
+}
+
+/* Icona ingranaggio */
+.settings-icon {
+  display: inline-block !important;
+  font-size: 12px !important;
+  opacity: 0.7 !important;
+  transition: all 0.3s ease !important;
+  transform-origin: center !important;
+  flex-shrink: 0;
+}
+
+/* Animazione ingranaggio su hover */
+td:hover .settings-icon,
+.employee-header-container:hover .settings-icon,
+.employee-name-header:hover .settings-icon {
+  transform: rotate(45deg) !important;
+  opacity: 1 !important;
+  color: #2196f3;
+}
+
+/* ===== STILI CELLE HEADER COMPATTE ===== */
+.compact-header-cell {
+  padding: 4px 8px !important;
+  vertical-align: middle;
+  font-size: 13px !important;
+  line-height: 32px !important;
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  text-align: center !important;
+}
+
+/* Stile specifico per i div all'interno delle celle header */
+.compact-header-cell div {
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important; /* CENTRATO */
+  overflow: hidden;
+}
+
+/* Assicura che le celle header mantengano le proporzioni */
+.ht_master .htCore tbody tr:first-child td.compact-header-cell {
+  overflow: hidden;
+}
+
+/* Stile per le celle header quando sono in hover */
+.compact-header-cell:hover {
+  background-color: #e9ecef;
 }
 
 /* ===== POPUPS E MODALI ===== */
